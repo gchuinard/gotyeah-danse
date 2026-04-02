@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desha-Moulin — École de danse, Bergerac</title>
+<style>
+@font-face { font-family: 'Jost'; font-style: normal; font-weight: 300 500; font-display: swap; src: url('fonts/jost-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Jost'; font-style: normal; font-weight: 300 500; font-display: swap; src: url('fonts/jost-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Lora'; font-style: normal; font-weight: 400 500; font-display: swap; src: url('fonts/lora-normal-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Lora'; font-style: normal; font-weight: 400 500; font-display: swap; src: url('fonts/lora-normal-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Lora'; font-style: italic; font-weight: 400 500; font-display: swap; src: url('fonts/lora-italic-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Lora'; font-style: italic; font-weight: 400 500; font-display: swap; src: url('fonts/lora-italic-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+</style>
+<style>
+:root {
+  --sable:       #e8ddd0;
+  --sable-2:     #f2ece3;
+  --sable-3:     #faf7f2;
+  --terre:       #5c3d2e;
+  --terre-2:     #8b5e4a;
+  --encre:       #1e1a16;
+  --gris-chd:    #7a7068;
+  --rose-poudre: #d4a090;
+  --ease: cubic-bezier(0.25, 0, 0.1, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Jost', sans-serif; background: var(--sable-3); color: var(--encre); overflow-x: hidden; }
+
+/* ── ANNONCE ── */
+.annonce {
+  background: var(--terre);
+  color: rgba(255,255,255,0.9);
+  text-align: center;
+  padding: 0.7rem 2rem;
+  font-size: 0.78rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+}
+.annonce strong { font-weight: 500; }
+.annonce-large { padding: 1.4rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; letter-spacing: 0.05em; }
+.annonce-titre { font-weight: 500; font-size: 0.88rem; letter-spacing: 0.1em; }
+.annonce-corps { font-size: 0.78rem; color: rgba(255,255,255,0.8); }
+.annonce-dates { display: flex; align-items: center; gap: 1rem; font-size: 0.8rem; font-weight: 400; color: var(--rose-poudre); }
+.annonce-sep { color: rgba(255,255,255,0.3); }
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 1.5rem 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.5s var(--ease);
+}
+nav.scrolled {
+  top: 0;
+  background: rgba(250,247,242,0.95);
+  backdrop-filter: blur(16px);
+  padding: 1.1rem 4rem;
+  box-shadow: 0 1px 0 rgba(92,61,46,0.1);
+}
+.nav-logo { font-family: 'Lora', serif; font-size: 1.1rem; font-weight: 400; letter-spacing: 0.06em; color: var(--sable-3); text-decoration: none; transition: color 0.3s; }
+nav.scrolled .nav-logo { color: var(--encre); }
+.nav-logo-img { height: 44px; width: auto; filter: brightness(0) invert(1); transition: filter 0.3s, opacity 0.3s; opacity: 0; pointer-events: none; }
+nav.scrolled .nav-logo-img { filter: brightness(0); opacity: 1; pointer-events: auto; }
+.nav-links { display: flex; gap: 2.5rem; list-style: none; align-items: center; }
+.nav-links a { font-size: 0.8rem; font-weight: 400; letter-spacing: 0.08em; color: rgba(250,247,242,0.6); text-decoration: none; transition: color 0.25s; }
+nav.scrolled .nav-links a { color: var(--gris-chd); }
+.nav-links a:hover { color: var(--rose-poudre) !important; }
+.nav-btn { padding: 0.55rem 1.4rem; border: 1px solid rgba(250,247,242,0.35); border-radius: 100px; font-size: 0.78rem; font-weight: 400; color: rgba(250,247,242,0.85) !important; letter-spacing: 0.08em; transition: all 0.3s !important; }
+nav.scrolled .nav-btn { border-color: rgba(92,61,46,0.25); color: var(--terre) !important; }
+.nav-btn:hover, .nav-links a.nav-btn:hover { background: var(--rose-poudre) !important; border-color: var(--rose-poudre) !important; color: white !important; }
+
+/* ── HERO ── */
+.hero { min-height: 75vh; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
+.hero-left {
+  background: var(--terre);
+  padding: 7rem 4rem 5rem;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  position: relative; overflow: hidden;
+}
+.hero-left::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('images/IMG_98021.jpg') center/cover no-repeat;
+  opacity: 0.2;
+  mix-blend-mode: luminosity;
+}
+.hero-circle { position: absolute; width: 500px; height: 500px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); top: -120px; left: -120px; pointer-events: none; }
+.hero-circle-2 { position: absolute; width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.05); bottom: 80px; right: -80px; pointer-events: none; }
+.hero-left-content { position: relative; z-index: 2; }
+.hero-logo { height: 250px; width: auto; filter: brightness(0) invert(1); margin-bottom: 2rem; opacity: 0; animation: fadeUp 0.7s var(--ease) 0.1s forwards; display: block; }
+.hero-eyebrow { font-size: 0.7rem; font-weight: 400; letter-spacing: 0.22em; text-transform: uppercase; color: var(--rose-poudre); margin-bottom: 1.8rem; opacity: 0; animation: fadeUp 0.7s var(--ease) 0.3s forwards; }
+.hero-title { font-family: 'Lora', serif; font-size: clamp(3rem, 5.5vw, 5.5rem); font-weight: 400; line-height: 1; letter-spacing: -0.02em; color: var(--sable-3); margin-bottom: 2.5rem; opacity: 0; animation: fadeUp 0.9s var(--ease) 0.5s forwards; }
+.hero-title em { font-style: italic; color: rgba(250,247,242,0.45); display: block; }
+.hero-desc { font-size: 0.95rem; font-weight: 300; color: rgba(250,247,242,0.5); line-height: 1.8; max-width: 320px; margin-bottom: 3rem; opacity: 0; animation: fadeUp 0.8s var(--ease) 0.65s forwards; }
+.hero-cta { display: inline-flex; align-items: center; gap: 0.7rem; padding: 1rem 2rem; background: var(--rose-poudre); color: white; text-decoration: none; font-size: 0.8rem; font-weight: 400; letter-spacing: 0.1em; border-radius: 100px; width: fit-content; transition: all 0.35s var(--ease); opacity: 0; animation: fadeUp 0.7s var(--ease) 0.8s forwards; }
+.hero-cta:hover { background: var(--sable-3); color: var(--terre); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(92,61,46,0.25); }
+
+.hero-right { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem; }
+.hero-right-img { position: absolute; inset: 0; }
+.hero-right-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; filter: sepia(15%) saturate(0.9); transition: transform 10s var(--ease); }
+.hero-right-img:hover img { transform: scale(1.03); }
+.hero-right-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(92,61,46,0.6) 0%, transparent 55%), linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 25%); }
+.hero-right-caption { position: relative; z-index: 2; font-size: 0.75rem; font-weight: 300; color: rgba(250,247,242,0.6); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* ── STATS ── */
+.stats-band { background: var(--sable); display: flex; border-top: 1px solid rgba(92,61,46,0.12); border-bottom: 1px solid rgba(92,61,46,0.12); }
+.stat-item { flex: 1; padding: 2.5rem 3rem; display: flex; align-items: center; gap: 1.5rem; border-right: 1px solid rgba(92,61,46,0.1); transition: background 0.3s; }
+.stat-item:last-child { border-right: none; }
+.stat-item:hover { background: var(--sable-2); }
+.stat-num { font-family: 'Lora', serif; font-size: 2.5rem; font-weight: 400; color: var(--terre); line-height: 1; flex-shrink: 0; }
+.stat-text-label { font-size: 0.78rem; font-weight: 500; color: var(--encre); margin-bottom: 0.1rem; }
+.stat-text-sub { font-size: 0.72rem; font-weight: 300; color: var(--gris-chd); }
+
+/* ── COMMUN ── */
+.s { padding: 7rem 4rem; }
+.eyebrow { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--rose-poudre); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+.eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--rose-poudre); border-radius: 1px; }
+h2.titre { font-family: 'Lora', serif; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 400; letter-spacing: -0.015em; line-height: 1.15; margin-bottom: 1rem; }
+h2.titre em { font-style: italic; color: var(--gris-chd); }
+
+/* ── ABOUT ── */
+.about { background: var(--sable-3); display: grid; grid-template-columns: 5fr 4fr; gap: 6rem; align-items: center; }
+.about-text p { font-size: 1rem; font-weight: 300; color: var(--gris-chd); line-height: 1.9; margin-bottom: 1.5rem; max-width: 520px; }
+.prof-strip { display: flex; align-items: center; gap: 1.2rem; padding: 1.5rem 2rem; background: var(--sable); border-radius: 16px; margin-top: 2.5rem; border: 1px solid rgba(92,61,46,0.1); }
+.prof-initials { width: 48px; height: 48px; border-radius: 50%; background: var(--terre); display: flex; align-items: center; justify-content: center; font-family: 'Lora', serif; font-size: 1rem; color: var(--sable-2); flex-shrink: 0; }
+.prof-info-name { font-family: 'Lora', serif; font-size: 1rem; font-weight: 400; margin-bottom: 0.15rem; }
+.prof-info-role { font-size: 0.78rem; font-weight: 300; color: var(--gris-chd); line-height: 1.4; }
+.about-visual { position: relative; }
+.about-img-wrap { width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 120px 120px 0 0; background: var(--sable); }
+.about-img-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: center top; filter: sepia(10%) saturate(0.85); transition: transform 0.8s var(--ease); }
+.about-img-wrap:hover img { transform: scale(1.04); }
+.about-badge { position: absolute; bottom: -1.5rem; left: -1.5rem; width: 130px; height: 130px; background: var(--rose-poudre); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem; border: 4px solid var(--sable-3); }
+.about-badge-num { font-family: 'Lora', serif; font-size: 1.8rem; font-weight: 400; color: white; line-height: 1; }
+.about-badge-label { font-size: 0.62rem; font-weight: 400; color: rgba(255,255,255,0.8); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.3; margin-top: 0.2rem; }
+
+/* ── COURS ── */
+.cours { background: var(--sable-2); }
+.cours-intro { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem; gap: 2rem; }
+.cours-intro-sub { font-size: 0.92rem; font-weight: 300; color: var(--gris-chd); line-height: 1.7; max-width: 300px; }
+.cours-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+.cours-card { background: var(--sable-3); border-radius: 24px; overflow: hidden; border: 1px solid rgba(92,61,46,0.08); transition: transform 0.4s var(--ease), box-shadow 0.4s; }
+.cours-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(92,61,46,0.12); }
+.cours-card-bar { height: 4px; }
+.cours-card:nth-child(1) .cours-card-bar { background: var(--rose-poudre); }
+.cours-card:nth-child(2) .cours-card-bar { background: var(--terre-2); }
+.cours-card:nth-child(3) .cours-card-bar { background: var(--terre); }
+.cours-card:nth-child(4) .cours-card-bar { background: #9b7b6a; }
+.cours-card-img { width: 100%; aspect-ratio: 16/9; overflow: hidden; }
+.cours-card-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; transition: transform 0.5s var(--ease); filter: saturate(0.9); }
+.cours-card:hover .cours-card-img img { transform: scale(1.04); }
+.cours-card:nth-child(3) .cours-card-img img { object-position: top; }
+.cours-card-body { padding: 2rem 2rem 2.5rem; }
+.cours-card-icon { font-size: 2rem; margin-bottom: 1.2rem; display: block; }
+.cours-card-name { font-family: 'Lora', serif; font-size: 1.55rem; font-weight: 400; margin-bottom: 0.3rem; line-height: 1.1; }
+.cours-card-age { font-size: 0.73rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rose-poudre); margin-bottom: 1.2rem; }
+.cours-card-desc { font-size: 0.88rem; font-weight: 300; color: var(--gris-chd); line-height: 1.75; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(92,61,46,0.1); }
+.sch-label { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-chd); margin-bottom: 0.8rem; opacity: 0.7; }
+.sch-row { display: flex; justify-content: space-between; padding: 0.4rem 0; gap: 0.5rem; border-bottom: 1px solid rgba(92,61,46,0.06); }
+.sch-row:last-child { border-bottom: none; }
+.sch-niv { font-size: 0.8rem; font-weight: 400; color: var(--encre); flex: 1; }
+.sch-h { font-size: 0.75rem; font-weight: 300; color: var(--gris-chd); white-space: nowrap; }
+
+/* ── TARIFS ── */
+.tarifs { background: var(--terre); color: var(--sable-2); }
+.tarifs .eyebrow { color: var(--rose-poudre); }
+.tarifs .eyebrow::before { background: var(--rose-poudre); }
+.tarifs h2.titre { color: var(--sable-3); }
+.tarifs h2.titre em { color: rgba(250,247,242,0.35); }
+
+.tarifs-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 6rem; margin-bottom: 4rem; align-items: end; }
+.tarifs-note { font-size: 0.9rem; font-weight: 300; color: rgba(250,247,242,0.5); line-height: 1.8; }
+.tarifs-note strong { color: rgba(250,247,242,0.85); font-weight: 400; }
+
+.tarifs-table { width: 100%; border-top: 1px solid rgba(250,247,242,0.12); }
+.tarifs-col-head { display: grid; grid-template-columns: 1fr 90px 110px; gap: 2rem; padding: 0.8rem 0 1rem; }
+.tarifs-col-head span { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(250,247,242,0.25); text-align: right; }
+.tarifs-col-head span:first-child { text-align: left; }
+
+.tarif-ligne { display: grid; grid-template-columns: 1fr 90px 110px; gap: 2rem; align-items: center; padding: 1.2rem 0; border-bottom: 1px solid rgba(250,247,242,0.07); transition: all 0.2s; }
+.tarif-ligne:hover { background: rgba(250,247,242,0.04); padding-left: 1rem; padding-right: 1rem; margin: 0 -1rem; }
+.tarif-service { font-size: 0.95rem; font-weight: 300; color: rgba(250,247,242,0.85); line-height: 1.4; }
+.tarif-service small { display: block; font-size: 0.75rem; color: rgba(250,247,242,0.35); margin-top: 0.15rem; }
+.tarif-mois-val { font-family: 'Lora', serif; font-size: 1.05rem; font-weight: 400; color: var(--sable-3); text-align: right; }
+.tarif-trim-val { font-size: 0.82rem; font-weight: 300; color: rgba(250,247,242,0.35); text-align: right; }
+
+.tarifs-divider { margin: 3.5rem 0 2rem; display: flex; align-items: center; gap: 1.5rem; }
+.tarifs-divider-label { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(250,247,242,0.25); white-space: nowrap; }
+.tarifs-divider-line { flex: 1; height: 1px; background: rgba(250,247,242,0.1); }
+
+.tarifs-specials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(250,247,242,0.08); margin-bottom: 2rem; }
+.spec-block { background: var(--terre); padding: 1.8rem 2rem; transition: background 0.3s; }
+.spec-block:hover { background: rgba(250,247,242,0.05); }
+.spec-block-service { font-size: 0.88rem; font-weight: 300; color: rgba(250,247,242,0.6); margin-bottom: 0.6rem; line-height: 1.5; }
+.spec-block-service small { display: block; font-size: 0.75rem; opacity: 0.6; margin-top: 0.2rem; }
+.spec-block-prix { font-family: 'Lora', serif; font-size: 1.3rem; font-weight: 400; color: var(--sable-2); }
+
+.famille-note { padding: 1.2rem 1.8rem; background: rgba(212,160,144,0.12); border-left: 2px solid var(--rose-poudre); font-size: 0.85rem; font-weight: 300; color: rgba(250,247,242,0.55); line-height: 1.7; }
+.famille-note strong { color: var(--rose-poudre); font-weight: 400; }
+
+/* ── INSCRIPTION ── */
+.inscription { background: var(--sable); }
+.inscription-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 8rem; margin-top: 4rem; align-items: start; }
+.inscription-steps { display: flex; flex-direction: column; gap: 0; }
+.insc-step { display: flex; gap: 2rem; align-items: flex-start; padding: 1.8rem 0; border-bottom: 1px solid rgba(92,61,46,0.1); }
+.insc-step:first-child { padding-top: 0; }
+.insc-step:last-child { border-bottom: none; }
+.insc-num { font-family: 'Lora', serif; font-size: 2rem; font-weight: 400; color: var(--rose-poudre); line-height: 1; flex-shrink: 0; width: 2.5rem; }
+.insc-step-title { font-size: 0.92rem; font-weight: 500; color: var(--encre); margin-bottom: 0.3rem; }
+.insc-step-desc { font-size: 0.85rem; font-weight: 300; color: var(--gris-chd); line-height: 1.6; }
+.inscription-note { background: var(--sable-2); border-radius: 20px; padding: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.inscription-note-title { font-family: 'Lora', serif; font-size: 1.1rem; font-weight: 400; color: var(--encre); }
+.inscription-note-text { font-size: 0.88rem; font-weight: 300; color: var(--gris-chd); line-height: 1.8; }
+.inscription-cta { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.8rem 1.8rem; background: var(--terre); color: var(--sable-3); border-radius: 100px; font-size: 0.8rem; font-weight: 400; letter-spacing: 0.06em; text-decoration: none; transition: all 0.3s var(--ease); align-self: flex-start; }
+.inscription-cta:hover { background: var(--encre); transform: translateY(-2px); }
+.insc-dl { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 0.8rem; padding: 0.45rem 1rem; border: 1px solid rgba(92,61,46,0.2); border-radius: 100px; font-size: 0.75rem; font-weight: 400; color: var(--terre); text-decoration: none; transition: all 0.25s; }
+.insc-dl:hover { background: var(--terre); color: var(--sable-3); border-color: var(--terre); }
+
+/* ── FAQ ── */
+.faq { background: var(--sable-2); }
+.faq-intro { margin-bottom: 3rem; }
+.faq-list { max-width: 780px; }
+.faq-item { border-bottom: 1px solid rgba(92,61,46,0.12); }
+.faq-q { width: 100%; background: none; border: none; padding: 1.6rem 0; display: flex; justify-content: space-between; align-items: center; gap: 2rem; text-align: left; cursor: pointer; font-family: 'Lora', serif; font-size: 1rem; font-weight: 400; color: var(--encre); }
+.faq-q:hover { color: var(--terre); }
+.faq-icon { font-size: 1.4rem; font-weight: 300; color: var(--rose-poudre); flex-shrink: 0; transition: transform 0.3s var(--ease); line-height: 1; }
+.faq-item.open .faq-icon { transform: rotate(45deg); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s var(--ease); }
+.faq-item.open .faq-a { max-height: 600px; }
+.faq-a-inner { padding-bottom: 1.6rem; font-size: 0.9rem; font-weight: 300; color: var(--gris-chd); line-height: 1.7; }
+.faq-a-inner p + p { margin-top: 0.6rem; }
+.faq-niveau-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+.faq-niveau-table th { text-align: left; font-weight: 500; color: var(--terre); padding: 0.5rem 1rem 0.5rem 0; border-bottom: 1px solid rgba(92,61,46,0.15); }
+.faq-niveau-table td { padding: 0.5rem 1rem 0.5rem 0; border-bottom: 1px solid rgba(92,61,46,0.06); color: var(--encre); }
+
+/* ── CONTACT ── */
+.contact { background: var(--sable-3); }
+.contact-layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4rem; margin-top: 4rem; align-items: start; }
+.contact-map { border-radius: 16px; overflow: hidden; height: 360px; border: 1px solid rgba(92,61,46,0.1); }
+.contact-infos { display: flex; flex-direction: column; }
+.contact-row { display: flex; gap: 2rem; align-items: flex-start; padding: 2rem 0; border-bottom: 1px solid rgba(92,61,46,0.1); }
+.contact-row:first-child { padding-top: 0; }
+.contact-row:last-child { border-bottom: none; }
+.contact-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rose-poudre); flex-shrink: 0; margin-top: 0.45rem; }
+.contact-row-label { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gris-chd); margin-bottom: 0.5rem; }
+.contact-row-value { font-family: 'Lora', serif; font-size: 1.2rem; font-weight: 400; line-height: 1.4; color: var(--encre); }
+.contact-row-value a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(92,61,46,0.2); padding-bottom: 1px; transition: border-color 0.2s, color 0.2s; }
+.contact-row-value a:hover { color: var(--terre); border-color: var(--terre); }
+
+.contact-ig-card { background: var(--sable); border-radius: 24px; padding: 2.5rem; border: 1px solid rgba(92,61,46,0.1); }
+.ig-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.ig-icon-wrap { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #f09433, #dc2743, #bc1888); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ig-icon-wrap svg { width: 20px; height: 20px; fill: white; }
+.ig-handle { font-family: 'Lora', serif; font-size: 1.05rem; font-weight: 400; margin-bottom: 0.1rem; }
+.ig-sub { font-size: 0.78rem; font-weight: 300; color: var(--gris-chd); }
+.ig-text { font-size: 0.88rem; font-weight: 300; color: var(--gris-chd); line-height: 1.75; margin-bottom: 2rem; }
+.ig-btn { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.8rem; background: var(--terre); color: var(--sable-2); text-decoration: none; font-size: 0.78rem; font-weight: 400; letter-spacing: 0.08em; border-radius: 100px; transition: all 0.3s var(--ease); }
+.ig-btn:hover { background: var(--rose-poudre); transform: translateY(-2px); }
+
+/* ── AVIS GOOGLE ── */
+.avis-band { background: var(--terre); padding: 5rem 4rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2rem; }
+.avis-stars { display: flex; gap: 0.4rem; justify-content: center; }
+.avis-star { font-size: 2rem; color: #f5c842; }
+.avis-title { font-family: 'Lora', serif; font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 400; color: var(--sable-3); line-height: 1.2; }
+.avis-title em { color: var(--rose-poudre); font-style: italic; }
+.avis-sub { font-size: 0.9rem; font-weight: 300; color: rgba(250,247,242,0.55); max-width: 480px; line-height: 1.7; }
+.avis-btn { display: inline-flex; align-items: center; gap: 0.7rem; padding: 1rem 2.2rem; background: var(--sable-3); color: var(--terre); border-radius: 100px; font-size: 0.85rem; font-weight: 500; letter-spacing: 0.06em; text-decoration: none; transition: all 0.3s var(--ease); margin-top: 0.5rem; }
+.avis-btn:hover { background: white; transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
+.avis-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* ── FOOTER ── */
+footer { background: var(--encre); padding: 2.5rem 4rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }
+.footer-logo { font-family: 'Lora', serif; font-size: 0.95rem; font-weight: 400; color: rgba(250,247,242,0.5); letter-spacing: 0.06em; }
+.footer-copy { font-size: 0.75rem; font-weight: 300; color: rgba(250,247,242,0.25); }
+.footer-link { font-size: 0.75rem; font-weight: 300; color: rgba(250,247,242,0.25); text-decoration: none; transition: color 0.2s; }
+.footer-link:hover { color: rgba(250,247,242,0.6); }
+
+/* ── COOKIES ── */
+.cookie-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; background: var(--encre); color: rgba(250,247,242,0.8); padding: 1.2rem 4rem; display: flex; align-items: center; gap: 2rem; justify-content: space-between; font-size: 0.8rem; font-weight: 300; line-height: 1.6; box-shadow: 0 -4px 24px rgba(0,0,0,0.2); transform: translateY(100%); transition: transform 0.4s var(--ease); }
+.cookie-banner.visible { transform: translateY(0); }
+.cookie-banner a { color: var(--rose-poudre); text-decoration: none; }
+.cookie-banner a:hover { text-decoration: underline; }
+.cookie-btns { display: flex; gap: 0.8rem; flex-shrink: 0; }
+.cookie-btn { padding: 0.55rem 1.3rem; border-radius: 100px; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.25s; white-space: nowrap; }
+.cookie-btn-accept { background: var(--rose-poudre); color: white; }
+.cookie-btn-accept:hover { background: var(--terre); }
+.cookie-btn-refuse { background: transparent; color: rgba(250,247,242,0.4); border: 1px solid rgba(250,247,242,0.15); }
+.cookie-btn-refuse:hover { color: rgba(250,247,242,0.7); border-color: rgba(250,247,242,0.35); }
+.map-placeholder { width: 100%; height: 100%; background: var(--sable-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; text-align: center; padding: 2rem; }
+.map-placeholder p { font-size: 0.82rem; color: var(--gris-chd); line-height: 1.6; }
+.map-placeholder a { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.4rem; background: var(--terre); color: var(--sable-3); border-radius: 100px; font-size: 0.78rem; text-decoration: none; transition: background 0.25s; }
+.map-placeholder a:hover { background: var(--encre); }
+
+/* ── MODAL POLITIQUE ── */
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(30,26,22,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 2rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--sable-3); border-radius: 24px; max-width: 680px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 3rem; position: relative; }
+.modal-close { position: absolute; top: 1.5rem; right: 1.5rem; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(92,61,46,0.15); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--gris-chd); transition: all 0.2s; }
+.modal-close:hover { background: rgba(92,61,46,0.08); }
+.modal h2 { font-family: 'Lora', serif; font-size: 1.5rem; font-weight: 400; color: var(--encre); margin-bottom: 0.4rem; }
+.modal-date { font-size: 0.72rem; color: var(--gris-chd); margin-bottom: 2rem; }
+.modal h3 { font-size: 0.8rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--terre); margin: 2rem 0 0.6rem; }
+.modal p, .modal li { font-size: 0.88rem; font-weight: 300; color: var(--gris-chd); line-height: 1.8; }
+.modal ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.modal a { color: var(--terre); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.85s var(--ease), transform 0.85s var(--ease); }
+.reveal.visible { opacity: 1; transform: none; }
+.d1 { transition-delay: 0.1s; }
+.d2 { transition-delay: 0.2s; }
+
+/* ── PLANNING ── */
+.planning { background: var(--sable); }
+.planning-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 3rem;
+  border-bottom: 1px solid rgba(92,61,46,0.15);
+  align-items: center;
+}
+.planning-tab {
+  padding: 0.9rem 2rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--gris-chd);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.25s;
+  user-select: none;
+}
+.planning-tab:hover { color: var(--terre); }
+.planning-tab.active { color: var(--terre); border-bottom-color: var(--rose-poudre); }
+.planning-print-btn { margin-left: auto; display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(92,61,46,0.2); border-radius: 100px; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.07em; color: var(--gris-chd); cursor: pointer; background: none; transition: all 0.25s; }
+.planning-print-btn:hover { border-color: var(--rose-poudre); color: var(--terre); }
+.planning-print-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+@page { size: A4 landscape; margin: 1cm; }
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
+.planning-view { display: none; }
+.planning-view.active { display: block; }
+
+/* Vue tableau */
+.planning-grid {
+  display: grid;
+  grid-template-columns: 70px repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(92,61,46,0.1);
+  border: 1px solid rgba(92,61,46,0.1);
+  overflow: hidden;
+  border-radius: 16px;
+}
+.pg-header {
+  background: var(--terre);
+  padding: 1rem 1.2rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(250,247,242,0.7);
+  text-align: center;
+}
+.pg-header.time-col { background: var(--encre); }
+.pg-time {
+  background: var(--sable-3);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--gris-chd);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-feature-settings: "tnum";
+}
+.pg-cell {
+  background: var(--sable-3);
+  padding: 0.5rem;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pg-slot {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: center;
+}
+.pg-slot.eveil    { background: rgba(212,160,144,0.2); color: #7a4535; border: 1px solid rgba(212,160,144,0.35); }
+.pg-slot.init     { background: rgba(139,94,74,0.15);  color: #6b3d2a; border: 1px solid rgba(139,94,74,0.25); }
+.pg-slot.clas     { background: rgba(92,61,46,0.12);   color: #4a2e1e; border: 1px solid rgba(92,61,46,0.2); }
+.pg-slot.jazz     { background: rgba(155,123,106,0.15);color: #5a3c2c; border: 1px solid rgba(155,123,106,0.25); }
+.pg-slot strong { display: block; font-weight: 500; font-size: 0.78rem; }
+.pg-slot small { display: block; font-size: 0.68rem; opacity: 0.7; margin-top: 0.1rem; }
+
+/* Vue par jour */
+.jours-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+.jour-card {
+  background: var(--sable-3);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(92,61,46,0.08);
+}
+.jour-card-head {
+  background: var(--terre);
+  padding: 1.2rem 1.8rem;
+  font-family: 'Lora', serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--sable-2);
+}
+.jour-card-head small {
+  display: block;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 300;
+  color: rgba(250,247,242,0.5);
+  letter-spacing: 0.1em;
+  margin-top: 0.1rem;
+}
+.jour-card-body { padding: 1rem 0; }
+.jour-slot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding: 0.8rem 1.5rem;
+  border-bottom: 1px solid rgba(92,61,46,0.06);
+  transition: background 0.2s;
+}
+.jour-slot:last-child { border-bottom: none; }
+.jour-slot:hover { background: var(--sable); }
+.jour-slot-time {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--gris-chd);
+  font-feature-settings: "tnum";
+  flex-shrink: 0;
+  min-width: 90px;
+}
+.jour-slot-info {}
+.jour-slot-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--encre);
+  margin-bottom: 0.1rem;
+}
+.jour-slot-niveau {
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--gris-chd);
+}
+.jour-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+  margin-right: 0.2rem;
+}
+.dot-eveil { background: var(--rose-poudre); }
+.dot-init  { background: var(--terre-2); }
+.dot-clas  { background: var(--terre); }
+.dot-jazz  { background: #9b7b6a; }
+
+/* Vue par discipline */
+.disci-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+.disci-card {
+  background: var(--sable-3);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(92,61,46,0.08);
+}
+.disci-card-head {
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.disci-card:nth-child(1) .disci-card-head { background: rgba(212,160,144,0.2); }
+.disci-card:nth-child(2) .disci-card-head { background: rgba(139,94,74,0.15); }
+.disci-card:nth-child(3) .disci-card-head { background: rgba(92,61,46,0.12); }
+.disci-card:nth-child(4) .disci-card-head { background: rgba(155,123,106,0.15); }
+.disci-icon { font-size: 1.8rem; }
+.disci-name { font-family: 'Lora', serif; font-size: 1.3rem; font-weight: 400; }
+.disci-age { font-size: 0.72rem; font-weight: 400; color: var(--gris-chd); margin-top: 0.1rem; letter-spacing: 0.05em; }
+.disci-card-body { padding: 0.5rem 0 1rem; }
+.disci-slot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid rgba(92,61,46,0.06);
+}
+.disci-slot:last-child { border-bottom: none; }
+.disci-slot-niveau { font-size: 0.85rem; font-weight: 400; color: var(--encre); }
+.disci-slot-time { font-size: 0.78rem; font-weight: 300; color: var(--gris-chd); white-space: nowrap; font-feature-settings: "tnum"; }
+
+/* ── BURGER MENU ── */
+.nav-burger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 0.5rem; z-index: 200; }
+.nav-burger span { display: block; width: 24px; height: 2px; background: rgba(250,247,242,0.85); border-radius: 2px; transition: all 0.3s var(--ease); }
+nav.scrolled .nav-burger span { background: var(--encre); }
+.nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-burger.open span:nth-child(2) { opacity: 0; }
+.nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.mobile-menu { position: fixed; inset: 0; z-index: 150; background: var(--encre); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; transform: translateX(100%); transition: transform 0.4s var(--ease); }
+.mobile-menu.open { transform: translateX(0); }
+.mobile-menu a { font-family: 'Lora', serif; font-size: 1.8rem; font-weight: 400; color: rgba(250,247,242,0.7); text-decoration: none; padding: 0.6rem 2rem; transition: color 0.2s; }
+.mobile-menu a:hover { color: var(--rose-poudre); }
+.mobile-menu .mobile-cta { margin-top: 1.5rem; padding: 0.9rem 2.5rem; border: 1px solid rgba(250,247,242,0.2); border-radius: 100px; font-size: 1rem; color: rgba(250,247,242,0.85) !important; }
+
+/* ── RESPONSIVE PLANNING PAR JOUR ── */
+@media (max-width: 1200px) {
+  .jours-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── RESPONSIVE TABLETTE ── */
+@media (max-width: 1100px) {
+  nav, nav.scrolled { padding-left: 2rem; padding-right: 2rem; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-right { display: none; }
+  .hero-left { min-height: 75vh; padding: 9rem 2rem 4rem; }
+  .s { padding: 5rem 2rem; }
+  .about { grid-template-columns: 1fr; gap: 3rem; }
+  .about-visual { display: none; }
+  .tarifs-intro { grid-template-columns: 1fr; gap: 2rem; }
+  .contact-layout { grid-template-columns: 1fr; gap: 3rem; }
+  .contact-map { height: 280px; }
+  .inscription-layout { grid-template-columns: 1fr; gap: 3rem; }
+  .cours-grid { grid-template-columns: 1fr 1fr; }
+  .tarifs-col-head, .tarif-ligne { grid-template-columns: 1fr 90px; }
+  .tarifs-col-head span:last-child, .tarif-trim-val { display: none; }
+  .stats-band { flex-wrap: wrap; }
+  .stat-item { min-width: 50%; border-bottom: 1px solid rgba(92,61,46,0.1); }
+  footer { flex-direction: column; text-align: center; padding: 2rem; }
+  .avis-band { padding: 4rem 2rem; }
+  .cookie-banner { padding: 1.2rem 2rem; }
+  .modal { padding: 2.5rem; }
+}
+
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 640px) {
+  /* Nav */
+  .nav-links { display: none; }
+  .nav-burger { display: flex; }
+
+  /* Hero */
+  .hero-left { padding: 3rem 1.5rem 3rem; }
+  .hero-title { font-size: clamp(2.6rem, 11vw, 3.5rem); }
+  .hero-logo { height: 250px; }
+  .hero-desc { font-size: 0.88rem; }
+
+  /* Annonce */
+  .annonce-large { padding: 1rem 1.2rem; }
+  .annonce-dates { flex-direction: column; gap: 0.3rem; }
+  .annonce-sep { display: none; }
+
+  /* Stats */
+  .stat-item { min-width: 100%; }
+
+  /* Cours */
+  .cours-grid { grid-template-columns: 1fr; }
+  .cours-intro { flex-direction: column; align-items: flex-start; }
+
+  /* Planning */
+  .planning-tabs { overflow-x: auto; white-space: nowrap; }
+  #view-tableau { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .planning-grid { min-width: 460px; }
+  .planning-print-btn { display: none; }
+  .jours-grid { grid-template-columns: 1fr; }
+  .disci-grid { grid-template-columns: 1fr; }
+
+  /* Tarifs */
+  .tarifs-specials { grid-template-columns: 1fr; }
+  .spec-block { padding: 1.2rem 1.5rem; }
+
+  /* Inscription */
+  .insc-step { gap: 1.2rem; }
+  .insc-num { font-size: 1.5rem; width: 2rem; }
+  .inscription-note { padding: 1.8rem; }
+
+  /* FAQ */
+  .faq-list { max-width: 100%; }
+  .faq-q { font-size: 0.9rem; }
+
+  /* Contact */
+  .contact-map { height: 220px; }
+
+  /* Avis */
+  .avis-band { padding: 3.5rem 1.5rem; gap: 1.5rem; }
+  .avis-title { font-size: 1.5rem; }
+  .avis-btn { padding: 0.9rem 1.8rem; font-size: 0.8rem; }
+
+  /* Cookie banner */
+  .cookie-banner { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.2rem 1.5rem; }
+  .cookie-btns { width: 100%; justify-content: flex-end; }
+
+  /* Modal */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal { border-radius: 24px 24px 0 0; max-height: 90vh; padding: 2rem 1.5rem; }
+
+  /* Sections */
+  .s { padding: 4rem 1.5rem; }
+  footer { padding: 1.8rem 1.5rem; gap: 1rem; }
+}
+
+/* ── RESPONSIVE PETIT MOBILE ── */
+@media (max-width: 400px) {
+  .hero-title { font-size: 2.4rem; }
+  .titre { font-size: clamp(1.8rem, 9vw, 2.5rem); }
+  .mobile-menu a { font-size: 1.5rem; }
+  .stat-num { font-size: 2.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ANNONCE_START -->
+<div class="annonce annonce-large">
+  <div class="annonce-titre">✨ C'est la rentrée chez Desha-Moulin ! ✨</div>
+  <div class="annonce-corps">Les inscriptions pour l'école de danse ouvrent à partir du mercredi 3 septembre.</div>
+  <div class="annonce-dates">
+    <span>📅 5 septembre — 17h à 19h30</span>
+    <span class="annonce-sep">·</span>
+    <span>📅 6 septembre — 10h à 16h</span>
+  </div>
+  <div class="annonce-corps">Les cours reprennent à partir du <strong>10 septembre</strong>.</div>
+</div>
+<!-- ANNONCE_END -->
+
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    <img src="images/Logo Desha Moulin_803px.png" alt="Desha-Moulin" class="nav-logo-img">
+  </a>
+  <ul class="nav-links">
+    <li><a href="#ecole">L'école</a></li>
+    <li><a href="#cours">Cours</a></li>
+    <li><a href="#planning">Planning</a></li>
+    <li><a href="#tarifs">Tarifs</a></li>
+    <li><a href="#inscription">Inscription</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#contact" class="nav-btn">Nous contacter</a></li>
+  </ul>
+  <button class="nav-burger" id="nav-burger" onclick="toggleMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#ecole" onclick="closeMenu()">L'école</a>
+  <a href="#cours" onclick="closeMenu()">Cours</a>
+  <a href="#planning" onclick="closeMenu()">Planning</a>
+  <a href="#tarifs" onclick="closeMenu()">Tarifs</a>
+  <a href="#inscription" onclick="closeMenu()">Inscription</a>
+  <a href="#faq" onclick="closeMenu()">FAQ</a>
+  <a href="#contact" class="mobile-cta" onclick="closeMenu()">Nous contacter</a>
+</div>
+
+<section class="hero" id="accueil">
+  <div class="hero-left">
+    <div class="hero-circle"></div>
+    <div class="hero-circle-2"></div>
+    <div class="hero-left-content">
+      <img src="images/Logo Desha Moulin_803px.png" alt="Desha-Moulin" class="hero-logo">
+      <div class="hero-eyebrow">École de danse — Bergerac</div>
+      <h1 class="hero-title">La danse,<br><em>pour tous.</em></h1>
+      <p class="hero-desc">Éveil, classique, modern jazz — à partir de 4 ans. Un espace de transmission et de création au cœur de la Dordogne.</p>
+      <a href="#cours" class="hero-cta">
+        Découvrir les cours
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-right-img">
+      <img src="images/rentree-819x1024.jpg" alt="Cours de danse Desha-Moulin">
+    </div>
+    <div class="hero-right-overlay"></div>
+    <div class="hero-right-caption">Saison 2025–2026</div>
+  </div>
+</section>
+
+<div class="stats-band">
+  <div class="stat-item">
+    <div class="stat-num">75+</div>
+    <div><div class="stat-text-label">Ans d'histoire</div><div class="stat-text-sub">À Bergerac depuis 1949</div></div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">4</div>
+    <div><div class="stat-text-label">Disciplines</div><div class="stat-text-sub">Éveil, initiation, classique, jazz</div></div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">4 ans</div>
+    <div><div class="stat-text-label">Dès le plus jeune âge</div><div class="stat-text-sub">Jusqu'aux adultes</div></div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">1</div>
+    <div><div class="stat-text-label">Professeure diplômée</div><div class="stat-text-sub">ESEC — Pascale Moulin</div></div>
+  </div>
+</div>
+
+<section class="about s" id="ecole">
+  <div class="about-text reveal">
+    <div class="eyebrow">L'école</div>
+    <h2 class="titre">Un lieu pour<br>grandir <em>en dansant</em></h2>
+    <p>Fondée en 1949 par Myrio et Desha, l'école de danse Desha-Moulin est l'une des plus anciennes de la région — un lieu de transmission, d'échanges et de création, ouvert à tous dès 4 ans.</p>
+    <p>Chaque cours est pensé pour respecter le rythme de chacun, que l'on commence à peine ou que l'on cherche à perfectionner une technique avancée. On danse, on partage.</p>
+    <div class="prof-strip">
+      <div class="prof-initials">PM</div>
+      <div>
+        <div class="prof-info-name">Pascale Moulin</div>
+        <div class="prof-info-role">Professeure & Chorégraphe<br>Diplômée de l'École Supérieure d'Études Chorégraphiques</div>
+      </div>
+    </div>
+  </div>
+  <div class="about-visual reveal d1">
+    <div class="about-img-wrap">
+      <img src="images/Cours_nb.png" alt="Cours de danse classique Desha-Moulin">
+    </div>
+    <div class="about-badge">
+      <div class="about-badge-label">fondée en</div>
+      <div class="about-badge-num">1949</div>
+    </div>
+  </div>
+</section>
+
+<section class="cours s" id="cours">
+  <div class="cours-intro reveal">
+    <div>
+      <div class="eyebrow">Disciplines</div>
+      <h2 class="titre">Nos <em>cours</em></h2>
+    </div>
+    <p class="cours-intro-sub">À chaque âge, sa danse. Des cours pensés pour accompagner chaque élève, à son rythme.</p>
+  </div>
+  <div class="cours-grid reveal d1">
+
+    <div class="cours-card">
+      <div class="cours-card-img"><img src="images/2488558346897120552-1024x765.jpg" alt="Cours d'éveil Desha-Moulin"></div>
+      <div class="cours-card-bar"></div>
+      <div class="cours-card-body">
+        <span class="cours-card-icon">🌸</span>
+        <div class="cours-card-name">Éveil</div>
+        <div class="cours-card-age">À partir de 4 ans</div>
+        <p class="cours-card-desc">Découverte du rythme, de l'espace et de la coordination — de façon ludique et artistique.</p>
+        <div class="sch-label">Horaires</div>
+        <div class="sch-row"><span class="sch-niv">Mercredi</span><span class="sch-h">16h15 – 17h00</span></div>
+      </div>
+    </div>
+
+    <div class="cours-card">
+      <div class="cours-card-img"><img src="images/Cours-Initiation.png" alt="Cours d'initiation Desha-Moulin"></div>
+      <div class="cours-card-bar"></div>
+      <div class="cours-card-body">
+        <span class="cours-card-icon">⭐</span>
+        <div class="cours-card-name">Initiation</div>
+        <div class="cours-card-age">À partir de 6 ans</div>
+        <p class="cours-card-desc">On expérimente le mouvement, on découvre les sensations liées à la danse.</p>
+        <div class="sch-label">Horaires</div>
+        <div class="sch-row"><span class="sch-niv">Mercredi</span><span class="sch-h">17h00 – 18h00</span></div>
+      </div>
+    </div>
+
+    <div class="cours-card">
+      <div class="cours-card-img"><img src="images/Cours-DanseClassique_371_287-300x231.png" alt="Cours de danse classique Desha-Moulin"></div>
+      <div class="cours-card-bar"></div>
+      <div class="cours-card-body">
+        <span class="cours-card-icon">🩰</span>
+        <div class="cours-card-name">Classique</div>
+        <div class="cours-card-age">À partir de 8 ans</div>
+        <p class="cours-card-desc">Barre et milieu pour apprendre à se placer, développer sa technique et affirmer sa personnalité.</p>
+        <div class="sch-label">Niveaux & horaires</div>
+        <div class="sch-row"><span class="sch-niv">Débutant 8–10 ans</span><span class="sch-h">Mer. 14h–15h</span></div>
+        <div class="sch-row"><span class="sch-niv">Débutant adulte</span><span class="sch-h">Ven. 12h20–13h20</span></div>
+        <div class="sch-row"><span class="sch-niv">Moyen 10–12 ans</span><span class="sch-h">Sam. 15h30–17h</span></div>
+        <div class="sch-row"><span class="sch-niv">Interméd. 12–15 ans</span><span class="sch-h">Mer. 15h–16h15</span></div>
+        <div class="sch-row"><span class="sch-niv">Avancé 16+</span><span class="sch-h">Mer. 18h–19h30</span></div>
+      </div>
+    </div>
+
+    <div class="cours-card">
+      <div class="cours-card-img"><img src="images/Cours_ModernJazz.png" alt="Cours de Modern' Jazz Desha-Moulin"></div>
+      <div class="cours-card-bar"></div>
+      <div class="cours-card-body">
+        <span class="cours-card-icon">🎵</span>
+        <div class="cours-card-name">Modern' Jazz</div>
+        <div class="cours-card-age">À partir de 10 ans</div>
+        <p class="cours-card-desc">Énergie, rythmique syncopée, travail au sol et diagonales. Technique et plaisir réunis.</p>
+        <div class="sch-label">Niveaux & horaires</div>
+        <div class="sch-row"><span class="sch-niv">Débutant (1h)</span><span class="sch-h">Ven. 17h30–18h30</span></div>
+        <div class="sch-row"><span class="sch-niv">Débutant adulte</span><span class="sch-h">Mer. 19h30–20h30</span></div>
+        <div class="sch-row"><span class="sch-niv">Intermédiaire</span><span class="sch-h">Ven. 18h30–20h</span></div>
+        <div class="sch-row"><span class="sch-niv">Interméd.–Avancé</span><span class="sch-h">Sam. 11h30–13h</span></div>
+        <div class="sch-row"><span class="sch-niv">Avancé (1h30)</span><span class="sch-h">Ven. 20h–21h30</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="planning s" id="planning">
+  <div class="reveal">
+    <div class="eyebrow">Organisation</div>
+    <h2 class="titre">Planning <em>des cours</em></h2>
+  </div>
+
+  <div class="planning-tabs reveal d1">
+    <div class="planning-tab active" onclick="switchView('jours')">Par jour</div>
+    <div class="planning-tab" onclick="switchView('tableau')">Vue semaine</div>
+    <button class="planning-print-btn" onclick="printPlanning()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Imprimer
+    </button>
+  </div>
+
+  <!-- VUE PAR JOUR -->
+  <div class="planning-view active" id="view-jours">
+    <div class="jours-grid">
+
+      <div class="jour-card">
+        <div class="jour-card-head">Mercredi<small>6 créneaux</small></div>
+        <div class="jour-card-body">
+          <div class="jour-slot">
+            <div class="jour-dot dot-clas"></div>
+            <div class="jour-slot-time">14h00 – 15h00</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Classique</div><div class="jour-slot-niveau">Débutant 8–10 ans</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-clas"></div>
+            <div class="jour-slot-time">15h00 – 16h15</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Classique</div><div class="jour-slot-niveau">Intermédiaire 12–15 ans</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-eveil"></div>
+            <div class="jour-slot-time">16h15 – 17h00</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Éveil</div><div class="jour-slot-niveau">À partir de 4 ans</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-init"></div>
+            <div class="jour-slot-time">17h00 – 18h00</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Initiation</div><div class="jour-slot-niveau">À partir de 6 ans</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-clas"></div>
+            <div class="jour-slot-time">18h00 – 19h30</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Classique</div><div class="jour-slot-niveau">Avancé 16+</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-jazz"></div>
+            <div class="jour-slot-time">19h30 – 20h30</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Modern' Jazz</div><div class="jour-slot-niveau">Adulte débutant</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="jour-card">
+        <div class="jour-card-head">Vendredi<small>4 créneaux</small></div>
+        <div class="jour-card-body">
+          <div class="jour-slot">
+            <div class="jour-dot dot-clas"></div>
+            <div class="jour-slot-time">12h20 – 13h20</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Classique</div><div class="jour-slot-niveau">Adulte débutant</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-jazz"></div>
+            <div class="jour-slot-time">17h30 – 18h30</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Modern' Jazz</div><div class="jour-slot-niveau">Débutant</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-jazz"></div>
+            <div class="jour-slot-time">18h30 – 20h00</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Modern' Jazz</div><div class="jour-slot-niveau">Intermédiaire</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-jazz"></div>
+            <div class="jour-slot-time">20h00 – 21h30</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Modern' Jazz</div><div class="jour-slot-niveau">Avancé</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="jour-card">
+        <div class="jour-card-head">Samedi<small>2 créneaux</small></div>
+        <div class="jour-card-body">
+          <div class="jour-slot">
+            <div class="jour-dot dot-jazz"></div>
+            <div class="jour-slot-time">11h30 – 13h00</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Modern' Jazz</div><div class="jour-slot-niveau">Intermédiaire–Avancé</div></div>
+          </div>
+          <div class="jour-slot">
+            <div class="jour-dot dot-clas"></div>
+            <div class="jour-slot-time">15h30 – 17h00</div>
+            <div class="jour-slot-info"><div class="jour-slot-name">Classique</div><div class="jour-slot-niveau">Moyen 10–12 ans</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="jour-card" style="border-color: rgba(92,61,46,0.15);">
+        <div class="jour-card-head" style="background: rgba(92,61,46,0.7);">Résumé<small>12 créneaux / semaine</small></div>
+        <div class="jour-card-body" style="padding: 1.5rem 1.8rem;">
+          <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.8rem;">
+            <div class="jour-dot dot-eveil" style="width:8px;height:8px;"></div>
+            <span style="font-size:0.85rem; font-weight:400;">Éveil — 1 créneau</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.8rem;">
+            <div class="jour-dot dot-init" style="width:8px;height:8px;"></div>
+            <span style="font-size:0.85rem; font-weight:400;">Initiation — 1 créneau</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.8rem;">
+            <div class="jour-dot dot-clas" style="width:8px;height:8px;"></div>
+            <span style="font-size:0.85rem; font-weight:400;">Classique — 5 créneaux</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.7rem;">
+            <div class="jour-dot dot-jazz" style="width:8px;height:8px;"></div>
+            <span style="font-size:0.85rem; font-weight:400;">Modern' Jazz — 5 créneaux</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VUE PAR SEMAINE -->
+  <div class="planning-view" id="view-tableau">
+    <div class="planning-grid">
+      <!-- Headers -->
+      <div class="pg-header time-col"></div>
+      <div class="pg-header">Mercredi</div>
+      <div class="pg-header">Vendredi</div>
+      <div class="pg-header">Samedi</div>
+
+      <!-- 11h30 -->
+      <div class="pg-time">11h30</div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"><div class="pg-slot jazz"><strong>Modern' Jazz</strong><small>Interméd.–Avancé</small></div></div>
+
+      <!-- 12h20 -->
+      <div class="pg-time">12h20</div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"><div class="pg-slot clas"><strong>Classique</strong><small>Adulte débutant</small></div></div>
+      <div class="pg-cell"></div>
+
+      <!-- 14h -->
+      <div class="pg-time">14h00</div>
+      <div class="pg-cell"><div class="pg-slot clas"><strong>Classique</strong><small>Débutant 8–10 ans</small></div></div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"></div>
+
+      <!-- 15h -->
+      <div class="pg-time">15h00</div>
+      <div class="pg-cell"><div class="pg-slot clas"><strong>Classique</strong><small>Interméd. 12–15 ans</small></div></div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"><div class="pg-slot clas"><strong>Classique</strong><small>Moyen 10–12 ans</small></div></div>
+
+      <!-- 16h15 -->
+      <div class="pg-time">16h15</div>
+      <div class="pg-cell"><div class="pg-slot eveil"><strong>Éveil</strong><small>dès 4 ans</small></div></div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"></div>
+
+      <!-- 17h -->
+      <div class="pg-time">17h00</div>
+      <div class="pg-cell"><div class="pg-slot init"><strong>Initiation</strong><small>dès 6 ans</small></div></div>
+      <div class="pg-cell"><div class="pg-slot jazz"><strong>Modern' Jazz</strong><small>Débutant</small></div></div>
+      <div class="pg-cell"></div>
+
+      <!-- 18h -->
+      <div class="pg-time">18h00</div>
+      <div class="pg-cell"><div class="pg-slot clas"><strong>Classique</strong><small>Avancé 16+</small></div></div>
+      <div class="pg-cell"><div class="pg-slot jazz"><strong>Modern' Jazz</strong><small>Intermédiaire</small></div></div>
+      <div class="pg-cell"></div>
+
+      <!-- 19h30 -->
+      <div class="pg-time">19h30</div>
+      <div class="pg-cell"><div class="pg-slot jazz"><strong>Modern' Jazz</strong><small>Adulte débutant</small></div></div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"></div>
+
+      <!-- 20h -->
+      <div class="pg-time">20h00</div>
+      <div class="pg-cell"></div>
+      <div class="pg-cell"><div class="pg-slot jazz"><strong>Modern' Jazz</strong><small>Avancé</small></div></div>
+      <div class="pg-cell"></div>
+    </div>
+  </div>
+
+</section>
+
+<section class="tarifs s" id="tarifs">
+  <div class="tarifs-intro reveal">
+    <div>
+      <div class="eyebrow">Saison 2025–2026</div>
+      <h2 class="titre">Tarifs <em>&amp; forfaits</em></h2>
+    </div>
+    <p class="tarifs-note">Frais d'inscription : <strong>16 €</strong>. Cours payables d'avance — tout mois commencé est dû. Le trimestre démarre en octobre, septembre est facturé séparément.</p>
+  </div>
+
+  <div class="tarifs-table reveal d1">
+    <div class="tarifs-col-head">
+      <span>Formule</span>
+      <span>/ mois</span>
+      <span>/ trimestre</span>
+    </div>
+    <div class="tarif-ligne">
+      <div class="tarif-service">Cours d'éveil<small>1 cours / semaine — 45 min</small></div>
+      <div class="tarif-mois-val">35 €</div>
+      <div class="tarif-trim-val">105 €</div>
+    </div>
+    <div class="tarif-ligne">
+      <div class="tarif-service">Initiation ou classique débutant<small>1 cours / semaine — 1h</small></div>
+      <div class="tarif-mois-val">43 €</div>
+      <div class="tarif-trim-val">129 €</div>
+    </div>
+    <div class="tarif-ligne">
+      <div class="tarif-service">Classique ou jazz intermédiaire<small>1 cours / semaine — 1h15 à 1h30</small></div>
+      <div class="tarif-mois-val">45 €</div>
+      <div class="tarif-trim-val">132 €</div>
+    </div>
+    <div class="tarif-ligne">
+      <div class="tarif-service">Deux disciplines combinées<small>2 cours / semaine — 1h + 1h15</small></div>
+      <div class="tarif-mois-val">72 €</div>
+      <div class="tarif-trim-val">207 €</div>
+    </div>
+    <div class="tarif-ligne">
+      <div class="tarif-service">Deux disciplines combinées<small>2 cours / semaine — durées variables</small></div>
+      <div class="tarif-mois-val">75 €</div>
+      <div class="tarif-trim-val">213 €</div>
+    </div>
+    <div class="tarif-ligne">
+      <div class="tarif-service">Accès illimité à tous les cours<small>Toutes disciplines, tous niveaux</small></div>
+      <div class="tarif-mois-val">95 €</div>
+      <div class="tarif-trim-val">280 €</div>
+    </div>
+  </div>
+
+  <div class="reveal d2">
+    <div class="tarifs-divider">
+      <div class="tarifs-divider-label">À la carte</div>
+      <div class="tarifs-divider-line"></div>
+    </div>
+    <div class="tarifs-specials">
+      <div class="spec-block">
+        <div class="spec-block-service">Cours isolé éveil<small>Sans engagement</small></div>
+        <div class="spec-block-prix">12 € / cours</div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-block-service">Cours isolé technique<small>Classique ou jazz</small></div>
+        <div class="spec-block-prix">15 € / cours</div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-block-service">Cours particulier<small>Suivi personnalisé</small></div>
+        <div class="spec-block-prix">30 € / heure</div>
+      </div>
+    </div>
+    <div class="famille-note">
+      <strong>Réductions famille</strong> — Des réductions sont appliquées lorsque plusieurs élèves d'une même famille suivent les cours. Contactez-nous pour en savoir plus.
+    </div>
+  </div>
+</section>
+
+<section class="inscription s" id="inscription">
+  <div class="reveal">
+    <div class="eyebrow">Rejoindre l'école</div>
+    <h2 class="titre">Inscription</h2>
+  </div>
+  <div class="inscription-layout reveal d1">
+    <div class="inscription-steps">
+      <div class="insc-step">
+        <div class="insc-num">1</div>
+        <div>
+          <div class="insc-step-title">Formulaire d'inscription</div>
+          <div class="insc-step-desc">À remplir et signer avant le début des cours. Disponible à l'accueil ou en téléchargement ci-dessous.</div>
+          <a href="documents/formulaire-inscription-2025-2026.pdf" download class="insc-dl">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Télécharger le formulaire (PDF)
+          </a>
+        </div>
+      </div>
+      <div class="insc-step">
+        <div class="insc-num">2</div>
+        <div>
+          <div class="insc-step-title">Règlement intérieur</div>
+          <div class="insc-step-desc">Remis en main propre à l'accueil avec le formulaire. À lire attentivement et à signer.</div>
+        </div>
+      </div>
+      <div class="insc-step">
+        <div class="insc-num">3</div>
+        <div>
+          <div class="insc-step-title">Certificat médical</div>
+          <div class="insc-step-desc">Certificat de non contre-indication à la pratique de la danse, délivré par votre médecin.</div>
+        </div>
+      </div>
+      <div class="insc-step">
+        <div class="insc-num">4</div>
+        <div>
+          <div class="insc-step-title">Paiement</div>
+          <div class="insc-step-desc">Par espèces ou chèque uniquement. Frais d'inscription : 16 €. Voir les tarifs pour le détail des cours.</div>
+        </div>
+      </div>
+    </div>
+    <div class="inscription-note">
+      <div class="inscription-note-title">Comment déposer le dossier ?</div>
+      <div class="inscription-note-text">Une fois les documents réunis, déposez l'ensemble à l'école pendant les horaires de cours. L'inscription est ouverte à tous les niveaux, dès 4 ans.</div>
+      <div class="inscription-note-text">Pour toute question ou pour vous renseigner avant de vous déplacer, n'hésitez pas à nous appeler directement.</div>
+      <a href="#contact" class="inscription-cta">Nous contacter →</a>
+    </div>
+  </div>
+</section>
+
+<section class="faq s" id="faq">
+  <div class="faq-intro reveal">
+    <div class="eyebrow">Questions fréquentes</div>
+    <h2 class="titre">FAQ</h2>
+  </div>
+  <div class="faq-list reveal d1">
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Quels sont les moyens de paiement acceptés ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Nous prenons les chèques et les espèces, mais nous n'acceptons pas la carte bleue.</p>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Comment puis-je connaître mon niveau ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Vous pouvez obtenir une estimation de votre niveau selon le nombre d'années de pratique de la danse. Le tableau ci-dessous est donné à titre indicatif — rapprochez-vous de votre professeure pour en discuter de manière plus précise.</p>
+        <table class="faq-niveau-table">
+          <tr><th>Niveau</th><th>Années d'expérience</th></tr>
+          <tr><td>Débutant</td><td>0 à 2 ans</td></tr>
+          <tr><td>Intermédiaire</td><td>2 à 4 ans</td></tr>
+          <tr><td>Moyen</td><td>4 à 8 ans</td></tr>
+          <tr><td>Avancé</td><td>8 ans et plus</td></tr>
+        </table>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">À quelle date se passe le spectacle ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Le spectacle a lieu en juin, en fonction des dates disponibles au moment de la réservation.</p>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Je suis un garçon, puis-je rejoindre l'école ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Absolument ! La danse n'a pas de genre. L'école accueille filles et garçons, enfants et adultes, débutants et confirmés — à partir de quatre ans, dans une ambiance bienveillante et ouverte à tous.</p>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">J'ai plus de 8 ans et je débute — avec quel groupe vais-je avoir cours ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>À partir de 8 ans, vous pouvez rejoindre le cours de danse classique débutant. À partir de 10 ans, vous avez également accès au cours de Modern' Jazz.</p>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Y a-t-il des cours pour adultes débutants ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Oui ! Deux créneaux sont disponibles pour les adultes débutants :</p>
+        <ul style="margin: 0.6rem 0 0 1.2rem; display:flex; flex-direction:column; gap:0.3rem;">
+          <li><strong>Modern' Jazz</strong> — mercredi soir à 19h30</li>
+          <li><strong>Danse classique</strong> — vendredi à 12h20</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Comment prendre rendez-vous pour un cours particulier ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Pour un cours particulier, prenez rendez-vous directement par téléphone — nous conviendrons ensemble d'un horaire qui vous convient.</p>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Je ne peux pas venir à un cours — dois-je le payer ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>Si vous manquez un cours, nous vous proposerons de le rattraper à un autre horaire, à la date qui vous conviendra dans le trimestre.</p>
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Est-ce facile de se garer près de l'école ?<span class="faq-icon">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <p>La circulation dans le quartier est calme et vous trouverez un parking juste en face de l'école.</p>
+      </div></div>
+    </div>
+
+  </div>
+</section>
+
+<section class="contact s" id="contact">
+  <div class="reveal">
+    <div class="eyebrow">Nous trouver</div>
+    <h2 class="titre">Contact <em>&amp; accès</em></h2>
+  </div>
+  <div class="contact-layout reveal d1">
+    <div class="contact-infos">
+      <div class="contact-row">
+        <div class="contact-dot"></div>
+        <div>
+          <div class="contact-row-label">Adresse</div>
+          <div class="contact-row-value">2–4 rue des Trois Frères Cassadou<br>24100 Bergerac</div>
+        </div>
+      </div>
+      <div class="contact-row">
+        <div class="contact-dot"></div>
+        <div>
+          <div class="contact-row-label">Téléphone</div>
+          <div class="contact-row-value"><a href="tel:0669353925">06 69 35 39 25</a></div>
+        </div>
+      </div>
+      <div class="contact-row">
+        <div class="contact-dot"></div>
+        <div>
+          <div class="contact-row-label">Email</div>
+          <div class="contact-row-value" style="font-size:1rem;"><a href="mailto:contact@cours-danse-bergerac.fr">contact@cours-danse-bergerac.fr</a></div>
+        </div>
+      </div>
+      <div class="contact-row">
+        <div class="contact-dot"></div>
+        <div>
+          <div class="contact-row-label">Professeure</div>
+          <div class="contact-row-value">Pascale Moulin</div>
+        </div>
+      </div>
+    </div>
+    <div class="contact-map" id="contact-map"></div>
+    <div class="contact-ig-card">
+      <div class="ig-top">
+        <div class="ig-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </div>
+        <div>
+          <div class="ig-handle">@deshamoulin</div>
+          <div class="ig-sub">École De Danse Desha Moulin</div>
+        </div>
+      </div>
+      <p class="ig-text">Retrouvez les élèves en action, les coulisses des spectacles et toute l'actualité de l'école sur Instagram.</p>
+      <a href="https://www.instagram.com/deshamoulin/" target="_blank" class="ig-btn">Voir le compte →</a>
+    </div>
+  </div>
+</section>
+
+<div class="avis-band">
+  <div class="avis-stars">
+    <span class="avis-star">★</span>
+    <span class="avis-star">★</span>
+    <span class="avis-star">★</span>
+    <span class="avis-star">★</span>
+    <span class="avis-star">★</span>
+  </div>
+  <h2 class="avis-title">Vous aimez l'école ?<br><em>Dites-le sur Google.</em></h2>
+  <p class="avis-sub">Un avis positif prend moins d'une minute et aide d'autres familles à nous trouver. Ça compte énormément pour nous.</p>
+  <!-- Remplacer le lien href par votre lien Google Business → "Obtenir plus d'avis" -->
+  <a href="https://g.page/r/Cd6VhtMigmMfEBM/review" target="_blank" rel="noopener" class="avis-btn">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    Laisser un avis Google
+  </a>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <img src="images/Logo Desha Moulin_803px.png" alt="Desha-Moulin" style="height:36px; width:auto; filter: brightness(0) invert(0.6);">
+  </div>
+  <div class="footer-copy">© 2026 École de danse Desha-Moulin — Bergerac</div>
+  <button onclick="openPrivacy()" class="footer-link" style="background:none;border:none;cursor:pointer;padding:0;">Politique de confidentialité</button>
+</footer>
+
+<!-- BANDEAU COOKIES -->
+<div class="cookie-banner" id="cookie-banner">
+  <p>Notre site utilise Google Maps pour afficher notre localisation. Ce service peut déposer des cookies tiers. <button onclick="openPrivacy()" style="background:none;border:none;padding:0;cursor:pointer;color:var(--rose-poudre);font-size:0.8rem;">En savoir plus</button></p>
+  <div class="cookie-btns">
+    <button class="cookie-btn cookie-btn-refuse" onclick="refuseCookies()">Refuser</button>
+    <button class="cookie-btn cookie-btn-accept" onclick="acceptCookies()">Accepter</button>
+  </div>
+</div>
+
+<!-- MODAL POLITIQUE DE CONFIDENTIALITÉ -->
+<div class="modal-overlay" id="privacy-modal" onclick="closePrivacy(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closePrivacy()">✕</button>
+    <h2>Politique de confidentialité</h2>
+    <div class="modal-date">Dernière mise à jour : avril 2026</div>
+
+    <h3>Responsable du traitement</h3>
+    <p>École de danse Desha-Moulin — Pascale Moulin<br>2–4 rue des Trois Frères Cassadou, 24100 Bergerac<br>Tél. : 06 69 35 39 25</p>
+
+    <h3>Données collectées</h3>
+    <p>Ce site ne collecte aucune donnée personnelle. Il n'y a ni formulaire en ligne, ni inscription, ni newsletter, ni outil de statistiques (Google Analytics ou équivalent).</p>
+
+    <h3>Cookies</h3>
+    <p>Ce site n'utilise aucun cookie propre. En revanche, si vous acceptez l'affichage de la carte interactive, Google Maps (un service de Google LLC) est chargé et peut déposer des cookies tiers à des fins de fonctionnement et de mesure d'audience. Vous pouvez refuser ce chargement — dans ce cas, la carte ne s'affichera pas.</p>
+    <p style="margin-top:0.6rem;">Pour en savoir plus sur la politique de confidentialité de Google : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></p>
+
+    <h3>Hébergement</h3>
+    <p>Le site est hébergé en France. Aucune donnée n'est transmise à un hébergeur tiers.</p>
+
+    <h3>Vos droits</h3>
+    <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Pour toute demande, contactez-nous par téléphone ou à l'accueil de l'école.</p>
+
+    <h3>Modifier votre choix</h3>
+    <p>Vous pouvez modifier votre consentement à tout moment en cliquant sur le bouton ci-dessous.</p>
+    <button onclick="resetCookies()" style="margin-top:1rem; padding:0.6rem 1.4rem; background:var(--terre); color:var(--sable-3); border:none; border-radius:100px; font-size:0.8rem; cursor:pointer;">Réinitialiser mes préférences</button>
+  </div>
+</div>
+
+<script>
+  // ── BURGER MENU ──
+  function toggleMenu() {
+    const burger = document.getElementById('nav-burger');
+    const menu = document.getElementById('mobile-menu');
+    burger.classList.toggle('open');
+    menu.classList.toggle('open');
+    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+  }
+  function closeMenu() {
+    document.getElementById('nav-burger').classList.remove('open');
+    document.getElementById('mobile-menu').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // ── COOKIES & CARTE ──
+  const GMAPS_SRC = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5495.868002373758!2d0.47542420990348516!3d44.853041881538005!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12aad076e2522021%3A0x1f638222d38695de!2sEcole%20de%20danse%20-%20Desha%20Moulin%20Attitude!5e0!3m2!1sfr!2sfr!4v1775110036882!5m2!1sfr!2sfr';
+
+  function loadMap() {
+    const el = document.getElementById('contact-map');
+    el.innerHTML = '<iframe src="' + GMAPS_SRC + '" style="border:0;width:100%;height:100%;" allowfullscreen loading="lazy"></iframe>';
+  }
+
+  function showMapPlaceholder() {
+    const el = document.getElementById('contact-map');
+    el.innerHTML = '<div class="map-placeholder"><p>La carte n\'est pas affichée car vous avez refusé les cookies tiers.</p><a href="https://maps.google.com/?q=Ecole+de+danse+Desha+Moulin,+Bergerac" target="_blank" rel="noopener">Voir sur Google Maps →</a></div>';
+  }
+
+  function acceptCookies() {
+    localStorage.setItem('cookies', 'accepted');
+    document.getElementById('cookie-banner').classList.remove('visible');
+    loadMap();
+  }
+
+  function refuseCookies() {
+    localStorage.setItem('cookies', 'refused');
+    document.getElementById('cookie-banner').classList.remove('visible');
+    showMapPlaceholder();
+  }
+
+  function resetCookies() {
+    localStorage.removeItem('cookies');
+    closePrivacy();
+    showMapPlaceholder();
+    setTimeout(() => document.getElementById('cookie-banner').classList.add('visible'), 300);
+  }
+
+  function openPrivacy() { document.getElementById('privacy-modal').classList.add('open'); }
+  function closePrivacy(e) {
+    if (!e || e.target === document.getElementById('privacy-modal')) {
+      document.getElementById('privacy-modal').classList.remove('open');
+    }
+  }
+
+  const consent = localStorage.getItem('cookies');
+  if (consent === 'accepted') { loadMap(); }
+  else if (consent === 'refused') { showMapPlaceholder(); }
+  else { showMapPlaceholder(); setTimeout(() => document.getElementById('cookie-banner').classList.add('visible'), 800); }
+
+  function printPlanning() {
+    const planning = document.getElementById('planning');
+    const activeTab = document.querySelector('.planning-tab.active');
+    const viewLabel = activeTab ? activeTab.textContent.trim() : 'Planning';
+
+    // Masquer tout sauf le planning
+    const bodyChildren = Array.from(document.body.children);
+    bodyChildren.forEach(el => { if (el !== planning) el.style.display = 'none'; });
+
+    // Forcer la visibilité des éléments animés
+    planning.querySelectorAll('.reveal').forEach(el => {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+
+    // Afficher la vue active, masquer les autres
+    planning.querySelectorAll('.planning-view').forEach(el => {
+      el.style.display = el.classList.contains('active') ? 'block' : 'none';
+    });
+    planning.querySelector('.planning-tabs').style.display = 'none';
+
+    // Mise à l'échelle automatique pour tenir sur A4 paysage
+    // Zone utile ≈ 275mm × 188mm à 96dpi = ~1039px × ~710px
+    const availW = 1039;
+    const availH = 710;
+    const scaleW = availW / planning.scrollWidth;
+    const scaleH = availH / planning.scrollHeight;
+    const scale = Math.min(scaleW, scaleH, 1);
+    planning.style.zoom = scale;
+    const topMargin = Math.max(0, (availH - planning.scrollHeight * scale) / 2);
+    planning.style.marginTop = (topMargin / scale) + 'px';
+
+    const prevTitle = document.title;
+    document.title = 'Planning ' + viewLabel + ' — École Desha-Moulin';
+    window.print();
+
+    // Restaurer
+    document.title = prevTitle;
+    planning.style.zoom = '';
+    planning.style.marginTop = '';
+    bodyChildren.forEach(el => { el.style.display = ''; });
+    planning.querySelectorAll('.reveal').forEach(el => {
+      el.style.opacity = '';
+      el.style.transform = '';
+    });
+    planning.querySelectorAll('.planning-view').forEach(el => { el.style.display = ''; });
+    planning.querySelector('.planning-tabs').style.display = '';
+  }
+
+  function toggleFaq(btn) {
+    const item = btn.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  }
+
+  function switchView(id) {
+    document.querySelectorAll('.planning-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.planning-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('view-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  const nav = document.getElementById('nav');
+  const annonce = document.querySelector('.annonce');
+  const annH = annonce ? annonce.offsetHeight : 0;
+  if (annonce) nav.style.top = annH + 'px';
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > annH + 10);
+    if (!nav.classList.contains('scrolled')) nav.style.top = Math.max(0, annH - window.scrollY) + 'px';
+    else nav.style.top = '0';
+  });
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+  reveals.forEach(el => obs.observe(el));
+</script>
+</body>
+</html>

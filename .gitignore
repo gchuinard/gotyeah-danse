@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+*.swp
+*~
+
+# Node
+node_modules/
+
+# Logs
+*.log
