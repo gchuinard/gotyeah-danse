@@ -10,14 +10,10 @@
 
 <!-- ANNONCE_START -->
 <div class="annonce annonce-large">
-  <div class="annonce-titre">✨ C'est la rentrée chez Desha-Moulin ! ✨</div>
-  <div class="annonce-corps">Les inscriptions pour l'école de danse ouvrent à partir du mercredi 3 septembre.</div>
+  <div class="annonce-titre">✨ On est en vacances ce soir, reprise mercredi… Bonnes vacances à vous tous! ✨</div>
   <div class="annonce-dates">
-    <span>📅 5 septembre — 17h à 19h30</span>
-    <span class="annonce-sep">·</span>
-    <span>📅 6 septembre — 10h à 16h</span>
+    <!-- <span class="annonce-sep">·</span> -->
   </div>
-  <div class="annonce-corps">Les cours reprennent à partir du <strong>10 septembre</strong>.</div>
 </div>
 <!-- ANNONCE_END -->
 
@@ -69,7 +65,7 @@
       <img src="images/rentree-819x1024.jpg" alt="Cours de danse Desha-Moulin">
     </div>
     <div class="hero-right-overlay"></div>
-    <div class="hero-right-caption">Saison 2025–2026</div>
+    <div class="hero-actu" id="hero-actu"></div>
   </div>
 </section>
 
@@ -821,6 +817,16 @@
     document.getElementById('view-' + id).classList.add('active');
     event.target.classList.add('active');
   }
+
+  // ── SYNC ANNONCE → HERO OVERLAY (desktop) ──
+  (function() {
+    const src = document.querySelector('.annonce');
+    const dst = document.getElementById('hero-actu');
+    if (src && dst) {
+      dst.innerHTML = src.innerHTML;
+      if (src.style.display === 'none') dst.style.display = 'none';
+    }
+  })();
 
   const nav = document.getElementById('nav');
   const annonce = document.querySelector('.annonce');
