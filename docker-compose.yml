@@ -1,0 +1,7 @@
+services:
+  desha-moulin:
+    build: .
+    container_name: desha-moulin
+    ports:
+      - "8086:80"
+    restart: unless-stopped

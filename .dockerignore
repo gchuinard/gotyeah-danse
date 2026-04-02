@@ -1,0 +1,6 @@
+.git
+.gitignore
+CLAUDE.md
+annonce.js
+*.md
+node_modules
