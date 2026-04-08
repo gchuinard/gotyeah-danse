@@ -3,7 +3,7 @@ services:
     build: .
     container_name: desha-moulin
     ports:
-      - "8086:80"
+      - "80"
     restart: unless-stopped
     networks:
       - nginx-proxy-manager_default
