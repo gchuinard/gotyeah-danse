@@ -830,13 +830,20 @@
 
   const nav = document.getElementById('nav');
   const annonce = document.querySelector('.annonce');
-  const annH = annonce ? annonce.offsetHeight : 0;
-  if (annonce) nav.style.top = annH + 'px';
+  function getAnnH() { return annonce ? annonce.offsetHeight : 0; }
+  function updateNavTop() {
+    if (!nav.classList.contains('scrolled'))
+      nav.style.top = Math.max(0, getAnnH() - window.scrollY) + 'px';
+  }
+  updateNavTop();
   window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > annH + 10);
-    if (!nav.classList.contains('scrolled')) nav.style.top = Math.max(0, annH - window.scrollY) + 'px';
+    const h = getAnnH();
+    nav.classList.toggle('scrolled', window.scrollY > h + 10);
+    if (!nav.classList.contains('scrolled')) nav.style.top = Math.max(0, h - window.scrollY) + 'px';
     else nav.style.top = '0';
   });
+  document.fonts.ready.then(updateNavTop);
+  window.addEventListener('resize', updateNavTop);
   const reveals = document.querySelectorAll('.reveal');
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
