@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cours-danse-bergerac.fr/sitemap.xml
