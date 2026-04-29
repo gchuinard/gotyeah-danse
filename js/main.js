@@ -130,21 +130,29 @@ function toggleFaq(btn) {
 })();
 
 // ── NAV SCROLL ──
+// annH est lu une seule fois (pas sur chaque scroll) pour éviter le forced reflow.
+// On le rafraîchit uniquement quand la hauteur peut changer : resize ou fonts.ready.
 const nav = document.getElementById('nav');
 const annonce = document.querySelector('.annonce');
-function getAnnH() { return annonce ? annonce.offsetHeight : 0; }
+let annH = annonce ? annonce.offsetHeight : 0;
+
 function updateNavTop() {
   if (!nav.classList.contains('scrolled'))
-    nav.style.top = Math.max(0, getAnnH() - window.scrollY) + 'px';
+    nav.style.top = Math.max(0, annH - window.scrollY) + 'px';
 }
+
+function refreshAnnH() {
+  annH = annonce ? annonce.offsetHeight : 0;
+  updateNavTop();
+}
+
 updateNavTop();
 window.addEventListener('scroll', () => {
-  const h = getAnnH();
-  nav.classList.toggle('scrolled', window.scrollY > h + 10);
-  nav.style.top = nav.classList.contains('scrolled') ? '0' : Math.max(0, h - window.scrollY) + 'px';
-});
-document.fonts.ready.then(updateNavTop);
-window.addEventListener('resize', updateNavTop);
+  nav.classList.toggle('scrolled', window.scrollY > annH + 10);
+  nav.style.top = nav.classList.contains('scrolled') ? '0' : Math.max(0, annH - window.scrollY) + 'px';
+}, { passive: true });
+document.fonts.ready.then(refreshAnnH);
+window.addEventListener('resize', refreshAnnH);
 
 // ── REVEAL À L'INTERSECTION ──
 const obs = new IntersectionObserver((entries) => {
