@@ -2,6 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<link rel="preload" href="/fonts/jost-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/lora-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Desha-Moulin — École de danse, Bergerac</title>
 <link rel="stylesheet" href="style.css?v=2">
@@ -19,7 +21,11 @@
 
 <nav id="nav">
   <a href="#" class="nav-logo">
-    <img src="images/Logo Desha Moulin_803px.png" alt="Desha-Moulin" class="nav-logo-img">
+    <picture>
+      <source type="image/avif" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.avif 250w, images/optimized/Logo-Desha-Moulin_803px-500w.avif 500w" sizes="44px">
+      <source type="image/webp" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.webp 250w, images/optimized/Logo-Desha-Moulin_803px-500w.webp 500w" sizes="44px">
+      <img src="images/optimized/Logo-Desha-Moulin_803px-250w.png" alt="Desha-Moulin" class="nav-logo-img" width="44" height="44" loading="lazy" decoding="async">
+    </picture>
   </a>
   <ul class="nav-links">
     <li><a href="#ecole">L'école</a></li>
@@ -30,19 +36,19 @@
     <li><a href="#faq">FAQ</a></li>
     <li><a href="#contact" class="nav-btn">Nous contacter</a></li>
   </ul>
-  <button class="nav-burger" id="nav-burger" onclick="toggleMenu()" aria-label="Menu">
+  <button class="nav-burger" id="nav-burger" data-action="toggle-menu" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
 </nav>
 
 <div class="mobile-menu" id="mobile-menu">
-  <a href="#ecole" onclick="closeMenu()">L'école</a>
-  <a href="#cours" onclick="closeMenu()">Cours</a>
-  <a href="#planning" onclick="closeMenu()">Planning</a>
-  <a href="#tarifs" onclick="closeMenu()">Tarifs</a>
-  <a href="#inscription" onclick="closeMenu()">Inscription</a>
-  <a href="#faq" onclick="closeMenu()">FAQ</a>
-  <a href="#contact" class="mobile-cta" onclick="closeMenu()">Nous contacter</a>
+  <a href="#ecole" data-action="close-menu">L'école</a>
+  <a href="#cours" data-action="close-menu">Cours</a>
+  <a href="#planning" data-action="close-menu">Planning</a>
+  <a href="#tarifs" data-action="close-menu">Tarifs</a>
+  <a href="#inscription" data-action="close-menu">Inscription</a>
+  <a href="#faq" data-action="close-menu">FAQ</a>
+  <a href="#contact" class="mobile-cta" data-action="close-menu">Nous contacter</a>
 </div>
 
 <section class="hero" id="accueil">
@@ -50,7 +56,11 @@
     <div class="hero-circle"></div>
     <div class="hero-circle-2"></div>
     <div class="hero-left-content">
-      <img src="images/Logo Desha Moulin_803px.png" alt="Desha-Moulin" class="hero-logo">
+      <picture>
+        <source type="image/avif" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.avif 250w, images/optimized/Logo-Desha-Moulin_803px-500w.avif 500w" sizes="250px">
+        <source type="image/webp" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.webp 250w, images/optimized/Logo-Desha-Moulin_803px-500w.webp 500w" sizes="250px">
+        <img src="images/optimized/Logo-Desha-Moulin_803px-250w.png" alt="Desha-Moulin" class="hero-logo" width="250" height="250" decoding="async">
+      </picture>
       <div class="hero-eyebrow">École de danse — Bergerac</div>
       <h1 class="hero-title">La danse,<br><em>pour tous.</em></h1>
       <p class="hero-desc">Éveil, classique, modern jazz — à partir de 4 ans. Un espace de transmission et de création au cœur de la Dordogne.</p>
@@ -62,7 +72,20 @@
   </div>
   <div class="hero-right">
     <div class="hero-right-img">
-      <img src="images/rentree-819x1024.jpg" alt="Cours de danse Desha-Moulin">
+      <picture>
+        <source type="image/avif"
+                srcset="images/optimized/rentree-819x1024-711w.avif 711w,
+                        images/optimized/rentree-819x1024-819w.avif 819w"
+                sizes="(max-width: 768px) 100vw, 711px">
+        <source type="image/webp"
+                srcset="images/optimized/rentree-819x1024-711w.webp 711w,
+                        images/optimized/rentree-819x1024-819w.webp 819w"
+                sizes="(max-width: 768px) 100vw, 711px">
+        <img src="images/optimized/rentree-819x1024-711w.jpg"
+             alt="Cours de danse Desha-Moulin"
+             width="711" height="888"
+             fetchpriority="high" decoding="async">
+      </picture>
     </div>
     <div class="hero-right-overlay"></div>
     <div class="hero-actu" id="hero-actu"></div>
@@ -104,7 +127,22 @@
   </div>
   <div class="about-visual reveal d1">
     <div class="about-img-wrap">
-      <img src="images/Cours_nb.png" alt="Cours de danse classique Desha-Moulin">
+      <picture>
+        <source type="image/avif"
+                srcset="images/optimized/Cours_nb-878w.avif 878w,
+                        images/optimized/Cours_nb-1316w.avif 1316w,
+                        images/optimized/Cours_nb-1600w.avif 1600w"
+                sizes="(max-width: 768px) 100vw, 878px">
+        <source type="image/webp"
+                srcset="images/optimized/Cours_nb-878w.webp 878w,
+                        images/optimized/Cours_nb-1316w.webp 1316w,
+                        images/optimized/Cours_nb-1600w.webp 1600w"
+                sizes="(max-width: 768px) 100vw, 878px">
+        <img src="images/optimized/Cours_nb-878w.jpg"
+             alt="Cours de danse classique Desha-Moulin"
+             width="878" height="658"
+             loading="lazy" decoding="async">
+      </picture>
     </div>
     <div class="about-badge">
       <div class="about-badge-label">fondée en</div>
@@ -124,7 +162,13 @@
   <div class="cours-grid reveal d1">
 
     <div class="cours-card">
-      <div class="cours-card-img"><img src="images/2488558346897120552-1024x765.jpg" alt="Cours d'éveil Desha-Moulin"></div>
+      <div class="cours-card-img">
+        <picture>
+          <source type="image/avif" srcset="images/optimized/2488558346897120552-1024x765-282w.avif 282w, images/optimized/2488558346897120552-1024x765-564w.avif 564w" sizes="(max-width: 768px) 100vw, 282px">
+          <source type="image/webp" srcset="images/optimized/2488558346897120552-1024x765-282w.webp 282w, images/optimized/2488558346897120552-1024x765-564w.webp 564w" sizes="(max-width: 768px) 100vw, 282px">
+          <img src="images/optimized/2488558346897120552-1024x765-282w.jpg" alt="Cours d'éveil Desha-Moulin" width="282" height="211" loading="lazy" decoding="async">
+        </picture>
+      </div>
       <div class="cours-card-bar"></div>
       <div class="cours-card-body">
         <span class="cours-card-icon">🌸</span>
@@ -137,7 +181,13 @@
     </div>
 
     <div class="cours-card">
-      <div class="cours-card-img"><img src="images/Cours-Initiation.png" alt="Cours d'initiation Desha-Moulin"></div>
+      <div class="cours-card-img">
+        <picture>
+          <source type="image/avif" srcset="images/optimized/Cours-Initiation-282w.avif 282w, images/optimized/Cours-Initiation-371w.avif 371w" sizes="(max-width: 768px) 100vw, 282px">
+          <source type="image/webp" srcset="images/optimized/Cours-Initiation-282w.webp 282w, images/optimized/Cours-Initiation-371w.webp 371w" sizes="(max-width: 768px) 100vw, 282px">
+          <img src="images/optimized/Cours-Initiation-282w.jpg" alt="Cours d'initiation Desha-Moulin" width="282" height="211" loading="lazy" decoding="async">
+        </picture>
+      </div>
       <div class="cours-card-bar"></div>
       <div class="cours-card-body">
         <span class="cours-card-icon">⭐</span>
@@ -150,7 +200,13 @@
     </div>
 
     <div class="cours-card">
-      <div class="cours-card-img"><img src="images/Cours-DanseClassique_371_287-300x231.png" alt="Cours de danse classique Desha-Moulin"></div>
+      <div class="cours-card-img">
+        <picture>
+          <source type="image/avif" srcset="images/optimized/Cours-DanseClassique_371_287-300x231-282w.avif 282w, images/optimized/Cours-DanseClassique_371_287-300x231-292w.avif 292w" sizes="(max-width: 768px) 100vw, 282px">
+          <source type="image/webp" srcset="images/optimized/Cours-DanseClassique_371_287-300x231-282w.webp 282w, images/optimized/Cours-DanseClassique_371_287-300x231-292w.webp 292w" sizes="(max-width: 768px) 100vw, 282px">
+          <img src="images/optimized/Cours-DanseClassique_371_287-300x231-282w.jpg" alt="Cours de danse classique Desha-Moulin" width="282" height="217" loading="lazy" decoding="async">
+        </picture>
+      </div>
       <div class="cours-card-bar"></div>
       <div class="cours-card-body">
         <span class="cours-card-icon">🩰</span>
@@ -167,7 +223,13 @@
     </div>
 
     <div class="cours-card">
-      <div class="cours-card-img"><img src="images/Cours_ModernJazz.png" alt="Cours de Modern' Jazz Desha-Moulin"></div>
+      <div class="cours-card-img">
+        <picture>
+          <source type="image/avif" srcset="images/optimized/Cours_ModernJazz-282w.avif 282w, images/optimized/Cours_ModernJazz-383w.avif 383w" sizes="(max-width: 768px) 100vw, 282px">
+          <source type="image/webp" srcset="images/optimized/Cours_ModernJazz-282w.webp 282w, images/optimized/Cours_ModernJazz-383w.webp 383w" sizes="(max-width: 768px) 100vw, 282px">
+          <img src="images/optimized/Cours_ModernJazz-282w.jpg" alt="Cours de Modern' Jazz Desha-Moulin" width="282" height="211" loading="lazy" decoding="async">
+        </picture>
+      </div>
       <div class="cours-card-bar"></div>
       <div class="cours-card-body">
         <span class="cours-card-icon">🎵</span>
@@ -193,9 +255,9 @@
   </div>
 
   <div class="planning-tabs reveal d1">
-    <div class="planning-tab active" onclick="switchView('jours')">Par jour</div>
-    <div class="planning-tab" onclick="switchView('tableau')">Vue semaine</div>
-    <button class="planning-print-btn" onclick="printPlanning()">
+    <div class="planning-tab active" data-action="switch-view" data-view="jours">Par jour</div>
+    <div class="planning-tab" data-action="switch-view" data-view="tableau">Vue semaine</div>
+    <button class="planning-print-btn" data-action="print-planning">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Imprimer
     </button>
@@ -504,14 +566,14 @@
   <div class="faq-list reveal d1">
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Quels sont les moyens de paiement acceptés ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Quels sont les moyens de paiement acceptés ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Nous prenons les chèques et les espèces, mais nous n'acceptons pas la carte bleue.</p>
       </div></div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Comment puis-je connaître mon niveau ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Comment puis-je connaître mon niveau ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Vous pouvez obtenir une estimation de votre niveau selon le nombre d'années de pratique de la danse. Le tableau ci-dessous est donné à titre indicatif — rapprochez-vous de votre professeure pour en discuter de manière plus précise.</p>
         <table class="faq-niveau-table">
@@ -525,28 +587,28 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">À quelle date se passe le spectacle ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">À quelle date se passe le spectacle ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Le spectacle a lieu en juin, en fonction des dates disponibles au moment de la réservation.</p>
       </div></div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Je suis un garçon, puis-je rejoindre l'école ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Je suis un garçon, puis-je rejoindre l'école ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Absolument ! La danse n'a pas de genre. L'école accueille filles et garçons, enfants et adultes, débutants et confirmés — à partir de quatre ans, dans une ambiance bienveillante et ouverte à tous.</p>
       </div></div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">J'ai plus de 8 ans et je débute — avec quel groupe vais-je avoir cours ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">J'ai plus de 8 ans et je débute — avec quel groupe vais-je avoir cours ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>À partir de 8 ans, vous pouvez rejoindre le cours de danse classique débutant. À partir de 10 ans, vous avez également accès au cours de Modern' Jazz.</p>
       </div></div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Y a-t-il des cours pour adultes débutants ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Y a-t-il des cours pour adultes débutants ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Oui ! Deux créneaux sont disponibles pour les adultes débutants :</p>
         <ul style="margin: 0.6rem 0 0 1.2rem; display:flex; flex-direction:column; gap:0.3rem;">
@@ -557,21 +619,21 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Comment prendre rendez-vous pour un cours particulier ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Comment prendre rendez-vous pour un cours particulier ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Pour un cours particulier, prenez rendez-vous directement par téléphone — nous conviendrons ensemble d'un horaire qui vous convient.</p>
       </div></div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Je ne peux pas venir à un cours — dois-je le payer ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Je ne peux pas venir à un cours — dois-je le payer ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Si vous manquez un cours, nous vous proposerons de le rattraper à un autre horaire, à la date qui vous conviendra dans le trimestre.</p>
       </div></div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Est-ce facile de se garer près de l'école ?<span class="faq-icon">+</span></button>
+      <button class="faq-q" data-action="toggle-faq">Est-ce facile de se garer près de l'école ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>La circulation dans le quartier est calme et vous trouverez un parking juste en face de l'école.</p>
       </div></div>
@@ -652,25 +714,29 @@
 
 <footer>
   <div class="footer-logo">
-    <img src="images/Logo Desha Moulin_803px.png" alt="Desha-Moulin" style="height:36px; width:auto; filter: brightness(0) invert(0.6);">
+    <picture>
+      <source type="image/avif" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.avif 250w, images/optimized/Logo-Desha-Moulin_803px-500w.avif 500w" sizes="36px">
+      <source type="image/webp" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.webp 250w, images/optimized/Logo-Desha-Moulin_803px-500w.webp 500w" sizes="36px">
+      <img src="images/optimized/Logo-Desha-Moulin_803px-250w.png" alt="Desha-Moulin" style="height:36px; width:auto; filter: brightness(0) invert(0.6);" width="36" height="36" loading="lazy" decoding="async">
+    </picture>
   </div>
   <div class="footer-copy">© 2026 École de danse Desha-Moulin — Bergerac</div>
-  <button onclick="openPrivacy()" class="footer-link" style="background:none;border:none;cursor:pointer;padding:0;">Politique de confidentialité</button>
+  <button data-action="open-privacy" class="footer-link" style="background:none;border:none;cursor:pointer;padding:0;">Politique de confidentialité</button>
 </footer>
 
 <!-- BANDEAU COOKIES -->
 <div class="cookie-banner" id="cookie-banner">
-  <p>Notre site utilise Google Maps pour afficher notre localisation. Ce service peut déposer des cookies tiers. <button onclick="openPrivacy()" style="background:none;border:none;padding:0;cursor:pointer;color:var(--rose-poudre);font-size:0.8rem;">En savoir plus</button></p>
+  <p>Notre site utilise Google Maps pour afficher notre localisation. Ce service peut déposer des cookies tiers. <button data-action="open-privacy" style="background:none;border:none;padding:0;cursor:pointer;color:var(--rose-poudre);font-size:0.8rem;">En savoir plus</button></p>
   <div class="cookie-btns">
-    <button class="cookie-btn cookie-btn-refuse" onclick="refuseCookies()">Refuser</button>
-    <button class="cookie-btn cookie-btn-accept" onclick="acceptCookies()">Accepter</button>
+    <button class="cookie-btn cookie-btn-refuse" data-action="refuse-cookies">Refuser</button>
+    <button class="cookie-btn cookie-btn-accept" data-action="accept-cookies">Accepter</button>
   </div>
 </div>
 
 <!-- MODAL POLITIQUE DE CONFIDENTIALITÉ -->
-<div class="modal-overlay" id="privacy-modal" onclick="closePrivacy(event)">
+<div class="modal-overlay" id="privacy-modal" data-action="close-privacy">
   <div class="modal">
-    <button class="modal-close" onclick="closePrivacy()">✕</button>
+    <button class="modal-close" data-action="close-privacy">✕</button>
     <h2>Politique de confidentialité</h2>
     <div class="modal-date">Dernière mise à jour : avril 2026</div>
 
@@ -692,165 +758,10 @@
 
     <h3>Modifier votre choix</h3>
     <p>Vous pouvez modifier votre consentement à tout moment en cliquant sur le bouton ci-dessous.</p>
-    <button onclick="resetCookies()" style="margin-top:1rem; padding:0.6rem 1.4rem; background:var(--terre); color:var(--sable-3); border:none; border-radius:100px; font-size:0.8rem; cursor:pointer;">Réinitialiser mes préférences</button>
+    <button data-action="reset-cookies" style="margin-top:1rem; padding:0.6rem 1.4rem; background:var(--terre); color:var(--sable-3); border:none; border-radius:100px; font-size:0.8rem; cursor:pointer;">Réinitialiser mes préférences</button>
   </div>
 </div>
 
-<script>
-  // ── BURGER MENU ──
-  function toggleMenu() {
-    const burger = document.getElementById('nav-burger');
-    const menu = document.getElementById('mobile-menu');
-    burger.classList.toggle('open');
-    menu.classList.toggle('open');
-    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
-  }
-  function closeMenu() {
-    document.getElementById('nav-burger').classList.remove('open');
-    document.getElementById('mobile-menu').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  // ── COOKIES & CARTE ──
-  const GMAPS_SRC = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5495.868002373758!2d0.47542420990348516!3d44.853041881538005!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12aad076e2522021%3A0x1f638222d38695de!2sEcole%20de%20danse%20-%20Desha%20Moulin%20Attitude!5e0!3m2!1sfr!2sfr!4v1775110036882!5m2!1sfr!2sfr';
-
-  function loadMap() {
-    const el = document.getElementById('contact-map');
-    el.innerHTML = '<iframe src="' + GMAPS_SRC + '" style="border:0;width:100%;height:100%;" allowfullscreen loading="lazy"></iframe>';
-  }
-
-  function showMapPlaceholder() {
-    const el = document.getElementById('contact-map');
-    el.innerHTML = '<div class="map-placeholder"><p>La carte n\'est pas affichée car vous avez refusé les cookies tiers.</p><a href="https://maps.google.com/?q=Ecole+de+danse+Desha+Moulin,+Bergerac" target="_blank" rel="noopener">Voir sur Google Maps →</a></div>';
-  }
-
-  function acceptCookies() {
-    localStorage.setItem('cookies', 'accepted');
-    document.getElementById('cookie-banner').classList.remove('visible');
-    loadMap();
-  }
-
-  function refuseCookies() {
-    localStorage.setItem('cookies', 'refused');
-    document.getElementById('cookie-banner').classList.remove('visible');
-    showMapPlaceholder();
-  }
-
-  function resetCookies() {
-    localStorage.removeItem('cookies');
-    closePrivacy();
-    showMapPlaceholder();
-    setTimeout(() => document.getElementById('cookie-banner').classList.add('visible'), 300);
-  }
-
-  function openPrivacy() { document.getElementById('privacy-modal').classList.add('open'); }
-  function closePrivacy(e) {
-    if (!e || e.target === document.getElementById('privacy-modal')) {
-      document.getElementById('privacy-modal').classList.remove('open');
-    }
-  }
-
-  const consent = localStorage.getItem('cookies');
-  if (consent === 'accepted') { loadMap(); }
-  else if (consent === 'refused') { showMapPlaceholder(); }
-  else { showMapPlaceholder(); setTimeout(() => document.getElementById('cookie-banner').classList.add('visible'), 800); }
-
-  function printPlanning() {
-    const planning = document.getElementById('planning');
-    const activeTab = document.querySelector('.planning-tab.active');
-    const viewLabel = activeTab ? activeTab.textContent.trim() : 'Planning';
-
-    // Masquer tout sauf le planning
-    const bodyChildren = Array.from(document.body.children);
-    bodyChildren.forEach(el => { if (el !== planning) el.style.display = 'none'; });
-
-    // Forcer la visibilité des éléments animés
-    planning.querySelectorAll('.reveal').forEach(el => {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-    });
-
-    // Afficher la vue active, masquer les autres
-    planning.querySelectorAll('.planning-view').forEach(el => {
-      el.style.display = el.classList.contains('active') ? 'block' : 'none';
-    });
-    planning.querySelector('.planning-tabs').style.display = 'none';
-
-    // Mise à l'échelle automatique pour tenir sur A4 paysage
-    // Zone utile ≈ 275mm × 188mm à 96dpi = ~1039px × ~710px
-    const availW = 1039;
-    const availH = 710;
-    const scaleW = availW / planning.scrollWidth;
-    const scaleH = availH / planning.scrollHeight;
-    const scale = Math.min(scaleW, scaleH, 1);
-    planning.style.zoom = scale;
-    const topMargin = Math.max(0, (availH - planning.scrollHeight * scale) / 2);
-    planning.style.marginTop = (topMargin / scale) + 'px';
-
-    const prevTitle = document.title;
-    document.title = 'Planning ' + viewLabel + ' — École Desha-Moulin';
-    window.print();
-
-    // Restaurer
-    document.title = prevTitle;
-    planning.style.zoom = '';
-    planning.style.marginTop = '';
-    bodyChildren.forEach(el => { el.style.display = ''; });
-    planning.querySelectorAll('.reveal').forEach(el => {
-      el.style.opacity = '';
-      el.style.transform = '';
-    });
-    planning.querySelectorAll('.planning-view').forEach(el => { el.style.display = ''; });
-    planning.querySelector('.planning-tabs').style.display = '';
-  }
-
-  function toggleFaq(btn) {
-    const item = btn.parentElement;
-    const isOpen = item.classList.contains('open');
-    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-    if (!isOpen) item.classList.add('open');
-  }
-
-  function switchView(id) {
-    document.querySelectorAll('.planning-view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.planning-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('view-' + id).classList.add('active');
-    event.target.classList.add('active');
-  }
-
-  // ── SYNC ANNONCE → HERO OVERLAY (desktop) ──
-  (function() {
-    const src = document.querySelector('.annonce');
-    const dst = document.getElementById('hero-actu');
-    if (src && dst) {
-      dst.innerHTML = src.innerHTML;
-      if (src.style.display === 'none') dst.style.display = 'none';
-    }
-  })();
-
-  const nav = document.getElementById('nav');
-  const annonce = document.querySelector('.annonce');
-  function getAnnH() { return annonce ? annonce.offsetHeight : 0; }
-  function updateNavTop() {
-    if (!nav.classList.contains('scrolled'))
-      nav.style.top = Math.max(0, getAnnH() - window.scrollY) + 'px';
-  }
-  updateNavTop();
-  window.addEventListener('scroll', () => {
-    const h = getAnnH();
-    nav.classList.toggle('scrolled', window.scrollY > h + 10);
-    if (!nav.classList.contains('scrolled')) nav.style.top = Math.max(0, h - window.scrollY) + 'px';
-    else nav.style.top = '0';
-  });
-  document.fonts.ready.then(updateNavTop);
-  window.addEventListener('resize', updateNavTop);
-  const reveals = document.querySelectorAll('.reveal');
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-    });
-  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
-  reveals.forEach(el => obs.observe(el));
-</script>
+<script src="js/main.js" defer></script>
 </body>
 </html>

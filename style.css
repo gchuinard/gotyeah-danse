@@ -79,7 +79,15 @@ nav.scrolled .nav-btn { border-color: rgba(92,61,46,0.25); color: var(--terre) !
 .hero-left::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('images/IMG_98021.jpg') center/cover no-repeat;
+  background-image: url('images/IMG_98021.jpg');
+  background-image: image-set(
+    url('images/optimized/IMG_98021-1280w.avif') type('image/avif'),
+    url('images/optimized/IMG_98021-1280w.webp') type('image/webp'),
+    url('images/IMG_98021.jpg') type('image/jpeg')
+  );
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   opacity: 0.2;
   mix-blend-mode: luminosity;
 }
