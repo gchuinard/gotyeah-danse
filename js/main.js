@@ -134,7 +134,7 @@ function toggleFaq(btn) {
 // On le rafraîchit uniquement quand la hauteur peut changer : resize ou fonts.ready.
 const nav = document.getElementById('nav');
 const annonce = document.querySelector('.annonce');
-let annH = annonce ? annonce.offsetHeight : 0;
+let annH = 0; // différé dans rAF — pas de lecture offsetHeight sur le critical path
 
 function updateNavTop() {
   if (!nav.classList.contains('scrolled'))
@@ -147,6 +147,7 @@ function refreshAnnH() {
 }
 
 updateNavTop();
+requestAnimationFrame(refreshAnnH);
 window.addEventListener('scroll', () => {
   nav.classList.toggle('scrolled', window.scrollY > annH + 10);
   nav.style.top = nav.classList.contains('scrolled') ? '0' : Math.max(0, annH - window.scrollY) + 'px';
