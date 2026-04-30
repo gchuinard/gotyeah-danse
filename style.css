@@ -167,10 +167,11 @@ h2.titre em { font-style: italic; color: var(--gris-chd); }
 .cours-card-age { font-size: 0.73rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rose-poudre); margin-bottom: 1.2rem; }
 .cours-card-desc { font-size: 0.88rem; font-weight: 300; color: var(--gris-chd); line-height: 1.75; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(92,61,46,0.1); }
 .sch-label { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-chd); margin-bottom: 0.8rem; opacity: 0.7; }
-.sch-row { display: flex; justify-content: space-between; padding: 0.4rem 0; gap: 0.5rem; border-bottom: 1px solid rgba(92,61,46,0.06); }
+.sch-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 0.4rem 0; gap: 0.5rem; border-bottom: 1px solid rgba(92,61,46,0.06); }
 .sch-row:last-child { border-bottom: none; }
 .sch-niv { font-size: 0.8rem; font-weight: 400; color: var(--encre); flex: 1; }
-.sch-h { font-size: 0.75rem; font-weight: 300; color: var(--gris-chd); white-space: nowrap; }
+.sch-niv .sch-prof { display: block; font-size: 0.65rem; font-weight: 300; font-style: italic; color: var(--rose-poudre); margin-top: 0.15rem; letter-spacing: 0.02em; }
+.sch-h { font-size: 0.75rem; font-weight: 300; color: var(--gris-chd); white-space: nowrap; padding-top: 0.1rem; }
 
 /* ── TARIFS ── */
 .tarifs { background: var(--terre); color: var(--sable-2); }
@@ -330,21 +331,8 @@ footer { background: var(--encre); padding: 2.5rem 4rem; display: flex; justify-
   margin-bottom: 3rem;
   border-bottom: 1px solid rgba(92,61,46,0.15);
   align-items: center;
+  padding-bottom: 0.9rem;
 }
-.planning-tab {
-  padding: 0.9rem 2rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--gris-chd);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.25s;
-  user-select: none;
-}
-.planning-tab:hover { color: var(--terre); }
-.planning-tab.active { color: var(--terre); border-bottom-color: var(--rose-poudre); }
 .planning-print-btn { margin-left: auto; display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(92,61,46,0.2); border-radius: 100px; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.07em; color: var(--gris-chd); cursor: pointer; background: none; transition: all 0.25s; }
 .planning-print-btn:hover { border-color: var(--rose-poudre); color: var(--terre); }
 .planning-print-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -352,66 +340,6 @@ footer { background: var(--encre); padding: 2.5rem 4rem; display: flex; justify-
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
-
-.planning-view { display: none; }
-.planning-view.active { display: block; }
-
-/* Vue tableau */
-.planning-grid {
-  display: grid;
-  grid-template-columns: 70px repeat(3, 1fr);
-  gap: 1px;
-  background: rgba(92,61,46,0.1);
-  border: 1px solid rgba(92,61,46,0.1);
-  overflow: hidden;
-  border-radius: 16px;
-}
-.pg-header {
-  background: var(--terre);
-  padding: 1rem 1.2rem;
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(250,247,242,0.7);
-  text-align: center;
-}
-.pg-header.time-col { background: var(--encre); }
-.pg-time {
-  background: var(--sable-3);
-  padding: 0.6rem 0.8rem;
-  font-size: 0.7rem;
-  font-weight: 400;
-  color: var(--gris-chd);
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-feature-settings: "tnum";
-}
-.pg-cell {
-  background: var(--sable-3);
-  padding: 0.5rem;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.pg-slot {
-  width: 100%;
-  padding: 0.6rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1.35;
-  text-align: center;
-}
-.pg-slot.eveil    { background: rgba(212,160,144,0.2); color: #7a4535; border: 1px solid rgba(212,160,144,0.35); }
-.pg-slot.init     { background: rgba(139,94,74,0.15);  color: #6b3d2a; border: 1px solid rgba(139,94,74,0.25); }
-.pg-slot.clas     { background: rgba(92,61,46,0.12);   color: #4a2e1e; border: 1px solid rgba(92,61,46,0.2); }
-.pg-slot.jazz     { background: rgba(155,123,106,0.15);color: #5a3c2c; border: 1px solid rgba(155,123,106,0.25); }
-.pg-slot strong { display: block; font-weight: 500; font-size: 0.78rem; }
-.pg-slot small { display: block; font-size: 0.68rem; opacity: 0.7; margin-top: 0.1rem; }
 
 /* Vue par jour */
 .jours-grid {
@@ -472,6 +400,14 @@ footer { background: var(--encre); padding: 2.5rem 4rem; display: flex; justify-
   font-size: 0.72rem;
   font-weight: 300;
   color: var(--gris-chd);
+}
+.jour-slot-prof {
+  font-size: 0.68rem;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--rose-poudre);
+  margin-top: 0.2rem;
+  letter-spacing: 0.02em;
 }
 .jour-dot {
   width: 6px; height: 6px;
@@ -595,12 +531,8 @@ nav.scrolled .nav-burger span { background: var(--encre); }
   .cours-intro { flex-direction: column; align-items: flex-start; }
 
   /* Planning */
-  .planning-tabs { overflow-x: auto; white-space: nowrap; }
-  #view-tableau { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .planning-grid { min-width: 460px; }
   .planning-print-btn { display: none; }
   .jours-grid { grid-template-columns: 1fr; }
-  .disci-grid { grid-template-columns: 1fr; }
 
   /* Tarifs */
   .tarifs-specials { grid-template-columns: 1fr; }

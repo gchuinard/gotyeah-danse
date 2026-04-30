@@ -63,8 +63,6 @@ if (_consent === 'accepted') {
 // ── PLANNING — IMPRESSION ──
 function printPlanning() {
   const planning = document.getElementById('planning');
-  const activeTab = document.querySelector('.planning-tab.active');
-  const viewLabel = activeTab ? activeTab.textContent.trim() : 'Planning';
 
   const bodyChildren = Array.from(document.body.children);
   bodyChildren.forEach(el => { if (el !== planning) el.style.display = 'none'; });
@@ -72,9 +70,6 @@ function printPlanning() {
   planning.querySelectorAll('.reveal').forEach(el => {
     el.style.opacity = '1';
     el.style.transform = 'none';
-  });
-  planning.querySelectorAll('.planning-view').forEach(el => {
-    el.style.display = el.classList.contains('active') ? 'block' : 'none';
   });
   planning.querySelector('.planning-tabs').style.display = 'none';
 
@@ -87,7 +82,7 @@ function printPlanning() {
   planning.style.marginTop = (topMargin / scale) + 'px';
 
   const prevTitle = document.title;
-  document.title = 'Planning ' + viewLabel + ' — École Desha-Moulin';
+  document.title = 'Planning — École Desha-Moulin';
   window.print();
 
   // Restaurer
@@ -99,16 +94,7 @@ function printPlanning() {
     el.style.opacity = '';
     el.style.transform = '';
   });
-  planning.querySelectorAll('.planning-view').forEach(el => { el.style.display = ''; });
   planning.querySelector('.planning-tabs').style.display = '';
-}
-
-// ── PLANNING — CHANGEMENT DE VUE ──
-function switchView(id, tab) {
-  document.querySelectorAll('.planning-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.planning-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('view-' + id).classList.add('active');
-  tab.classList.add('active');
 }
 
 // ── FAQ ──
@@ -174,9 +160,6 @@ document.addEventListener('click', function (event) {
       break;
     case 'close-menu':
       closeMenu();
-      break;
-    case 'switch-view':
-      switchView(el.dataset.view, el);
       break;
     case 'print-planning':
       printPlanning();
