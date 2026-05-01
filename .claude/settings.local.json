@@ -8,7 +8,10 @@
       "Bash(git push:*)",
       "Bash(node *)",
       "Bash(npm init *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(grep -iE \"readme|claude|\\\\.md$\")",
+      "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline --diff-filter=D --name-only)",
+      "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline -- \"**/README*\")"
     ]
   }
 }
