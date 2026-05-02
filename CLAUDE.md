@@ -86,7 +86,7 @@ Le script génère les variantes WebP/AVIF à plusieurs largeurs dans `images/op
 - **Fondée en** : 1949 par Myrio et Desha — 75+ ans d'histoire
 - **Profs** :
   - Pascale Moulin (directrice) — diplômée ESEC
-  - Aurore Largeau — Diplôme d'État (DE)
+  - Aurore  Esteve Largeau — Diplôme d'État (DE)
 - **Adresse** : 2–4 rue des Trois Frères Cassadou, 24100 Bergerac
 - **Tél** : 06 69 35 39 25
 - **Instagram** : @deshamoulin
