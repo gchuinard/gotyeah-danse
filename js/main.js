@@ -111,6 +111,20 @@ function toggleFaq(btn) {
   if (!isOpen) item.classList.add('open');
 }
 
+// ── OBFUSCATION EMAIL ──
+function initEmailLinks() {
+  document.querySelectorAll('.email-link').forEach(el => {
+    const user = el.dataset.user;
+    const domain = el.dataset.domain;
+    if (!user || !domain) return;
+    const email = user + '@' + domain;
+    el.href = 'mailto:' + email;
+    const display = el.querySelector('.email-display');
+    if (display) display.textContent = email;
+  });
+}
+initEmailLinks();
+
 // ── SYNC ANNONCE → HERO OVERLAY (desktop) ──
 (function () {
   const src = document.querySelector('.annonce');
