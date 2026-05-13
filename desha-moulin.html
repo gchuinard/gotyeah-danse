@@ -64,8 +64,8 @@
 }
 </script>
 
-<link rel="preload" href="/style.css?v=6" as="style">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="preload" href="/style.css?v=7" as="style">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -618,7 +618,7 @@
       <button class="faq-q" data-action="toggle-faq">Y a-t-il des cours pour adultes débutants ?<span class="faq-icon">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">
         <p>Oui ! Deux créneaux sont disponibles pour les adultes débutants :</p>
-        <ul style="margin: 0.6rem 0 0 1.2rem; display:flex; flex-direction:column; gap:0.3rem;">
+        <ul>
           <li><strong>Modern' Jazz</strong> — mercredi soir à 19h30</li>
           <li><strong>Danse classique</strong> — vendredi à 12h30</li>
         </ul>
@@ -674,7 +674,7 @@
         <div class="contact-dot"></div>
         <div>
           <div class="contact-row-label">Email</div>
-          <div class="contact-row-value" style="font-size:1rem;"><a href="mailto:deshamoulin@gmail.com">deshamoulin@gmail.com</a></div>
+          <div class="contact-row-value contact-row-value--email"><a href="mailto:deshamoulin@gmail.com">deshamoulin@gmail.com</a></div>
         </div>
       </div>
       <div class="contact-row">
@@ -724,16 +724,16 @@
     <picture>
       <source type="image/avif" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.avif 250w, images/optimized/Logo-Desha-Moulin_803px-500w.avif 500w" sizes="36px">
       <source type="image/webp" srcset="images/optimized/Logo-Desha-Moulin_803px-250w.webp 250w, images/optimized/Logo-Desha-Moulin_803px-500w.webp 500w" sizes="36px">
-      <img src="images/optimized/Logo-Desha-Moulin_803px-250w.png" alt="Desha-Moulin" style="height:36px; width:auto; filter: brightness(0) invert(0.6);" width="36" height="36" loading="lazy" decoding="async">
+      <img src="images/optimized/Logo-Desha-Moulin_803px-250w.png" alt="Desha-Moulin" width="36" height="36" loading="lazy" decoding="async">
     </picture>
   </div>
   <div class="footer-copy">© 2026 École de danse Desha-Moulin — Bergerac</div>
-  <button data-action="open-privacy" class="footer-link" style="background:none;border:none;cursor:pointer;padding:0;">Politique de confidentialité</button>
+  <button data-action="open-privacy" class="footer-link">Politique de confidentialité</button>
 </footer>
 
 <!-- BANDEAU COOKIES -->
 <div class="cookie-banner" id="cookie-banner">
-  <p>Notre site utilise Google Maps pour afficher notre localisation. Ce service peut déposer des cookies tiers. <button data-action="open-privacy" style="background:none;border:none;padding:0;cursor:pointer;color:var(--rose-poudre);font-size:0.8rem;">En savoir plus</button></p>
+  <p>Notre site utilise Google Maps pour afficher notre localisation. Ce service peut déposer des cookies tiers. <button data-action="open-privacy" class="cookie-banner-link">En savoir plus</button></p>
   <div class="cookie-btns">
     <button class="cookie-btn cookie-btn-refuse" data-action="refuse-cookies">Refuser</button>
     <button class="cookie-btn cookie-btn-accept" data-action="accept-cookies">Accepter</button>
@@ -755,7 +755,7 @@
 
     <h3>Cookies</h3>
     <p>Ce site n'utilise aucun cookie propre. En revanche, si vous acceptez l'affichage de la carte interactive, Google Maps (un service de Google LLC) est chargé et peut déposer des cookies tiers à des fins de fonctionnement et de mesure d'audience. Vous pouvez refuser ce chargement — dans ce cas, la carte ne s'affichera pas.</p>
-    <p style="margin-top:0.6rem;">Pour en savoir plus sur la politique de confidentialité de Google : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></p>
+    <p>Pour en savoir plus sur la politique de confidentialité de Google : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></p>
 
     <h3>Hébergement</h3>
     <p>Le site est hébergé en France. Aucune donnée n'est transmise à un hébergeur tiers.</p>
@@ -765,10 +765,10 @@
 
     <h3>Modifier votre choix</h3>
     <p>Vous pouvez modifier votre consentement à tout moment en cliquant sur le bouton ci-dessous.</p>
-    <button data-action="reset-cookies" style="margin-top:1rem; padding:0.6rem 1.4rem; background:var(--terre); color:var(--sable-3); border:none; border-radius:100px; font-size:0.8rem; cursor:pointer;">Réinitialiser mes préférences</button>
+    <button data-action="reset-cookies" class="modal-cta">Réinitialiser mes préférences</button>
   </div>
 </div>
 
-<script src="js/main.js" defer></script>
+<script src="js/main.js?v=7" defer></script>
 </body>
 </html>

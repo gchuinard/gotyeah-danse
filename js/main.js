@@ -19,7 +19,13 @@ const GMAPS_SRC = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5495.86
 
 function loadMap() {
   const el = document.getElementById('contact-map');
-  el.innerHTML = '<iframe src="' + GMAPS_SRC + '" style="border:0;width:100%;height:100%;" allowfullscreen loading="lazy"></iframe>';
+  const iframe = document.createElement('iframe');
+  iframe.src = GMAPS_SRC;
+  iframe.className = 'gmap-iframe';
+  iframe.loading = 'lazy';
+  iframe.referrerPolicy = 'origin';
+  iframe.allowFullscreen = true;
+  el.replaceChildren(iframe);
 }
 
 function showMapPlaceholder() {
