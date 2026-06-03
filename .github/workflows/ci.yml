@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validation HTML/CSS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+      - name: HTML validation
+        run: npx --yes html-validate desha-moulin.html
+      - name: CSS validation
+        run: npx --yes stylelint "**/*.css" --config '{"extends":"stylelint-config-standard"}' || true
+
+  docker:
+    name: Build image Docker (nginx)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t gotyeah-danse:ci .
