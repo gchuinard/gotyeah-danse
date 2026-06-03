@@ -13,15 +13,14 @@ jobs:
     name: Validation HTML/CSS
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "lts/*"
-      # Non bloquant pour l'instant : html-validate (config recommandée)
-      # signale des points pré-existants à corriger (un </div> orphelin
-      # ~l.206, des & non encodés). On affiche sans bloquer la CI.
-      - name: HTML validation (advisory)
-        run: npx --yes html-validate desha-moulin.html || true
+      # Bloquant : règles structurelles actives (.htmlvalidate.json désactive
+      # seulement les règles opiniâtres/stylistiques — cf. clement).
+      - name: HTML validation
+        run: npx --yes html-validate desha-moulin.html
       - name: CSS validation (advisory)
         run: npx --yes stylelint "**/*.css" --config '{"extends":"stylelint-config-standard"}' || true
 
@@ -29,6 +28,6 @@ jobs:
     name: Build image Docker (nginx)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build Docker image
         run: docker build -t gotyeah-danse:ci .
