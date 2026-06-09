@@ -1,0 +1,127 @@
+// Billetterie — spectacle de fin d'année, Centre Culturel de Bergerac.
+//
+// Séparation stricte topologie / géométrie :
+//  - topologie  = Section / Row / Seat.indexInRow (contiguïté, placement)
+//  - géométrie  = Seat.x / y / angle (uniquement pour le rendu SVG)
+//
+// Pas de colonne de statut sur Seat : l'état d'un siège pour une
+// représentation se déduit de l'existence d'un Ticket (occupé) ou d'un
+// SeatOverride (bloqué).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Section {
+  id    String @id // "gauche" | "centre" | "droite"
+  name  String
+  order Int
+  rows  Row[]
+}
+
+model Row {
+  id        String  @id // ex. "centre-A" (ids déterministes → seed relançable en upsert)
+  section   Section @relation(fields: [sectionId], references: [id])
+  sectionId String
+  label     String // lettre du rang, A = le plus proche de la scène
+  order     Int // 0 = rang A
+  seats     Seat[]
+
+  @@unique([sectionId, label])
+}
+
+model Seat {
+  id         String  @id // ex. "centre-A-03"
+  row        Row     @relation(fields: [rowId], references: [id])
+  rowId      String
+  number     Int // numéro affiché sur le billet (selon numberingScheme)
+  indexInRow Int // position dans SA section (contiguïté = indices consécutifs)
+  x          Float // géométrie SVG uniquement
+  y          Float
+  angle      Float // degrés, 0 = axe central, négatif = côté jardin
+  removable  Boolean @default(false)
+  score      Int     @default(0) // score statique 0-100, ajustable à la main par l'admin
+
+  overrides SeatOverride[]
+  tickets   Ticket[]
+
+  @@unique([rowId, indexInRow])
+}
+
+model Representation {
+  id       String   @id // ex. "rep-samedi-soir"
+  title    String // ex. « Samedi 20h30 »
+  startsAt DateTime
+  isOpen   Boolean  @default(false)
+
+  overrides SeatOverride[]
+  bookings  Booking[]
+  tickets   Ticket[]
+}
+
+// Indisponibilités par représentation (console son, fosse, amovibles non posés…)
+model SeatOverride {
+  id               String         @id @default(cuid())
+  representation   Representation @relation(fields: [representationId], references: [id])
+  representationId String
+  seat             Seat           @relation(fields: [seatId], references: [id])
+  seatId           String
+  reason           String // "console_son" | "fosse_avant_scene" | "amovibles_non_poses" | libre
+
+  @@unique([representationId, seatId])
+}
+
+// Une demande de places. En `pending`/`paid`, elle consomme de la jauge
+// (un compteur), jamais des sièges précis. Les sièges n'existent qu'en Ticket.
+model Booking {
+  id               String         @id @default(cuid())
+  representation   Representation @relation(fields: [representationId], references: [id])
+  representationId String
+
+  name      String
+  email     String
+  phone     String
+  partySize Int
+  notes     String? // PMR, demandes particulières
+
+  status      String // pending | paid | placed | cancelled | expired
+  publicToken String  @unique // UUID — accès page « mes billets »
+
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+  placedAt  DateTime?
+  expiresAt DateTime?
+
+  tickets Ticket[]
+
+  @@index([representationId, status])
+}
+
+model Ticket {
+  id               String         @id @default(cuid())
+  booking          Booking        @relation(fields: [bookingId], references: [id])
+  bookingId        String
+  representation   Representation @relation(fields: [representationId], references: [id])
+  representationId String
+  seat             Seat           @relation(fields: [seatId], references: [id])
+  seatId           String
+
+  qrToken   String    @unique // UUID v4, aucune donnée embarquée
+  scannedAt DateTime?
+
+  // LA contrainte qui rend les doublons impossibles, même entre deux
+  // bénévoles qui placent en parallèle : l'émission se fait en transaction.
+  @@unique([representationId, seatId])
+  @@index([bookingId])
+}
+
+model AdminUser {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String // bcryptjs
+}
