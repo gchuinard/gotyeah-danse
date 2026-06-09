@@ -28,6 +28,11 @@ type OverlaySettings = {
 
 const STORAGE_KEY = 'calibration-overlay'
 
+// Dimensions natives de public/plan-scan.png (version nettoyée ×2 du scan).
+// config/venue.ts est calibré dans ce repère : ne pas remplacer l'image
+// sans recalibrer.
+const SCAN_NATIVE = { width: 1848, height: 2612 }
+
 const DEFAULT_SETTINGS: OverlaySettings = {
   opacity: 0.5,
   scale: 1,
@@ -323,10 +328,12 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
             role="img"
             aria-label="Plan de salle généré, superposé au scan de la fiche technique"
           >
-            {/* Scan de la fiche technique, sous les sièges. */}
+            {/* Scan de la fiche technique, sous les sièges. Dessiné à sa
+                taille NATIVE en (0,0) : config/venue.ts est exprimé en pixels
+                du scan, donc échelle 1 + décalage 0 = alignement parfait. */}
             {!scanMissing && (
               <g
-                transform={`translate(${viewBox.minX + settings.dx} ${viewBox.minY + settings.dy}) scale(${settings.scale})`}
+                transform={`translate(${settings.dx} ${settings.dy}) scale(${settings.scale})`}
                 opacity={settings.opacity}
               >
                 <image
@@ -334,8 +341,8 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
                   href={`/plan-scan.png${scanRetry > 0 ? `?r=${scanRetry}` : ''}`}
                   x={0}
                   y={0}
-                  width={viewBox.width}
-                  height={viewBox.height}
+                  width={SCAN_NATIVE.width}
+                  height={SCAN_NATIVE.height}
                   preserveAspectRatio="xMinYMin meet"
                   onError={() => setScanMissing(true)}
                 />

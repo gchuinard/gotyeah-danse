@@ -44,7 +44,7 @@ function arcAngles(arc: ArcConfig): number[] {
 // trop proche de l'avant-scène) pondérée 60 %, + centralité angulaire 40 %.
 // Le résultat est un point de départ : l'admin peut l'ajuster siège par siège.
 function staticScore(rowOrder: number, angle: number, maxAbsAngle: number): number {
-  const ROW_IDEAL = 5.5 // entre E (4) et H (7)
+  const ROW_IDEAL = 7.5 // entre E (6) et H (9) — AA/BB (fosse) occupent les ordres 0-1
   const ROW_SPREAD = 3.5
   const bell = Math.exp(-0.5 * ((rowOrder - ROW_IDEAL) / ROW_SPREAD) ** 2)
   const centrality = maxAbsAngle === 0 ? 1 : 1 - Math.abs(angle) / maxAbsAngle
