@@ -1,0 +1,211 @@
+.page {
+  width: 100%;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.hint code,
+.banner code {
+  font-family: var(--font-geist-mono, monospace);
+  font-size: 0.95em;
+  background: rgba(125, 125, 125, 0.14);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid #d9b88a;
+  background: rgba(217, 184, 138, 0.16);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.bannerButton {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(125, 125, 125, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.bannerButton:hover {
+  background: rgba(125, 125, 125, 0.12);
+}
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.panel {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+.panelSection {
+  border: 1px solid rgba(125, 125, 125, 0.25);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.counters {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.counter dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.counter dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.swatchRemovable {
+  background: transparent;
+  border: 2px dashed #c0564a;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.controlInputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controlInputs input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: #5c87ad;
+}
+
+.controlInputs input[type='number'] {
+  width: 84px;
+  padding: 3px 6px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid rgba(125, 125, 125, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.reset {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(125, 125, 125, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.reset:hover {
+  background: rgba(125, 125, 125, 0.12);
+}
+
+.planArea {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 85vh;
+  border: 1px solid rgba(125, 125, 125, 0.25);
+  border-radius: 10px;
+  background: #fdfdfc;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .panel {
+    position: static;
+    flex-basis: auto;
+    width: 100%;
+  }
+}
