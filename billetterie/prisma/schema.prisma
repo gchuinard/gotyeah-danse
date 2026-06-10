@@ -54,7 +54,7 @@ model Seat {
 }
 
 model Representation {
-  id       String   @id // ex. "rep-samedi-soir"
+  id       String   @id @default(cuid()) // seed : ids fixes ("rep-samedi"), admin : cuid
   title    String // ex. « Samedi 20h30 »
   startsAt DateTime
   isOpen   Boolean  @default(false)

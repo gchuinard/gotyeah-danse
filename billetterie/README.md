@@ -218,11 +218,10 @@ Checklist :
   (idempotent, relançable sans double envoi).
 - **Export CSV** d'une représentation : bouton dans l'admin
   (`/api/admin/export/<repId>`).
-- **Ouvrir/fermer une représentation** : champ `Representation.isOpen` — pas
-  d'UI dédiée en V1, à changer via Prisma Studio (`npx prisma studio`) ou SQL.
-  Une représentation fermée disparaît du formulaire public.
-- **Changer les dates réelles des représentations** : idem, champ `startsAt`
-  via Prisma Studio — ou ajuster `prisma/seed.ts` avant le seed initial.
+- **Gérer les représentations** : `/admin/representations` — créer (fermée par
+  défaut), modifier titre et date/heure (saisies en heure de Paris), **ouvrir/
+  fermer les réservations** (une représentation fermée disparaît du formulaire
+  public), supprimer (bloqué dès qu'une demande existe, même annulée).
 
 ## Référence rapide
 
