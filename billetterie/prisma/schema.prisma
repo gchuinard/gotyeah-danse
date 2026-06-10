@@ -121,8 +121,17 @@ model Ticket {
   @@index([bookingId])
 }
 
-model AdminUser {
-  id           String @id @default(cuid())
-  email        String @unique
-  passwordHash String // bcryptjs
+// Code de connexion à usage unique (login admin sans mot de passe).
+// Les admins autorisés sont la liste blanche ADMIN_EMAILS du .env ;
+// seul le HASH du code est stocké.
+model LoginCode {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String // sha256 du code à 6 chiffres
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
 }

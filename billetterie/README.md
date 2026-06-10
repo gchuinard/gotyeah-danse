@@ -37,6 +37,7 @@ Dans `.env` :
 | `BREVO_API_KEY` | Sans clé, les emails sont simplement loggés en console (parfait en dev) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | Expéditeur des emails |
 | `PLACEMENT_IMPL` | `baseline` (défaut) ou `custom` |
+| `ADMIN_EMAILS` | Liste blanche des admins (emails séparés par des virgules) |
 | `SESSION_SECRET` | Signature des cookies admin — générer : `openssl rand -hex 32` |
 
 Puis :
@@ -51,12 +52,16 @@ Le seed est **relançable** (upserts, ids déterministes). En dev il crée :
 
 - les **773 sièges calibrés** (générés depuis `config/venue.ts`, scores statiques compris) ;
 - **2 représentations** ouvertes (`rep-samedi`, `rep-dimanche`) ;
-- 2 admins de dev : `admin1@example.com` / `admin2@example.com`, mot de passe `admin1234` ;
 - **6 demandes de démo** (pending/paid/placed), dont une **placée avec 4 billets**
   (Famille Dupuis, rang G central).
 
-Admins de dev et demandes de démo sont **gardés par `NODE_ENV !== 'production'`** :
-en prod, le seed ne crée que le plan de salle et les représentations.
+Les demandes de démo sont **gardées par `NODE_ENV !== 'production'`** : en prod,
+le seed ne crée que le plan de salle et les représentations.
+
+**Connexion admin** : pas de mot de passe. On saisit son email (qui doit figurer
+dans `ADMIN_EMAILS` du `.env`), on reçoit un **code à 6 chiffres** (valable
+10 minutes, usage unique) et on le saisit. En dev sans `BREVO_API_KEY`, le code
+s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 
 > **Note WSL2 / `/mnt/c`** : le watcher de Next ne voit pas les **nouveaux**
 > fichiers créés sur le montage Windows. Si une page fraîchement créée renvoie
@@ -131,7 +136,7 @@ L'app tourne en Docker derrière Nginx Proxy Manager (NPM) + Cloudflare, sur
 ```sh
 git clone <repo> && cd gotyeah-danse/billetterie
 cp .env.production.example .env.production
-# remplir : SESSION_SECRET (openssl rand -hex 32), BREVO_API_KEY,
+# remplir : SESSION_SECRET (openssl rand -hex 32), BREVO_API_KEY, ADMIN_EMAILS,
 #           APP_BASE_URL=https://billets.cours-danse-bergerac.fr
 docker compose up -d --build
 ```
@@ -160,14 +165,12 @@ docker compose cp web:/data/prod.db ./backup-$(date +%F).db
 faire la copie à un moment calme ou via `sqlite3 prod.db ".backup ..."` si
 sqlite3 est installé sur l'hôte.)
 
-**Premier compte admin** (le seed ne crée AUCUN admin en prod) :
-
-```sh
-docker compose exec web pnpm admin:create <email> '<mot de passe>'
-```
-
-C'est aussi l'outil de **reset de mot de passe** : si l'email existe, le mot de
-passe est simplement remplacé.
+**Admins** : aucun compte à créer. La liste blanche `ADMIN_EMAILS` de
+`.env.production` fait foi — chaque bénévole se connecte avec son email et le
+code à 6 chiffres reçu via Brevo. Ajouter/retirer un bénévole = éditer la
+variable puis `docker compose up -d`. ⚠️ La clé Brevo est donc indispensable
+pour se connecter en production (et chaque admin doit se connecter **avant** le
+soir du spectacle — la session dure 7 jours).
 
 Initialiser le plan de salle et les représentations en prod (une fois) :
 
@@ -233,8 +236,7 @@ Checklist :
 | `pnpm test` | Tests vitest (DB jetables dans /tmp) |
 | `pnpm simulate [--impl=… --runs=… --seed=…]` | Simulateur Monte Carlo de placement |
 | `pnpm cron [--once]` | Daemon des tâches planifiées (ou un passage immédiat) |
-| `pnpm admin:create <email> '<mdp>'` | Créer un admin / réinitialiser son mot de passe |
-| `pnpm db:seed` | Seed (plan + représentations ; + admins et démo hors prod) |
+| `pnpm db:seed` | Seed (plan + représentations ; + démo hors prod) |
 
 ### Variables d'environnement
 
@@ -242,11 +244,12 @@ Checklist :
 | --- | --- | --- |
 | `DATABASE_URL` | `file:./dev.db` | `file:/data/prod.db` (volume Docker) |
 | `APP_BASE_URL` | `http://localhost:3000` | `https://billets.cours-danse-bergerac.fr` |
+| `ADMIN_EMAILS` | liste blanche admins | idem — **obligatoire** (login par code email) |
 | `SESSION_SECRET` | `openssl rand -hex 32` | idem — **obligatoire** |
-| `BREVO_API_KEY` | optionnel (emails → console) | **requis** (sinon aucun email ne part) |
+| `BREVO_API_KEY` | optionnel (emails + codes → console) | **requis** (sinon aucun email ne part, login impossible) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | expéditeur | idem |
 | `PLACEMENT_IMPL` | `baseline` (défaut) \| `custom` | idem |
-| `NODE_ENV` | — | `production` (coupe admins/démo du seed) |
+| `NODE_ENV` | — | `production` (coupe la démo du seed) |
 
 Documents liés : [PLACEMENT.md](PLACEMENT.md) (spec de l'algo),
 [docs/revue-securite.md](docs/revue-securite.md) (revue du 2026-06-10,

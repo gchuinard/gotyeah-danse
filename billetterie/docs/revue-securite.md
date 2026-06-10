@@ -171,3 +171,17 @@ Ces points ne relèvent pas du code mais conditionnent l'efficacité réelle des
 | C5 (Faible) | Plus de nom de famille dans l'URL de redirection après annulation | `app/admin/(protected)/demandes/actions.ts` |
 
 Restent ouverts : C4 (config NPM/Cloudflare, voir §5), C6 (logs dev, assumé), C7 (postcss build-time), C8/C9 (durcissements optionnels).
+
+---
+
+## 8. Évolution post-revue (2026-06-10, plus tard dans la journée)
+
+L'authentification par mot de passe (bcrypt + table `AdminUser`) analysée aux
+sections précédentes a été **remplacée** par un login par code à usage unique :
+email sur liste blanche `ADMIN_EMAILS` (.env) → code 6 chiffres envoyé via
+Brevo (hash sha256 en base, TTL 10 min, 5 essais, usage unique, réponse
+identique pour les adresses hors liste — pas d'énumération). La table
+`AdminUser`, le script `admin:create` et la dépendance bcryptjs ont été
+supprimés. Les rate-limits du login sont conservés (5 demandes de code et
+10 vérifications / 15 min / IP). Conséquence opérationnelle : la délivrabilité
+Brevo devient critique pour le login en production.

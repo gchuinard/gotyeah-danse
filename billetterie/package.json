@@ -10,7 +10,6 @@
     "test": "vitest run",
     "simulate": "tsx scripts/simulate.ts",
     "cron": "tsx scripts/cron.ts",
-    "admin:create": "tsx scripts/create-admin.ts",
     "db:seed": "prisma db seed"
   },
   "prisma": {
@@ -18,7 +17,6 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
-    "bcryptjs": "^3.0.3",
     "html5-qrcode": "^2.3.8",
     "next": "16.2.8",
     "node-cron": "^4.2.1",

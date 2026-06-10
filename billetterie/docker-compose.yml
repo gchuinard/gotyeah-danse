@@ -1,7 +1,7 @@
 # Billetterie — Raspberry Pi 5 (ARM64), derrière Nginx Proxy Manager + Cloudflare.
 #
 # Sur le Pi (build ARM64 natif) :  docker compose up -d --build
-# Premier compte admin :           docker compose exec web pnpm admin:create <email> '<mdp>'
+# Admins : liste blanche ADMIN_EMAILS dans .env.production (login par code email).
 #
 # `platform: linux/arm64` est volontairement en commentaire : sur le Pi c'est
 # l'architecture native, donc inutile. Pour builder l'image DEPUIS un PC x64,

@@ -57,7 +57,7 @@ RUN apt-get update \
  && mkdir -p "$COREPACK_HOME" && chown node:node "$COREPACK_HOME"
 
 # node_modules COMPLETS, volontairement : tsx et prisma CLI doivent marcher
-# dans le conteneur (cron, migrate deploy, db:seed, admin:create). Plus lourd
+# dans le conteneur (cron, migrate deploy, db:seed). Plus lourd
 # que l'output standalone de Next, mais simple et robuste.
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/.next ./.next

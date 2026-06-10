@@ -11,7 +11,6 @@
 // remonte volontairement : la calibration a lieu avant les ventes.
 
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 import { venueConfig } from '../config/venue'
 import { generateSeats, SECTION_ORDER } from '../lib/venue/generate'
 
@@ -114,23 +113,8 @@ async function seedRepresentations() {
   return reps.length
 }
 
-const DEV_ADMIN_PASSWORD = 'admin1234'
-
-// Comptes de DEV uniquement (mot de passe faible et connu) — en production,
-// les comptes se créent via `pnpm admin:create`. Cf. revue de sécurité C1.
-async function seedAdmins() {
-  if (process.env.NODE_ENV === 'production') return []
-  const emails = ['admin1@example.com', 'admin2@example.com']
-  const passwordHash = await bcrypt.hash(DEV_ADMIN_PASSWORD, 10)
-  for (const email of emails) {
-    await prisma.adminUser.upsert({
-      where: { email },
-      update: {}, // ne pas écraser un hash modifié à la main
-      create: { email, passwordHash },
-    })
-  }
-  return emails
-}
+// NB : plus de comptes admin en base — les admins sont la liste blanche
+// ADMIN_EMAILS du .env (login par code envoyé par email).
 
 // Booking de démo « placé » : ses billets occupent 4 sièges contigus du
 // rang G central. qrToken = UUID fixes écrits en dur (clé d'upsert).
@@ -278,7 +262,6 @@ async function seedDemoTickets() {
 async function main() {
   const plan = await seedPlan()
   const repCount = await seedRepresentations()
-  const adminEmails = await seedAdmins()
   const demo =
     process.env.NODE_ENV !== 'production' ? await seedDemoBookings() : { bookings: 0, tickets: 0 }
 
@@ -287,10 +270,9 @@ async function main() {
   console.log(`  rangées         : ${plan.rows}`)
   console.log(`  sièges          : ${plan.seats}`)
   console.log(`  représentations : ${repCount}`)
-  console.log(`  admins          : ${adminEmails.length}`)
   console.log(`  bookings démo   : ${demo.bookings}`)
   console.log(`  billets démo    : ${demo.tickets}`)
-  console.log(`Comptes de dev : ${adminEmails.join(', ')} — mot de passe « ${DEV_ADMIN_PASSWORD} »`)
+  console.log('Admins : liste blanche ADMIN_EMAILS du .env (login par code email).')
 }
 
 main()
