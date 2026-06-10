@@ -12,12 +12,18 @@ services:
   web:
     build: .
     image: billetterie
+    container_name: billetterie_web
     # platform: linux/arm64
     restart: unless-stopped
     env_file: .env.production
     ports:
-      # NPM tourne sur la même machine : on n'expose que sur le loopback.
+      # Accès direct LAN/debug uniquement — NPM passe par le réseau partagé.
       - "127.0.0.1:3000:3000"
+    networks:
+      # NPM tourne en conteneur sur ce Pi : il ne peut pas joindre le loopback
+      # de l'hôte. Proxy host NPM → billetterie_web:3000 sur ce réseau.
+      - npm
+      - default
     volumes:
       - billetterie-data:/data
     healthcheck:
@@ -30,6 +36,7 @@ services:
   cron:
     # Même image que web — buildée une seule fois par le service web.
     image: billetterie
+    container_name: billetterie_cron
     # platform: linux/arm64
     command: ["pnpm", "cron"]
     restart: unless-stopped
@@ -43,3 +50,8 @@ services:
 
 volumes:
   billetterie-data:
+
+networks:
+  npm:
+    external: true
+    name: nginx-proxy-manager_default
