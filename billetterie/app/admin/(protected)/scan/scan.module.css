@@ -1,0 +1,342 @@
+/* Page de scan — mobile-first, utilisée dans un hall sombre :
+   gros boutons, gros textes, couleurs franches, rien en hover-only. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: 1.35rem;
+  color: #5c3d2e;
+}
+
+.repPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: #5a544c;
+}
+
+.repPicker select {
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid #d8cfc0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e1a16;
+}
+
+.sessionBanner {
+  padding: 0.8rem 1rem;
+  background: #7f1d1d;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sessionBanner a {
+  color: #fecaca;
+}
+
+/* --- Compteurs / synchro --- */
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.counter {
+  flex: 1 1 auto;
+  font-size: 1.1rem;
+  color: #1e1a16;
+}
+
+.counter strong {
+  font-size: 1.5rem;
+}
+
+.syncOk,
+.syncPending {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.syncOk {
+  background: #14532d;
+  color: #fff;
+}
+
+.syncPending {
+  background: #b45309;
+  color: #fff;
+}
+
+.reload {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 2px solid #5c3d2e;
+  border-radius: 10px;
+  background: #fff;
+  color: #5c3d2e;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.reload:disabled {
+  opacity: 0.5;
+}
+
+.loadError {
+  padding: 0.7rem 0.9rem;
+  background: #7f1d1d;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+/* --- Panneau de résultat --- */
+
+.panelSlot {
+  min-height: 4rem;
+}
+
+.panel {
+  padding: 1.1rem 1rem;
+  border-radius: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.panelOk {
+  background: #15803d;
+  color: #fff;
+}
+
+.panelDeja {
+  background: #b45309;
+  color: #fff;
+}
+
+.panelInconnu {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.panelHeadline {
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.panelName {
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.panelSeat {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* --- Caméra --- */
+
+.cameraSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* Zone de visée carrée — html5-qrcode y injecte la vidéo. */
+.camera {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #1e1a16;
+}
+
+.camera[data-active] {
+  aspect-ratio: 1 / 1;
+}
+
+.camera video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cameraStart,
+.cameraStop {
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 800;
+  padding: 1rem;
+  min-height: 60px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.cameraStart {
+  background: #5c3d2e;
+}
+
+.cameraStop {
+  background: #b91c1c;
+}
+
+.cameraErrorMsg {
+  padding: 0.7rem 0.9rem;
+  background: #7f1d1d;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.cameraNote {
+  font-size: 0.9rem;
+  color: #5a544c;
+  text-align: center;
+}
+
+/* --- Recherche manuelle --- */
+
+.manual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 14px;
+}
+
+.manualTitle {
+  font-size: 1.05rem;
+  color: #5c3d2e;
+}
+
+.search {
+  font: inherit;
+  font-size: 1.15rem;
+  padding: 0.75rem 0.8rem;
+  border: 2px solid #d8cfc0;
+  border-radius: 10px;
+  color: #1e1a16;
+  min-height: 52px;
+}
+
+.search:focus {
+  outline: 3px solid #8b5e4a;
+  outline-offset: 1px;
+}
+
+.results {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.2rem;
+  border-bottom: 1px solid #e6ded2;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.resultName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e1a16;
+}
+
+.resultSeat {
+  font-size: 0.95rem;
+  color: #5a544c;
+}
+
+.resultScanned {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: #b45309;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+}
+
+.markButton {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.7rem 0.9rem;
+  min-height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: #15803d;
+  color: #fff;
+  cursor: pointer;
+}
+
+.noResult {
+  font-size: 1rem;
+  color: #5a544c;
+  padding: 0.4rem 0;
+}
+
+/* Écrans plus larges (tablette posée sur la table d'accueil). */
+@media (min-width: 700px) {
+  .page {
+    max-width: 560px;
+  }
+
+  .header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .repPicker {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
