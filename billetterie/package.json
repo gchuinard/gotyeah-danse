@@ -10,6 +10,7 @@
     "test": "vitest run",
     "simulate": "tsx scripts/simulate.ts",
     "cron": "tsx scripts/cron.ts",
+    "admin:create": "tsx scripts/create-admin.ts",
     "db:seed": "prisma db seed"
   },
   "prisma": {
@@ -21,10 +22,12 @@
     "html5-qrcode": "^2.3.8",
     "next": "16.2.8",
     "node-cron": "^4.2.1",
+    "prisma": "^6.19.3",
     "qrcode": "^1.5.4",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-email": "^6.5.0",
+    "tsx": "^4.22.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -34,8 +37,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.8",
-    "prisma": "^6.19.3",
-    "tsx": "^4.22.4",
     "typescript": "^5",
     "vitest": "^4.1.8"
   },
