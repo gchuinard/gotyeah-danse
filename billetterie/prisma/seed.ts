@@ -229,6 +229,7 @@ async function seedDemoBookings() {
       paidAt: isPaid ? new Date(b.createdAt.getTime() + 2 * 60 * 60 * 1000) : null,
       placedAt: b.status === 'placed' ? new Date(b.createdAt.getTime() + 3 * DAY_MS) : null,
       expiresAt,
+      remindedAt: null, // ré-armé à chaque seed : le cron de relance reste testable
     }
     await prisma.booking.upsert({
       where: { publicToken: b.publicToken },

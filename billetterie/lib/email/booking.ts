@@ -7,6 +7,7 @@ import { render } from 'react-email'
 import BookingCancelledEmail from '@/emails/booking-cancelled'
 import BookingMovedEmail from '@/emails/booking-moved'
 import BookingPendingEmail from '@/emails/booking-pending'
+import BookingReminderEmail from '@/emails/booking-reminder'
 import BookingTicketsEmail from '@/emails/booking-tickets'
 import { sendEmail } from './send'
 
@@ -90,6 +91,38 @@ export async function sendBookingPendingEmail(booking: {
     to: booking.email,
     toName: booking.name,
     subject: `Votre demande de places — ${booking.representation.title}`,
+    html,
+  })
+}
+
+// « Petit rappel » — relance J+7 du cron : la demande attend toujours son
+// règlement. Même shape structurel que ReminderBooking (lib/admin/cron.ts).
+export async function sendReminderEmail(booking: {
+  name: string
+  email: string
+  partySize: number
+  publicToken: string
+  expiresAt: Date | null
+  representation: { title: string; startsAt: Date }
+}): Promise<boolean> {
+  const html = await render(
+    BookingReminderEmail({
+      name: booking.name,
+      partySize: booking.partySize,
+      representationTitle: booking.representation.title,
+      representationDateText: dateHeureFr(booking.representation.startsAt),
+      // Sans date d'expiration (cas théorique), on retombe sur le délai générique.
+      dateLimiteText: booking.expiresAt
+        ? formatDate.format(booking.expiresAt)
+        : 'la fin du délai de 14 jours',
+      billetsUrl: `${baseUrl()}/billets/${booking.publicToken}`,
+    }),
+  )
+
+  return sendEmail({
+    to: booking.email,
+    toName: booking.name,
+    subject: `Rappel : votre demande de places — ${booking.representation.title}`,
     html,
   })
 }

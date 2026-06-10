@@ -92,10 +92,11 @@ model Booking {
   status      String // pending | paid | placed | cancelled | expired
   publicToken String  @unique // UUID — accès page « mes billets »
 
-  createdAt DateTime  @default(now())
-  paidAt    DateTime?
-  placedAt  DateTime?
-  expiresAt DateTime?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+  placedAt   DateTime?
+  expiresAt  DateTime?
+  remindedAt DateTime? // relance J+7 envoyée (cron) — garantit l'idempotence
 
   tickets Ticket[]
 
