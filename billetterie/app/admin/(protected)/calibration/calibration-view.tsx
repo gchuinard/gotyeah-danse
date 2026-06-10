@@ -69,8 +69,10 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
   const [scanRetry, setScanRetry] = useState(0)
 
   // Chargement des réglages persistés (après hydratation, pour éviter tout
-  // mismatch SSR/client).
+  // mismatch SSR/client). Le setState synchrone est volontaire : un seul
+  // re-rendu au montage, assumé.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSettings(loadSettings())
     setHydrated(true)
   }, [])

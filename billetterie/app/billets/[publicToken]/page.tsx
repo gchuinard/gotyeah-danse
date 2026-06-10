@@ -5,6 +5,7 @@
 // statut du booking (pending / paid / placed / cancelled / expired).
 
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { prisma } from '@/lib/db'
@@ -212,9 +213,9 @@ export default async function BilletsPage({
               <p className={styles.text}>
                 Le délai de règlement est dépassé et les places de cette demande ont été libérées.
                 S&apos;il reste des places, vous pouvez refaire une demande depuis la{' '}
-                <a className={styles.link} href="/">
+                <Link className={styles.link} href="/">
                   page d&apos;accueil
-                </a>
+                </Link>
                 .
               </p>
             </section>

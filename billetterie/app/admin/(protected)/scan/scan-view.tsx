@@ -316,9 +316,12 @@ export default function ScanView({ representations, repId }: Props) {
     [processToken],
   )
   // Le callback passé à html5-qrcode est figé au démarrage de la caméra :
-  // on passe par une ref toujours à jour.
+  // on passe par une ref toujours à jour (mise à jour en effet, pas pendant
+  // le rendu — exigence des règles React).
   const onDecodedRef = useRef(onDecoded)
-  onDecodedRef.current = onDecoded
+  useEffect(() => {
+    onDecodedRef.current = onDecoded
+  }, [onDecoded])
 
   // --- Caméra.
   const scannerRef = useRef<Html5Qrcode | null>(null)
