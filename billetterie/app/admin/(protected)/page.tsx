@@ -33,9 +33,10 @@ export default async function DashboardPage() {
 
   const cartes = await Promise.all(
     representations.map(async (rep) => {
-      const [overrides, billets, pending, paid, jauge] = await Promise.all([
+      const [overrides, billets, scannes, pending, paid, jauge] = await Promise.all([
         prisma.seatOverride.count({ where: { representationId: rep.id } }),
         prisma.ticket.count({ where: { representationId: rep.id } }),
+        prisma.ticket.count({ where: { representationId: rep.id, scannedAt: { not: null } } }),
         prisma.booking.aggregate({
           _count: true,
           _sum: { partySize: true },
@@ -53,6 +54,7 @@ export default async function DashboardPage() {
         rep,
         capacite,
         billets,
+        scannes,
         remplissage: capacite > 0 ? Math.round((billets / capacite) * 100) : 0,
         pendingNb: pending._count,
         pendingPlaces: pending._sum.partySize ?? 0,
@@ -109,6 +111,12 @@ export default async function DashboardPage() {
               <div>
                 <dt>Jauge restante</dt>
                 <dd>{c.jauge}</dd>
+              </div>
+              <div>
+                <dt>Scannés</dt>
+                <dd>
+                  {c.scannes} / {c.billets} billet{c.billets > 1 ? 's' : ''}
+                </dd>
               </div>
             </dl>
 
