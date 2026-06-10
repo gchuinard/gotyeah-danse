@@ -1,0 +1,169 @@
+/* Plan de salle SVG — palette sable / terre / encre / rose poudré. */
+
+.figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 10px;
+}
+
+/* ---- Sièges ---- */
+
+.seat {
+  stroke-width: 2;
+}
+
+.libre {
+  fill: #faf7f2;
+  stroke: #8b5e4a;
+}
+
+.occupe {
+  fill: #5c3d2e;
+  stroke: #5c3d2e;
+}
+
+.bloque {
+  fill: #dcd6cd;
+  stroke: #9a948a;
+}
+
+.cross {
+  stroke: #6f6a61;
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+
+/* Amovible non bloqué : contour pointillé. */
+.removable {
+  stroke-dasharray: 3 3;
+}
+
+/* Suggestion mise en avant : halo + contour épais distinct. */
+.highlighted {
+  stroke: #b3543f;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 4px rgba(179, 84, 63, 0.7));
+}
+
+/* Sélection courante : rose poudré rempli, contour épais. */
+.selected {
+  fill: #d4a090;
+  stroke: #5c3d2e;
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+
+/* Places actuelles du booking en mode déplacement : contour bleu-gris. */
+.current {
+  fill: #e8edf3;
+  stroke: #5e718a;
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+
+/* Un siège à la fois actuel ET sélectionné reste lisible : rose + bleu-gris. */
+.current.selected {
+  fill: #d4a090;
+  stroke: #5e718a;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  stroke-width: 4;
+}
+
+/* ---- Scène ---- */
+
+.scene {
+  fill: #efe9df;
+  stroke: #8b5e4a;
+  stroke-width: 2;
+}
+
+.sceneLabel {
+  fill: #5c3d2e;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* ---- Légende ---- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  font-size: 0.8rem;
+  color: #5a544c;
+}
+
+.caption {
+  font-weight: 600;
+  color: #1e1a16;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dotLibre {
+  background: #faf7f2;
+  border: 2px solid #8b5e4a;
+}
+
+.dotOccupe {
+  background: #5c3d2e;
+}
+
+.dotBloque {
+  background: #dcd6cd;
+  border: 2px solid #9a948a;
+}
+
+.dotRemovable {
+  background: #faf7f2;
+  border: 2px dashed #8b5e4a;
+}
+
+.dotSelected {
+  background: #d4a090;
+  border: 2px solid #5c3d2e;
+}
+
+.dotHighlighted {
+  background: #faf7f2;
+  border: 2px solid #b3543f;
+  box-shadow: 0 0 3px rgba(179, 84, 63, 0.7);
+}
+
+.dotCurrent {
+  background: #e8edf3;
+  border: 2px solid #5e718a;
+}

@@ -1,0 +1,186 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+
+.title {
+  font-size: 1.35rem;
+  color: #5c3d2e;
+}
+
+.repPicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #5a544c;
+}
+
+.repPicker select {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d8cfc0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e1a16;
+}
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4rem;
+  padding: 0.3rem 0.6rem;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 10px;
+}
+
+.stat dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8b5e4a;
+}
+
+.stat dd {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e1a16;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mapColumn {
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.overridePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 10px;
+}
+
+.panelTitle {
+  font-size: 1rem;
+  color: #5c3d2e;
+}
+
+.panelHint {
+  font-size: 0.85rem;
+  color: #5a544c;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #5a544c;
+}
+
+.field select,
+.field input {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d8cfc0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e1a16;
+}
+
+.panelActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.primary,
+.secondary,
+.ghost {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.primary {
+  background: #5c3d2e;
+  color: #faf7f2;
+  border: 1px solid #5c3d2e;
+}
+
+.primary:hover:not(:disabled) {
+  background: #8b5e4a;
+}
+
+.secondary {
+  background: #fff;
+  color: #5c3d2e;
+  border: 1px solid #8b5e4a;
+}
+
+.secondary:hover:not(:disabled) {
+  background: #f2ece3;
+}
+
+.ghost {
+  background: transparent;
+  color: #5a544c;
+  border: 1px solid transparent;
+}
+
+.ghost:hover {
+  text-decoration: underline;
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: #a8362a;
+  background: #fbeeec;
+  border: 1px solid #e8c2bc;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+}

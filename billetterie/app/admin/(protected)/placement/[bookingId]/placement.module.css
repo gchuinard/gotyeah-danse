@@ -1,0 +1,197 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 1.35rem;
+  color: #5c3d2e;
+}
+
+.bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 10px;
+}
+
+.meta {
+  font-size: 0.9rem;
+  color: #5a544c;
+}
+
+.notes {
+  font-size: 0.9rem;
+  color: #5a544c;
+  font-style: italic;
+}
+
+.notesPmr {
+  font-size: 0.9rem;
+  color: #1e1a16;
+  background: #fdf3e4;
+  border: 1px solid #e7c98f;
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+}
+
+.pmrBadge {
+  display: inline-block;
+  background: #b3543f;
+  color: #faf7f2;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  margin-right: 0.35rem;
+}
+
+.notice {
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 10px;
+  color: #5a544c;
+}
+
+.backLink {
+  color: #8b5e4a;
+  text-decoration: underline;
+}
+
+/* Le plan occupe l'essentiel, panneau d'actions compact (utilisable sur
+   le portable d'un bénévole). */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mapColumn {
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: sticky;
+  top: 0.75rem;
+}
+
+.panelBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  background: #fff;
+  border: 1px solid #e6ded2;
+  border-radius: 10px;
+}
+
+.panelTitle {
+  font-size: 0.95rem;
+  color: #5c3d2e;
+}
+
+.panelHint {
+  font-size: 0.8rem;
+  color: #5a544c;
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.suggestion,
+.suggestionActive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.suggestion {
+  background: #fff;
+  color: #1e1a16;
+  border: 1px solid #d8cfc0;
+}
+
+.suggestion:hover:not(:disabled) {
+  border-color: #8b5e4a;
+}
+
+.suggestion:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.suggestionActive {
+  background: #d4a090;
+  color: #1e1a16;
+  border: 1px solid #5c3d2e;
+  font-weight: 600;
+}
+
+.suggestionScore {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #5a544c;
+}
+
+.counter {
+  font-size: 0.95rem;
+  color: #1e1a16;
+}
+
+.validate {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: #5c3d2e;
+  color: #faf7f2;
+  border: 1px solid #5c3d2e;
+  cursor: pointer;
+}
+
+.validate:hover:not(:disabled) {
+  background: #8b5e4a;
+}
+
+.validate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: #a8362a;
+  background: #fbeeec;
+  border: 1px solid #e8c2bc;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+}
