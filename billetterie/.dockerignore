@@ -1,0 +1,33 @@
+# Jamais dans le contexte de build.
+
+# Dépendances et artefacts — réinstallés/rebuildés dans l'image
+node_modules
+.next
+*.tsbuildinfo
+next-env.d.ts
+
+# Bases SQLite locales — la prod vit sur un volume, jamais dans l'image
+*.db
+*.db-journal
+
+# Secrets et environnements
+.env
+.env.*
+
+# Git, tests, docs et outillage local
+.git
+.claude
+tests
+docs
+coverage
+vitest.config.ts
+eslint.config.mjs
+README.md
+PLACEMENT.md
+AGENTS.md
+CLAUDE.md
+
+# Fichiers Docker eux-mêmes (inutiles dans le contexte)
+Dockerfile
+docker-compose.yml
+.dockerignore

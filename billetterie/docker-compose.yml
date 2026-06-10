@@ -1,0 +1,45 @@
+# Billetterie — Raspberry Pi 5 (ARM64), derrière Nginx Proxy Manager + Cloudflare.
+#
+# Sur le Pi (build ARM64 natif) :  docker compose up -d --build
+# Premier compte admin :           docker compose exec web pnpm admin:create <email> '<mdp>'
+#
+# `platform: linux/arm64` est volontairement en commentaire : sur le Pi c'est
+# l'architecture native, donc inutile. Pour builder l'image DEPUIS un PC x64,
+# décommenter la ligne sur les deux services, ou builder directement avec :
+#   docker buildx build --platform linux/arm64 -t billetterie .
+
+services:
+  web:
+    build: .
+    image: billetterie
+    # platform: linux/arm64
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      # NPM tourne sur la même machine : on n'expose que sur le loopback.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - billetterie-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  cron:
+    # Même image que web — buildée une seule fois par le service web.
+    image: billetterie
+    # platform: linux/arm64
+    command: ["pnpm", "cron"]
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - billetterie-data:/data
+    depends_on:
+      # Pas indispensable (les jobs sont idempotents), mais l'ordre de
+      # démarrage est plus lisible : web migre la base avant que cron ne lise.
+      - web
+
+volumes:
+  billetterie-data:
