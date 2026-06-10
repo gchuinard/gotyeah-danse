@@ -71,7 +71,6 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
       })),
     )
 
-    // Numérotation — [À CONFIRMER avec le Centre Culturel]
     const numbered = new Map<(typeof rowSeats)[number], number>()
     if (numberingScheme === 'continu') {
       // 1..N de jardin à cour sur toute la rangée.
@@ -79,12 +78,13 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
         .sort((a, b) => a.angle - b.angle)
         .forEach((s, i) => numbered.set(s, i + 1))
     } else {
-      // pair-impair : impairs côté jardin, pairs côté cour,
+      // pair-impair (confirmé par Gautier 2026-06-10) : face à la scène,
+      // impairs à droite (côté cour), pairs à gauche (côté jardin),
       // croissants en s'éloignant de l'axe central.
       const jardin = rowSeats.filter((s) => s.angle < 0).sort((a, b) => Math.abs(a.angle) - Math.abs(b.angle))
       const cour = rowSeats.filter((s) => s.angle >= 0).sort((a, b) => Math.abs(a.angle) - Math.abs(b.angle))
-      jardin.forEach((s, i) => numbered.set(s, 2 * i + 1))
-      cour.forEach((s, i) => numbered.set(s, 2 * i + 2))
+      cour.forEach((s, i) => numbered.set(s, 2 * i + 1))
+      jardin.forEach((s, i) => numbered.set(s, 2 * i + 2))
     }
 
     for (const s of rowSeats) {

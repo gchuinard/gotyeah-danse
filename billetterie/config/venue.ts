@@ -51,9 +51,9 @@ export type NumberingScheme = 'continu' | 'pair-impair'
 export type VenueConfig = {
   center: { x: number; y: number } // point de convergence (derrière la scène)
   rows: RowConfig[]
-  // [À CONFIRMER avec le Centre Culturel]
   // 'continu'    : 1..N de jardin à cour sur toute la rangée
-  // 'pair-impair': impairs côté jardin, pairs côté cour, croissants du centre
+  // 'pair-impair': face à la scène, impairs à droite (cour), pairs à
+  //                gauche (jardin), croissants du centre — confirmé 2026-06-10
   numberingScheme: NumberingScheme
 }
 
@@ -102,7 +102,7 @@ const rearRow = (label: string, radius: number, g: number, c: number, d: number)
 
 export const venueConfig: VenueConfig = {
   center: { x: 716, y: 2520 }, // px scan — convergence des arcs
-  numberingScheme: 'continu',
+  numberingScheme: 'pair-impair',
   rows: [
     // Fosse d'orchestre — amovible, transformable en avant-scène
     fosseRow('AA', 866, 20),
