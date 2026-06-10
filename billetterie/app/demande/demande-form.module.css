@@ -1,0 +1,106 @@
+/* Formulaire public de demande — sobre, mobile-first. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--terre);
+}
+
+.field input,
+.field select,
+.field textarea {
+  font: inherit;
+  color: var(--encre);
+  background: #fff;
+  border: 1px solid #ddd2c4;
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--terre-2);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
+  border-color: #b3463c;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--terre-2);
+}
+
+.fieldError {
+  font-size: 0.85rem;
+  color: #b3463c;
+}
+
+.formError {
+  padding: 10px 14px;
+  border: 1px solid #b3463c;
+  border-radius: 8px;
+  background: rgba(179, 70, 60, 0.07);
+  color: #8c352d;
+  font-size: 0.9rem;
+}
+
+.confirmation {
+  padding: 14px 16px;
+  border: 1px solid var(--rose);
+  border-radius: 10px;
+  background: rgba(212, 160, 144, 0.14);
+  color: var(--terre);
+}
+
+.submit {
+  font: inherit;
+  font-weight: 650;
+  color: #fff;
+  background: var(--terre);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--terre-2);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Honeypot : hors écran (PAS display:none, certains robots le détectent). */
+.honeypot {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
