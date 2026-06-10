@@ -129,6 +129,19 @@ async function seedAdmins() {
   return emails
 }
 
+// Booking de démo « placé » : ses billets occupent 4 sièges contigus du
+// rang G central. qrToken = UUID fixes écrits en dur (clé d'upsert).
+const PLACED_DEMO = {
+  publicToken: 'f6a8c0e2-4b6d-4f8a-9c1e-3d5f7a9b1c3e',
+  representationId: 'rep-samedi',
+  tickets: [
+    { qrToken: '9b1d3f5a-7c9e-4b2d-8f4a-6c8e0a2c4e6f', seatId: 'centre-G-04' },
+    { qrToken: '4d6f8a0c-2e4b-4d7f-9a1c-3e5a7c9e1f3b', seatId: 'centre-G-05' },
+    { qrToken: 'e2b4d6f8-0a2c-4e6b-8d0f-2a4c6e8b0d2f', seatId: 'centre-G-06' },
+    { qrToken: '7a9c1e3b-5d7f-4a8c-9e2b-4f6a8c0e2a4c', seatId: 'centre-G-07' },
+  ],
+}
+
 // Bookings de démo — hors production uniquement. publicToken = UUID fixes
 // écrits en dur : c'est la clé d'upsert qui rend le seed relançable.
 async function seedDemoBookings() {
@@ -188,10 +201,22 @@ async function seedDemoBookings() {
       notes: null,
       createdAt: parisSummer('2026-06-05T11:20'),
     },
+    {
+      publicToken: PLACED_DEMO.publicToken,
+      representationId: PLACED_DEMO.representationId,
+      name: 'Famille Dupuis',
+      email: 'marion.dupuis@example.com',
+      phone: '0667890123',
+      partySize: PLACED_DEMO.tickets.length,
+      status: 'placed',
+      notes: null,
+      createdAt: parisSummer('2026-06-06T16:40'),
+    },
   ]
 
   for (const b of bookings) {
     const expiresAt = new Date(b.createdAt.getTime() + 14 * DAY_MS)
+    const isPaid = b.status === 'paid' || b.status === 'placed'
     const data = {
       representationId: b.representationId,
       name: b.name,
@@ -201,7 +226,8 @@ async function seedDemoBookings() {
       notes: b.notes,
       status: b.status,
       createdAt: b.createdAt,
-      paidAt: b.status === 'paid' ? new Date(b.createdAt.getTime() + 2 * 60 * 60 * 1000) : null,
+      paidAt: isPaid ? new Date(b.createdAt.getTime() + 2 * 60 * 60 * 1000) : null,
+      placedAt: b.status === 'placed' ? new Date(b.createdAt.getTime() + 3 * DAY_MS) : null,
       expiresAt,
     }
     await prisma.booking.upsert({
@@ -210,14 +236,47 @@ async function seedDemoBookings() {
       create: { publicToken: b.publicToken, ...data },
     })
   }
-  return bookings.length
+
+  const ticketCount = await seedDemoTickets()
+  return { bookings: bookings.length, tickets: ticketCount }
+}
+
+// Billets du booking « placé » — upsert par qrToken. La contrainte
+// @@unique([representationId, seatId]) est respectée : les sièges visés
+// ne sont occupés par aucun autre booking de démo.
+async function seedDemoTickets() {
+  const booking = await prisma.booking.findUniqueOrThrow({
+    where: { publicToken: PLACED_DEMO.publicToken },
+  })
+
+  // Garde-fou calibration : les sièges visés doivent exister dans le plan.
+  const seatIds = PLACED_DEMO.tickets.map((t) => t.seatId)
+  const found = await prisma.seat.count({ where: { id: { in: seatIds } } })
+  if (found !== seatIds.length) {
+    throw new Error(`Seed : sièges de démo introuvables dans le plan (${seatIds.join(', ')})`)
+  }
+
+  for (const t of PLACED_DEMO.tickets) {
+    const data = {
+      bookingId: booking.id,
+      representationId: PLACED_DEMO.representationId,
+      seatId: t.seatId,
+    }
+    await prisma.ticket.upsert({
+      where: { qrToken: t.qrToken },
+      update: data,
+      create: { qrToken: t.qrToken, ...data },
+    })
+  }
+  return PLACED_DEMO.tickets.length
 }
 
 async function main() {
   const plan = await seedPlan()
   const repCount = await seedRepresentations()
   const adminEmails = await seedAdmins()
-  const bookingCount = process.env.NODE_ENV !== 'production' ? await seedDemoBookings() : 0
+  const demo =
+    process.env.NODE_ENV !== 'production' ? await seedDemoBookings() : { bookings: 0, tickets: 0 }
 
   console.log('Seed terminé :')
   console.log(`  sections        : ${plan.sections}`)
@@ -225,7 +284,8 @@ async function main() {
   console.log(`  sièges          : ${plan.seats}`)
   console.log(`  représentations : ${repCount}`)
   console.log(`  admins          : ${adminEmails.length}`)
-  console.log(`  bookings démo   : ${bookingCount}`)
+  console.log(`  bookings démo   : ${demo.bookings}`)
+  console.log(`  billets démo    : ${demo.tickets}`)
   console.log(`Comptes de dev : ${adminEmails.join(', ')} — mot de passe « ${DEV_ADMIN_PASSWORD} »`)
 }
 
