@@ -116,7 +116,10 @@ async function seedRepresentations() {
 
 const DEV_ADMIN_PASSWORD = 'admin1234'
 
+// Comptes de DEV uniquement (mot de passe faible et connu) — en production,
+// les comptes se créent via `pnpm admin:create`. Cf. revue de sécurité C1.
 async function seedAdmins() {
+  if (process.env.NODE_ENV === 'production') return []
   const emails = ['admin1@example.com', 'admin2@example.com']
   const passwordHash = await bcrypt.hash(DEV_ADMIN_PASSWORD, 10)
   for (const email of emails) {

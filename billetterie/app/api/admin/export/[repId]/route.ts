@@ -20,10 +20,14 @@ const dateCourte = new Intl.DateTimeFormat('fr-FR', {
 })
 
 // Échappement CSV : guillemets si la valeur contient « ; », guillemet ou
-// retour à la ligne ; les guillemets internes sont doublés.
+// retour à la ligne ; les guillemets internes sont doublés. Une valeur
+// commençant par = + - @ est préfixée d'une apostrophe : sinon Excel
+// l'interprète comme une formule (CSV formula injection — un nom de famille
+// saisi sur le formulaire public finit dans cet export).
 function champCsv(valeur: string): string {
-  if (/[";\r\n]/.test(valeur)) return `"${valeur.replaceAll('"', '""')}"`
-  return valeur
+  const sain = /^[=+\-@]/.test(valeur) ? `'${valeur}` : valeur
+  if (/[";\r\n]/.test(sain)) return `"${sain.replaceAll('"', '""')}"`
+  return sain
 }
 
 function capitaliser(texte: string): string {

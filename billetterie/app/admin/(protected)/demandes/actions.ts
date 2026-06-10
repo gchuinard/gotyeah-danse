@@ -114,7 +114,8 @@ export async function annulerAction(formData: FormData): Promise<void> {
 
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
-  redirect(urlListe(formData.get('retour'), 'ok', `Demande de ${infos.name} annulée.`))
+  // Pas de nom dans l'URL : elle finit dans les access logs (NPM/Cloudflare).
+  redirect(urlListe(formData.get('retour'), 'ok', 'Demande annulée.'))
 }
 
 export async function renvoyerBilletsAction(formData: FormData): Promise<void> {

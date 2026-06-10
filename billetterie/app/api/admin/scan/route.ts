@@ -43,7 +43,11 @@ export async function POST(request: Request) {
   }
 
   const { qrToken } = parsed.data
-  const scannedAt = new Date(parsed.data.scannedAt)
+  // Heure client bornée : jamais dans le futur (horloge déréglée), et au plus
+  // 24 h dans le passé (resynchro offline légitime, pas plus).
+  const now = Date.now()
+  const clientTime = new Date(parsed.data.scannedAt).getTime()
+  const scannedAt = new Date(Math.max(now - 24 * 60 * 60 * 1000, Math.min(clientTime, now)))
 
   // Premier scan gagne — atomique grâce à la condition scannedAt: null.
   const { count } = await prisma.ticket.updateMany({
