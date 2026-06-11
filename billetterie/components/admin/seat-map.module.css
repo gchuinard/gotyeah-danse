@@ -44,6 +44,22 @@
   pointer-events: none;
 }
 
+/* Numéro de place dans le rond — encre sur sièges clairs, sable sur le
+   marron des sièges occupés (le <text> suit son <circle> dans le <g>). */
+.seatNumber {
+  font-size: 9px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: #5c3d2e;
+  pointer-events: none;
+  user-select: none;
+}
+
+.occupe + .seatNumber {
+  fill: #faf7f2;
+}
+
 /* Amovible non bloqué : contour pointillé. */
 .removable {
   stroke-dasharray: 3 3;

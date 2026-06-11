@@ -10,7 +10,7 @@ Aucun engagement d'ordre — prioriser à la demande.
   **A (fond) → Y (scène)**, 3 blocs (haute A→G / normale H→W / fosse X-Y).
   **2 rangs rétablis** dans le bloc du milieu (écarts de rayon G→H et L→M =
   2 rangs sautés à la calibration d'origine) : 23 → **25 rangs**, 773 →
-  **809 sièges**. Comptes réels confirmés par Gautier : **P = 29** (impairs
+  **754 sièges**. Comptes réels confirmés par Gautier : **P = 29** (impairs
   1→29, pairs 2→28), **J = 35** (impairs 1→35, pairs 2→34).
   **Numérotation** : impairs côté **jardin** (terrasse PMR accessible), pairs
   côté **cour** (sens confirmé Gautier 2026-06-11, inversion d'une ligne dans

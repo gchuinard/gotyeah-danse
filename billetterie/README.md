@@ -2,7 +2,7 @@
 
 Billetterie self-hosted pour le spectacle de fin d'année de l'école de danse
 Desha-Moulin, au **Centre Culturel de Bergerac** (salle en éventail, 25 rangées
-A→Y, 809 places modélisées). Pas de SaaS, pas de commission : un Raspberry Pi 5,
+A→Y, 754 places modélisées). Pas de SaaS, pas de commission : un Raspberry Pi 5,
 une base SQLite, et c'est tout.
 
 **Principes métier verrouillés** (ne pas les « améliorer ») :
@@ -50,7 +50,7 @@ pnpm dev                 # http://localhost:3000
 
 Le seed est **relançable** (upserts, ids déterministes). En dev il crée :
 
-- les **809 sièges calibrés** (générés depuis `config/venue.ts`, scores statiques compris) ;
+- les **754 sièges calibrés** (générés depuis `config/venue.ts`, scores statiques compris) ;
 - **2 représentations** ouvertes (`rep-samedi`, `rep-dimanche`) ;
 - **6 demandes de démo** (pending/paid/placed), dont une **placée avec 4 billets**
   (Famille Dupuis, rang R central).

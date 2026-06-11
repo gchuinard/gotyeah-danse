@@ -98,8 +98,8 @@ const TAILLES_DE_GROUPE = [1, 2, 3, 4, 5, 6, 7, 8]
 
 // Sanity check de la fixture réelle, indépendant des implémentations.
 describe('fixture salle réelle', () => {
-  it('contient les 809 sièges de la fiche technique', () => {
-    expect(salleReelle()).toHaveLength(809)
+  it('contient les 754 sièges de la fiche technique', () => {
+    expect(salleReelle()).toHaveLength(754)
   })
 })
 
@@ -175,18 +175,18 @@ for (const [nom, meta] of Object.entries(PLACEMENT_IMPLS)) {
       })
 
       it('groupe plus grand que la plus longue rangée → vide accepté, invariants respectés', () => {
-        // Plus longue rangée de la salle : 20 sièges (fosse centre-Y/X).
-        // Une scission sur 2 rangées reste possible pour 21 : on ne force pas
+        // Plus longue rangée de la salle : 45 sièges (rang A, continu).
+        // Une scission sur 2 rangées reste possible pour 46 : on ne force pas
         // le tableau vide, on vérifie les invariants sur ce qui est retourné.
         const seats = salleReelle()
-        verifieInvariants(seats, 21, place(seats, 21))
+        verifieInvariants(seats, 46, place(seats, 46))
       })
 
-      it('groupe impossible même en scindant (partySize=50) → aucune suggestion', () => {
-        // 50 sièges ne tiennent sur aucune paire de rangées adjacentes
-        // (maximum : 20 + 20 en fosse centre) : toute suggestion violerait
+      it('groupe impossible même en scindant (partySize=80) → aucune suggestion', () => {
+        // 80 sièges ne tiennent sur aucune paire de rangées adjacentes
+        // (maximum : 45 + 18 sur A + B centre) : toute suggestion violerait
         // le contrat, le résultat DOIT être vide.
-        expect(place(salleReelle(), 50)).toEqual([])
+        expect(place(salleReelle(), 80)).toEqual([])
       })
     })
 

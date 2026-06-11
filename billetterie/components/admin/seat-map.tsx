@@ -129,11 +129,15 @@ export default function SeatMap({
               <circle className={classNames} cx={seat.x} cy={seat.y} r={SEAT_R}>
                 <title>{seatTitle(seat)}</title>
               </circle>
-              {seat.status === 'bloque' && (
+              {seat.status === 'bloque' ? (
                 <path
                   className={styles.cross}
                   d={`M ${seat.x - 4.5} ${seat.y - 4.5} l 9 9 M ${seat.x + 4.5} ${seat.y - 4.5} l -9 9`}
                 />
+              ) : (
+                <text className={styles.seatNumber} x={seat.x} y={seat.y}>
+                  {seat.number}
+                </text>
               )}
             </g>
           )

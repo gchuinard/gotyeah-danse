@@ -17,12 +17,12 @@
 //  - allée transversale ;
 //  - bloc « normale » (milieu) : 16 rangées H → W  (H côté allée, W vers la
 //    scène) ; le segment CENTRE des 2 rangées du fond du bloc (H, I) est
-//    amovible (hachuré sur la fiche : « console salle à la demande ») ;
-//  - fosse « collée à la scène » : 2 rangées amovibles  X, Y  (Y au plus près
-//    de la scène), transformables en avant-scène, + 2 petits blocs latéraux
-//    fixes de 3 sièges chacun.
+//    amovible (« console salle à la demande »), ainsi que le bloc jardin de W ;
+//  - fosse « collée à la scène » : 2 rangées entièrement amovibles  X, Y
+//    (Y au plus près de la scène), 16 places chacune, transformables en
+//    avant-scène.
 //
-// 25 rangées, 809 places dessinées (la fiche fait foi). Les « terrasses »
+// 25 rangées, 754 places dessinées (la fiche fait foi). Les « terrasses »
 // latérales le long des murs ne sont pas des sièges numérotés : non modélisées.
 //
 // ⚠️ Le tableau `rows` est ordonné de la SCÈNE vers le FOND (rowOrder 0 = Y,
@@ -66,16 +66,29 @@ export type VenueConfig = {
   numberingScheme: NumberingScheme
 }
 
-// Rangée de fosse : centre amovible + mini-blocs latéraux fixes (3×3 sur la
-// fiche, modélisés 3×2 — approximation assumée sur ces strapontins).
-const fosseRow = (label: string, radius: number, centreSeats: number): RowConfig => ({
+// Arc du CENTRE (les petits numéros) : `nNeg` sièges côté jardin (impairs
+// 1,3,…) et `nPos` côté cour (pairs 2,4,…). L'arc est positionné pour que
+// EXACTEMENT nNeg sièges tombent à angle < 0 — la frontière impair/pair est
+// sur l'axe (les flags 1 / 12 de place.md ne décalent la géométrie que d'un
+// demi-siège, pas la numérotation : ignorés).
+const centreArc = (nNeg: number, nPos: number, pitch: number, removable = false): ArcConfig => {
+  const n = nNeg + nPos
+  const start = -(nNeg - 0.5) * pitch
+  return {
+    section: 'centre',
+    angleStart: start,
+    angleEnd: start + (n - 1) * pitch,
+    seats: n,
+    ...(removable ? { removable: true } : {}),
+  }
+}
+
+// Rangée de fosse (X, Y) : un SEUL arc central, entièrement amovible —
+// 8 impairs + 8 pairs (place.md : « (1/15) (2/16) »), pas de blocs latéraux.
+const fosseRow = (label: string, radius: number): RowConfig => ({
   label,
   radius,
-  arcs: [
-    { section: 'gauche', angleStart: -18.8, angleEnd: -13.7, seats: 3 },
-    { section: 'centre', angleStart: -11.0, angleEnd: 12.9, seats: centreSeats, removable: true },
-    { section: 'droite', angleStart: 15.2, angleEnd: 20.5, seats: 3 },
-  ],
+  arcs: [centreArc(8, 8, 1.2, true)],
 })
 
 // Bloc « normale » (milieu) : exterior jardin (g) + centre + exterior cour (d).
@@ -95,36 +108,37 @@ const milieuRow = (
   nPos: number,
   d: number,
   outerR: number,
-  centreRemovable = false,
-): RowConfig => {
-  const n = nNeg + nPos
-  const cStart = -(nNeg - 0.5) * PITCH_MILIEU
-  return {
-    label,
-    radius,
-    arcs: [
-      { section: 'gauche', angleStart: outerL, angleEnd: -7.7, seats: g },
-      {
-        section: 'centre',
-        angleStart: cStart,
-        angleEnd: cStart + (n - 1) * PITCH_MILIEU,
-        seats: n,
-        removable: centreRemovable || undefined,
-      },
-      { section: 'droite', angleStart: 9.3, angleEnd: outerR, seats: d },
-    ],
-  }
-}
+  opts: { centreAmovible?: boolean; jardinAmovible?: boolean } = {},
+): RowConfig => ({
+  label,
+  radius,
+  arcs: [
+    {
+      section: 'gauche',
+      angleStart: outerL,
+      angleEnd: -7.7,
+      seats: g,
+      ...(opts.jardinAmovible ? { removable: true } : {}),
+    },
+    centreArc(nNeg, nPos, PITCH_MILIEU, opts.centreAmovible ?? false),
+    { section: 'droite', angleStart: 9.3, angleEnd: outerR, seats: d },
+  ],
+})
 
-// Bloc du fond (« haute ») : bords et allées constants. Centre SYMÉTRIQUE
-// (split pair/impair égal) — le milieu est numéroté 1→… / 2→… puis les blocs
-// extérieurs continuent (g = sièges extérieurs jardin, d = extérieurs cour).
-const rearRow = (label: string, radius: number, g: number, c: number, d: number): RowConfig => ({
+// Bloc du fond (« haute ») : bords et allées constants, centre nNeg/nPos.
+const hauteRow = (
+  label: string,
+  radius: number,
+  g: number,
+  nNeg: number,
+  nPos: number,
+  d: number,
+): RowConfig => ({
   label,
   radius,
   arcs: [
     { section: 'gauche', angleStart: -14.8, angleEnd: -6.6, seats: g },
-    { section: 'centre', angleStart: -6.0, angleEnd: 6.0, seats: c },
+    centreArc(nNeg, nPos, 0.8),
     { section: 'droite', angleStart: 7.9, angleEnd: 16.1, seats: d },
   ],
 })
@@ -142,39 +156,39 @@ export const venueConfig: VenueConfig = {
   center: { x: 716, y: 2520 }, // px scan — convergence des arcs
   numberingScheme: 'pair-impair',
   // Ordre du tableau : SCÈNE → FOND. rowOrder 0 = Y (le plus près de la scène).
+  // Comptes calés sur place.md (relevé fiche, finalisé 2026-06-11).
+  // Args milieuRow : label, radius, bordL, extImpair(g), milieuImpair(nNeg),
+  // milieuPair(nPos), extPair(d), bordR. hauteRow : label, radius, g, nNeg, nPos, d.
   rows: [
-    // Fosse « collée à la scène » — amovible, transformable en avant-scène
-    fosseRow('Y', 866, 20),
-    fosseRow('X', 910, 20),
+    // Fosse « collée à la scène » — 16 places amovibles chacune (1→15 / 2→16)
+    fosseRow('Y', 866),
+    fosseRow('X', 910),
     // Bloc « normale » (milieu) — 16 rangées W → H, de la scène vers l'allée.
-    // Comptes calés sur place.md / fiche (2026-06-11). Args : label, radius,
-    // bordL, extImpair(g), milieuImpair(nNeg), milieuPair(nPos), extPair(d), bordR.
-    milieuRow('W', 988, -19.3, 8, 4, 6, 8, 20.6),
-    milieuRow('V', 1046, -19.1, 9, 5, 6, 8, 20.4),
-    milieuRow('U', 1086, -18.9, 9, 5, 6, 9, 20.1),
-    milieuRow('T', 1126, -18.7, 9, 5, 7, 9, 19.9),
-    milieuRow('S', 1166, -18.5, 9, 5, 7, 9, 19.7),
-    milieuRow('R', 1208, -18.3, 9, 5, 7, 9, 19.4),
-    milieuRow('Q', 1252, -18.1, 10, 6, 7, 9, 19.2),
-    milieuRow('P', 1285, -16.95, 9, 6, 8, 6, 15.5),
-    milieuRow('O', 1318, -17.8, 10, 6, 8, 9, 19.0),
-    milieuRow('N', 1376, -17.6, 10, 6, 8, 10, 18.8),
+    milieuRow('W', 988, -19.3, 6, 5, 5, 6, 20.6, { jardinAmovible: true }), // (21/11) : terrasse jardin amovible
+    milieuRow('V', 1046, -19.1, 7, 6, 5, 6, 20.4),
+    milieuRow('U', 1086, -18.9, 7, 6, 5, 7, 20.1),
+    milieuRow('T', 1126, -18.7, 7, 6, 5, 7, 19.9),
+    milieuRow('S', 1166, -18.5, 8, 6, 6, 7, 19.7),
+    milieuRow('R', 1208, -18.3, 7, 6, 6, 7, 19.4),
+    milieuRow('Q', 1252, -18.1, 8, 7, 6, 8, 19.2),
+    milieuRow('P', 1285, -16.95, 8, 7, 6, 8, 15.5),
+    milieuRow('O', 1318, -17.8, 8, 7, 6, 8, 19.0),
+    milieuRow('N', 1376, -17.6, 8, 7, 7, 8, 18.8),
     milieuRow('M', 1416, -17.4, 9, 7, 7, 9, 18.5),
     milieuRow('L', 1456, -17.2, 9, 8, 7, 9, 18.3),
     milieuRow('K', 1498, -17.0, 9, 8, 7, 9, 18.1),
     milieuRow('J', 1531, -17.6, 10, 8, 7, 10, 17.0),
-    // « Console salle à la demande » : centre amovible (hachuré sur la fiche)
-    // sur H et I. Approx : tout le centre marqué amovible (en vrai seuls les
-    // 8 sièges centraux le sont — à affiner).
-    milieuRow('I', 1565, -16.8, 10, 8, 8, 10, 17.8, true),
-    milieuRow('H', 1608, -16.6, 10, 8, 8, 10, 17.6, true),
+    // « Console salle à la demande » : sur H et I, place.md marque amovibles
+    // les 8 sièges CENTRAUX (1→7 / 2→8). Approx : tout le centre — à affiner.
+    milieuRow('I', 1565, -16.8, 10, 8, 8, 10, 17.8, { centreAmovible: true }),
+    milieuRow('H', 1608, -16.6, 10, 8, 8, 10, 17.6, { centreAmovible: true }),
     // Allée transversale, puis bloc « haute » (fond, 7 rangées G → A)
-    rearRow('G', 1704, 8, 16, 7), // impairs 1→31, pairs 2→30
-    rearRow('F', 1760, 9, 16, 8), // impairs 1→33, pairs 2→32
-    rearRow('E', 1800, 9, 16, 9), // impairs 1→33, pairs 2→34
-    rearRow('D', 1842, 9, 16, 9), // impairs 1→33, pairs 2→34
-    rearRow('C', 1884, 9, 18, 9), // impairs 1→35, pairs 2→36
-    rearRow('B', 1926, 10, 18, 10), // impairs 1→37, pairs 2→38
+    hauteRow('G', 1704, 8, 8, 7, 8), // impairs 1→31, pairs 2→30
+    hauteRow('F', 1760, 9, 8, 7, 9), // impairs 1→33, pairs 2→32
+    hauteRow('E', 1800, 9, 8, 8, 9), // impairs 1→33, pairs 2→34
+    hauteRow('D', 1842, 9, 8, 8, 9), // impairs 1→33, pairs 2→34
+    hauteRow('C', 1884, 9, 9, 9, 9), // impairs 1→35, pairs 2→36
+    hauteRow('B', 1926, 10, 9, 9, 10), // impairs 1→37, pairs 2→38
     fullRow('A', 1974, -15.5, 15.4, 45), // rang continu (pas d'allées) : impairs 1→45, pairs 2→44
   ],
 }

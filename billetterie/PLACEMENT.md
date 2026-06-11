@@ -9,7 +9,7 @@ l'accueillir.
 ## 1. Objectif & règles du jeu
 
 Le contexte : le spectacle de fin d'année de l'école, au Centre Culturel de
-Bergerac (salle en éventail, 25 rangées A→Y, 809 places modélisées, 3 sections
+Bergerac (salle en éventail, 25 rangées A→Y, 754 places modélisées, 3 sections
 gauche / centre / droite ; fosse amovible X/Y collée à la scène, bloc « normale »
 H→W, allée transversale, bloc « haute » A→G au fond — tout vient de
 `config/venue.ts`).
