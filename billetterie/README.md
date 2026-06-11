@@ -141,14 +141,20 @@ l'arc le plus proche de l'axe) les reproduit ; vérifié par
 Les salles vivent **en base** (table `Venue`) et se gèrent depuis l'admin —
 **sans reseed ni rebuild** :
 
-1. **`/admin/salles/nouvelle`** : relever la salle rang par rang en notation
-   compacte (`B 37/19 17/1 2/18 20/38`, parenthèses = amovible — la grammaire
-   de `place.md`), aperçu live, puis **« Enregistrer dans la billetterie »** ;
+1. **`/admin/salles/nouvelle`** : l'ÉDITEUR DE RANGS — une ligne par rang
+   (mini-barre, total, sauts), qui se déplie pour éditer ses blocs (sièges,
+   1ᵉʳ n° pour les sauts, amovible, séparé, « + bloc » pour strapontins et
+   consoles partielles). La notation compacte reste la couche experte (ligne
+   éditable par rang + import/export) ; « | » y marque une séparation
+   explicite. Aperçu live, puis **« Enregistrer dans la billetterie »** ;
+   chaque salle se **rouvre** ensuite via « Modifier » (la config est
+   re-sérialisée en relevé) ;
 2. **`/admin/salles`** : **Activer** la salle — le plan (Section/Row/Seat) est
    synchronisé immédiatement par `lib/venue/sync.ts`. Garde-fous : refus si
    des billets existent sur des sièges qui disparaîtraient ; les bascules
    fixe ↔ amovible faites sur le plan sont conservées. À faire AVANT les
-   ventes. « Revenir à la salle par défaut » restaure VENUE_ID/intégrée.
+   ventes. « Réappliquer le plan » re-synchronise la salle active après une
+   modification ; « Revenir à la salle par défaut » restaure VENUE_ID/intégrée.
 
 Résolution de la salle active (`loadActiveVenueConfig`) : salle activée en
 base → fichier `config/venues/<VENUE_ID>.json` (zod) → Bergerac intégré.

@@ -1,19 +1,19 @@
-// Construction d'une VenueConfig depuis un relevé en notation place.md +
-// quelques paramètres de géométrie. Pour une NOUVELLE salle, on ne dispose
-// pas d'un scan calibré : la géométrie générée est RÉGULIÈRE (rayons espacés
-// uniformément, allées d'angle constant) — fidèle pour la numérotation et la
-// contiguïté, approximative pour le dessin. Module PUR (client OK).
+// Construction d'une VenueConfig depuis un relevé (notation place.md v2) +
+// paramètres de géométrie. Pour une NOUVELLE salle, pas de scan calibré : la
+// géométrie est RÉGULIÈRE (rayons uniformes, allées d'angle constant) —
+// fidèle pour la numérotation et la contiguïté, indicative pour le dessin.
+// Module PUR (client OK).
 
-import type { RowConfig, VenueConfig } from '@/config/venue'
+import type { ArcConfig, RowConfig, SectionId, VenueConfig } from '@/config/venue'
 
-import type { ParsedRow } from './place-notation'
+import type { BlocRang, ParsedRow } from './place-notation'
 
 export type BuilderParams = {
   name: string
   premierRayon: number // rayon de la rangée la plus proche de la scène (px)
   espacement: number // entre deux rangées (px)
   pitch: number // largeur angulaire d'un siège (degrés)
-  allee: number // largeur angulaire de chaque allée (degrés)
+  allee: number // largeur angulaire d'une séparation (degrés)
 }
 
 export const BUILDER_DEFAULTS: Omit<BuilderParams, 'name'> = {
@@ -23,8 +23,45 @@ export const BUILDER_DEFAULTS: Omit<BuilderParams, 'name'> = {
   allee: 2.5,
 }
 
-// `rows` dans l'ordre du relevé (fond → scène, comme place.md) ; la config
-// produite est ordonnée scène → fond (rowOrder 0 = le plus proche de la scène).
+// Géométrie des arcs d'UN côté, de l'axe vers le mur (sans contiguïté — elle
+// dépend de l'ordre de déclaration final, posé dans buildVenueConfig).
+// Le bloc 0 appartient au CENTRE ; la première séparation bascule vers la
+// section extérieure ; les suivantes sont des écarts dans cette section.
+function arcsDuCote(
+  blocs: BlocRang[],
+  cote: 'jardin' | 'cour',
+  exterieure: SectionId,
+  pitch: number,
+  allee: number,
+): ArcConfig[] {
+  const arcs: ArcConfig[] = []
+  let angle = 0.5 * pitch // bord intérieur du prochain arc (depuis l'axe)
+  let section: SectionId = 'centre'
+
+  blocs.forEach((bloc, i) => {
+    if (bloc.separe) {
+      angle += allee
+      if (section === 'centre') section = exterieure
+    }
+    const debut = angle
+    const fin = debut + (bloc.seats - 1) * pitch
+    angle = fin + pitch
+
+    arcs.push({
+      section,
+      // côté jardin : angles négatifs, bornes inversées (angleStart < angleEnd)
+      angleStart: cote === 'jardin' ? -fin : debut,
+      angleEnd: cote === 'jardin' ? -debut : fin,
+      seats: bloc.seats,
+      ...(i > 0 ? { firstNumber: bloc.firstNumber } : {}),
+      ...(bloc.removable ? { removable: true } : {}),
+    })
+  })
+  return arcs
+}
+
+// `rows` dans l'ordre du relevé (fond → scène) ; la config produite est
+// ordonnée scène → fond (rowOrder 0 = le plus proche de la scène).
 export function buildVenueConfig(params: BuilderParams, rows: ParsedRow[]): VenueConfig {
   const { premierRayon, espacement, pitch, allee } = params
   const ordonnees = [...rows].reverse()
@@ -34,41 +71,27 @@ export function buildVenueConfig(params: BuilderParams, rows: ParsedRow[]): Venu
     center: { x: 0, y: 0 },
     numberingScheme: 'pair-impair',
     rows: ordonnees.map((row, i): RowConfig => {
-      const { nNeg, nPos, removable } = row.centre
-      const n = nNeg + nPos
-      const centreStart = -(nNeg - 0.5) * pitch
-      const centreEnd = centreStart + (n - 1) * pitch
+      const jardin = arcsDuCote(row.jardin, 'jardin', 'gauche', pitch, allee)
+      const cour = arcsDuCote(row.cour, 'cour', 'droite', pitch, allee)
 
-      const arcs: RowConfig['arcs'] = []
-      if (row.extJardin) {
-        const fin = centreStart - allee
-        arcs.push({
-          section: 'gauche',
-          angleStart: fin - (row.extJardin.seats - 1) * pitch,
-          angleEnd: fin,
-          seats: row.extJardin.seats,
-          firstNumber: row.extJardin.firstNumber,
-          ...(row.extJardin.removable ? { removable: true } : {}),
-        })
+      // Déclaration en ordre PHYSIQUE (mur jardin → axe → mur cour) : c'est
+      // l'ordre qui pilote indexInRow, donc la contiguïté du placement.
+      // bloc.separe décrit la frontière d'un bloc avec son voisin CÔTÉ AXE :
+      //  - jardin déclaré mur→axe : l'arc j est contigu au précédent déclaré
+      //    (son voisin extérieur, bloc nJ-j) si CE voisin n'est pas séparé ;
+      //  - 1er bloc cour : contigu à la moitié jardin du centre (à travers
+      //    l'axe — une famille peut être assise à cheval) ;
+      //  - blocs cour suivants : contigus si non séparés.
+      const nJ = row.jardin.length
+      const arcs: ArcConfig[] = []
+      for (let j = nJ - 1; j >= 0; j--) {
+        const contigu = j < nJ - 1 && !row.jardin[j + 1].separe
+        arcs.push({ ...jardin[j], ...(contigu ? { contiguousWithPrevious: true } : {}) })
       }
-      arcs.push({
-        section: 'centre',
-        angleStart: centreStart,
-        angleEnd: centreEnd,
-        seats: n,
-        ...(removable ? { removable: true } : {}),
+      row.cour.forEach((bloc, j) => {
+        const contigu = j === 0 ? nJ > 0 : !bloc.separe
+        arcs.push({ ...cour[j], ...(contigu ? { contiguousWithPrevious: true } : {}) })
       })
-      if (row.extCour) {
-        const debut = centreEnd + allee
-        arcs.push({
-          section: 'droite',
-          angleStart: debut,
-          angleEnd: debut + (row.extCour.seats - 1) * pitch,
-          seats: row.extCour.seats,
-          firstNumber: row.extCour.firstNumber,
-          ...(row.extCour.removable ? { removable: true } : {}),
-        })
-      }
 
       return { label: row.label, radius: premierRayon + i * espacement, arcs }
     }),

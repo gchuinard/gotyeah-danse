@@ -52,6 +52,56 @@ export async function enregistrerSalle(input: { name: string; config: unknown })
   return { ok: true }
 }
 
+// Depuis l'éditeur : met à jour une salle existante (nom + config). Ne touche
+// PAS au plan matérialisé — si la salle est active, l'admin « Réapplique le
+// plan » explicitement depuis la liste (jamais de demi-édition appliquée).
+export async function modifierSalle(input: {
+  id: string
+  name: string
+  config: unknown
+}): Promise<SalleResult & { active?: boolean }> {
+  await requireAdmin()
+
+  const id = idSchema.safeParse(input.id)
+  const name = nameSchema.safeParse(input.name)
+  if (!id.success || !name.success) return { ok: false, error: 'Salle ou nom invalide.' }
+
+  let configJson: string
+  try {
+    configJson = JSON.stringify(parseVenueConfig(input.config, 'éditeur de salle'))
+  } catch (error) {
+    return { ok: false, error: messageErreur(error) }
+  }
+
+  try {
+    const venue = await prisma.venue.update({
+      where: { id: id.data },
+      data: { name: name.data, config: configJson },
+    })
+    revalidatePath('/admin/salles')
+    return { ok: true, active: venue.isActive }
+  } catch {
+    return { ok: false, error: 'Salle introuvable.' }
+  }
+}
+
+// Re-synchronise le plan depuis la config de la salle ACTIVE (après une
+// modification, ou pour réparer). Mêmes garde-fous que l'activation.
+export async function reappliquerPlanAction(): Promise<void> {
+  await requireAdmin()
+  const active = await prisma.venue.findFirst({ where: { isActive: true } })
+  if (!active) redirect(urlListe('err', 'Aucune salle active à réappliquer.'))
+  try {
+    const config = parseVenueConfig(JSON.parse(active.config), `salle « ${active.name} »`)
+    const result = await syncPlan(prisma, config)
+    revalider()
+    redirect(urlListe('ok', `Plan réappliqué — ${result.seats} places, ${result.rows} rangées.`))
+  } catch (error) {
+    if (error && typeof error === 'object' && 'digest' in error) throw error
+    redirect(urlListe('err', messageErreur(error)))
+  }
+}
+
 // Active une salle : synchronise le plan PUIS bascule le drapeau. Si la
 // synchro échoue (ex. billets sur des sièges disparus), rien ne bascule.
 export async function activerSalleAction(formData: FormData): Promise<void> {

@@ -54,6 +54,12 @@ export type ArcConfig = {
   // parité du côté (impair côté jardin, pair côté cour) ; interdit sur un arc
   // qui chevauche l'axe (le centre).
   firstNumber?: number
+  // Plusieurs arcs d'une MÊME section dans un rang (console partielle,
+  // strapontins…) : par défaut ils sont SÉPARÉS (un trou d'indexInRow casse
+  // la contiguïté du placement — personne n'est assis « à cheval »). À true,
+  // l'arc est physiquement CONTIGU au précédent arc de sa section (les
+  // fauteuils se touchent : console amovible posée au milieu d'un rang).
+  contiguousWithPrevious?: boolean
 }
 
 export type RowConfig = {
@@ -147,6 +153,34 @@ const milieuRow = (
   ],
 })
 
+// Rangées H et I : « console salle à la demande » — seuls les 8 sièges
+// CENTRAUX (impairs 1→7, pairs 2→8) sont amovibles, le reste du centre est
+// fixe. Le centre est scindé en 4 sous-arcs CONTIGUS (les fauteuils se
+// touchent : indexInRow continue, le placement peut enjamber) ; les ids de
+// sièges restent ceux de l'ancien arc unique.
+const milieuRowConsole = (
+  label: string,
+  radius: number,
+  outerL: number,
+  g: number,
+  d: number,
+  outerR: number,
+): RowConfig => {
+  const p = PITCH_MILIEU
+  return {
+    label,
+    radius,
+    arcs: [
+      { section: 'gauche', angleStart: outerL, angleEnd: -7.7, seats: g },
+      { section: 'centre', angleStart: -7.5 * p, angleEnd: -4.5 * p, seats: 4 },
+      { section: 'centre', angleStart: -3.5 * p, angleEnd: -0.5 * p, seats: 4, removable: true, contiguousWithPrevious: true },
+      { section: 'centre', angleStart: 0.5 * p, angleEnd: 3.5 * p, seats: 4, removable: true, contiguousWithPrevious: true },
+      { section: 'centre', angleStart: 4.5 * p, angleEnd: 7.5 * p, seats: 4, contiguousWithPrevious: true },
+      { section: 'droite', angleStart: 9.3, angleEnd: outerR, seats: d },
+    ],
+  }
+}
+
 // Bloc du fond (« haute ») : bords et allées constants, centre nNeg/nPos.
 const hauteRow = (
   label: string,
@@ -201,10 +235,9 @@ export const venueConfig: VenueConfig = {
     milieuRow('L', 1456, -17.2, 9, 8, 7, 9, 18.3),
     milieuRow('K', 1498, -17.0, 9, 8, 7, 9, 18.1),
     milieuRow('J', 1531, -17.6, 10, 8, 7, 10, 17.0),
-    // « Console salle à la demande » : sur H et I, place.md marque amovibles
-    // les 8 sièges CENTRAUX (1→7 / 2→8). Approx : tout le centre — à affiner.
-    milieuRow('I', 1565, -16.8, 10, 8, 8, 10, 17.8, { centreAmovible: true }),
-    milieuRow('H', 1608, -16.6, 10, 8, 8, 10, 17.6, { centreAmovible: true }),
+    // « Console salle à la demande » : 8 sièges centraux amovibles, EXACT.
+    milieuRowConsole('I', 1565, -16.8, 10, 10, 17.8),
+    milieuRowConsole('H', 1608, -16.6, 10, 10, 17.6),
     // Allée transversale, puis bloc « haute » (fond, 7 rangées G → A)
     hauteRow('G', 1704, 8, 8, 7, 8), // impairs 1→31, pairs 2→30
     hauteRow('F', 1760, 9, 8, 7, 9), // impairs 1→33, pairs 2→32

@@ -14,6 +14,7 @@ const arcSchema = z
     seats: z.number().int().min(1).max(200),
     removable: z.boolean().optional(),
     firstNumber: z.number().int().min(1).max(999).optional(),
+    contiguousWithPrevious: z.boolean().optional(),
   })
   .refine((a) => a.seats === 1 || a.angleStart < a.angleEnd, {
     message: 'angleStart doit être inférieur à angleEnd',

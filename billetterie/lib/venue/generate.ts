@@ -65,15 +65,25 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
     // Tous les sièges de la rangée physique, toutes sections confondues.
     // `arc` est conservé : la numérotation pair-impair en a besoin pour les
     // sauts (ArcConfig.firstNumber).
-    const rowSeats = row.arcs.flatMap((arc) =>
-      arcAngles(arc).map((angle, indexInRow) => ({
+    //
+    // indexInRow est attribué PAR SECTION, cumulé sur les arcs : un arc
+    // `contiguousWithPrevious` continue la séquence (fauteuils qui se
+    // touchent), un arc séparé saute UN index — le trou casse la contiguïté
+    // du placement sans changer les ids des sièges existants (un seul arc
+    // par section ⇒ comportement identique à avant).
+    const prochainIndex = new Map<SectionId, number>()
+    const rowSeats = row.arcs.flatMap((arc) => {
+      const courant = prochainIndex.get(arc.section)
+      const debut = courant === undefined ? 0 : arc.contiguousWithPrevious ? courant : courant + 1
+      prochainIndex.set(arc.section, debut + arc.seats)
+      return arcAngles(arc).map((angle, i) => ({
         section: arc.section,
         removable: arc.removable ?? false,
         angle,
-        indexInRow,
+        indexInRow: debut + i,
         arc,
-      })),
-    )
+      }))
+    })
 
     const numbered = new Map<(typeof rowSeats)[number], number>()
     if (numberingScheme === 'continu') {

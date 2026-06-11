@@ -1,34 +1,37 @@
 'use client'
 
-// Créateur de salle — éditeur guidé de la notation place.md :
-//  - assistant « Ajouter un rang » : des champs simples écrivent la ligne ;
-//  - analyse LIGNE PAR LIGNE : chips par rang (erreurs localisées), survol
-//    d'un chip → le rang s'illumine sur le plan, clic → la ligne est
-//    sélectionnée dans l'éditeur ;
-//  - « Partir de la salle de Bergerac » : précharge le relevé réel ;
-//  - aperçu live + enregistrement en base (activation dans /admin/salles).
+// Créateur / éditeur de salle — l'ÉDITEUR DE RANGS est l'outil principal :
+// une ligne compacte par rang (mini-barre proportionnelle, total, badges),
+// qui se déplie pour éditer ses blocs (sièges, 1er n°, amovible, séparé).
+// La notation reste la couche experte : ligne brute éditable dans le détail
+// de chaque rang + « Importer / exporter » global replié. Le relevé texte est
+// LA source de vérité — chaque modification de champ réécrit sa ligne.
 
-import { useMemo, useRef, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
 import { BUILDER_DEFAULTS, buildVenueConfig } from '@/lib/venue/build'
 import { generateSeats } from '@/lib/venue/generate'
-import { analysePlaceNotation, EXEMPLE_BERGERAC, resumeRang } from '@/lib/venue/place-notation'
+import {
+  analysePlaceNotation,
+  EXEMPLE_BERGERAC,
+  resumeRang,
+  serialiseRow,
+  type BlocRang,
+  type LigneAnalysee,
+  type ParsedRow,
+} from '@/lib/venue/place-notation'
 import { parseVenueConfig } from '@/lib/venue/schema'
 
-import { enregistrerSalle } from '../actions'
+import { enregistrerSalle, modifierSalle } from '../actions'
 import styles from './salles.module.css'
 
-const EXEMPLE = `# Une ligne par rang, du FOND vers la SCÈNE — ou utilisez
-# l'assistant « Ajouter un rang » ci-dessous, qui écrit les lignes pour vous.
-A 25/15 13/1 2/14 16/26
+const EXEMPLE = `A 25/15 13/1 2/14 16/26
 B 23/13 11/1 2/12 14/24
 C (1/13) (2/14)
 `
-
-type TypeRang = 'blocs' | 'continu' | 'fosse'
 
 function slugifier(nom: string): string {
   return (
@@ -41,41 +44,181 @@ function slugifier(nom: string): string {
   )
 }
 
-function lettreSuivante(derniere: string | undefined): string {
-  if (!derniere || derniere.length !== 1) return 'A'
-  const code = derniere.charCodeAt(0)
-  return code >= 65 && code < 90 ? String.fromCharCode(code + 1) : ''
+// ── Mini-barre proportionnelle d'un rang (jardin → cour) ─────────────────
+
+function BarreRang({ row }: { row: ParsedRow }) {
+  const segments = [
+    ...[...row.jardin].reverse().map((b, i, arr) => ({ b, gapApres: i < arr.length - 1 && arr[i].separe })),
+    ...row.cour.map((b) => ({ b, gapApres: false, gapAvant: b.separe })),
+  ]
+  return (
+    <span className={styles.barre} aria-hidden="true">
+      {segments.map((s, i) => (
+        <span
+          key={i}
+          className={s.b.removable ? styles.segAmov : styles.seg}
+          style={{ flexGrow: s.b.seats, marginLeft: 'gapAvant' in s && s.gapAvant ? 4 : i > 0 && segments[i - 1].gapApres ? 4 : 0 }}
+        />
+      ))}
+    </span>
+  )
 }
 
-export default function BuilderView() {
-  const router = useRouter()
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+// ── Détail dépliable d'un rang : édition des blocs ───────────────────────
 
-  const [nom, setNom] = useState('Ma salle')
-  const [notation, setNotation] = useState(EXEMPLE)
+type DetailProps = {
+  ligne: LigneAnalysee & { ok: true }
+  onChange: (nouvelle: string) => void
+  onDupliquer: () => void
+  onSupprimer: () => void
+}
+
+function RangDetail({ ligne, onChange, onDupliquer, onSupprimer }: DetailProps) {
+  const row = ligne.row
+
+  const appliquer = (next: ParsedRow) => onChange(serialiseRow(next))
+
+  const majBloc = (cote: 'jardin' | 'cour', i: number, patch: Partial<BlocRang>) => {
+    const blocs = row[cote].map((b, j) => (j === i ? { ...b, ...patch } : b))
+    appliquer({ ...row, [cote]: blocs })
+  }
+
+  const ajouterBloc = (cote: 'jardin' | 'cour') => {
+    const dernier = row[cote][row[cote].length - 1]
+    const nouveau: BlocRang = {
+      seats: 2,
+      firstNumber: dernier.firstNumber + 2 * dernier.seats,
+      removable: false,
+      separe: true,
+    }
+    appliquer({ ...row, [cote]: [...row[cote], nouveau] })
+  }
+
+  const supprimerBloc = (cote: 'jardin' | 'cour', i: number) => {
+    appliquer({ ...row, [cote]: row[cote].filter((_, j) => j !== i) })
+  }
+
+  const cote = (nom: 'jardin' | 'cour', titre: string) => (
+    <div className={styles.cote}>
+      <h4>
+        {titre} <small>({nom === 'jardin' ? 'impairs' : 'pairs'}, de l&apos;axe vers le mur)</small>
+      </h4>
+      {row[nom].map((b, i) => (
+        <div key={i} className={styles.blocLigne}>
+          {i > 0 && (
+            <label className={styles.coche} title="Séparé du bloc précédent (allée, écart) : le placement ne regroupe pas à travers">
+              <input type="checkbox" checked={b.separe} onChange={(e) => majBloc(nom, i, { separe: e.target.checked })} />
+              séparé
+            </label>
+          )}
+          <label className={styles.miniInline}>
+            sièges
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={b.seats}
+              onChange={(e) => majBloc(nom, i, { seats: Math.max(1, Number(e.target.value) || 1) })}
+            />
+          </label>
+          <label className={styles.miniInline} title="Premier numéro du bloc — l'augmenter crée un saut de numérotation">
+            1ᵉʳ n°
+            <input
+              type="number"
+              min={1}
+              max={999}
+              step={2}
+              value={b.firstNumber}
+              disabled={i === 0}
+              onChange={(e) => majBloc(nom, i, { firstNumber: Number(e.target.value) || b.firstNumber })}
+            />
+          </label>
+          <span className={styles.blocPlage}>
+            → {b.firstNumber + 2 * (b.seats - 1)}
+          </span>
+          <label className={styles.coche}>
+            <input type="checkbox" checked={b.removable} onChange={(e) => majBloc(nom, i, { removable: e.target.checked })} />
+            amovible
+          </label>
+          {i > 0 && (
+            <button type="button" className={styles.blocSuppr} onClick={() => supprimerBloc(nom, i)} aria-label="Supprimer ce bloc">
+              ✕
+            </button>
+          )}
+        </div>
+      ))}
+      <button type="button" className={styles.blocAjout} onClick={() => ajouterBloc(nom)}>
+        + bloc (strapontin, console…)
+      </button>
+    </div>
+  )
+
+  return (
+    <div className={styles.detail}>
+      <div className={styles.detailEntete}>
+        <label className={styles.miniInline}>
+          Lettre
+          <input
+            type="text"
+            value={row.label}
+            maxLength={3}
+            onChange={(e) => {
+              const label = e.target.value.toUpperCase().replace(/[^A-Z]/g, '')
+              if (label) appliquer({ ...row, label })
+            }}
+          />
+        </label>
+        <div className={styles.detailActions}>
+          <button type="button" onClick={onDupliquer}>⧉ dupliquer</button>
+          <button type="button" className={styles.danger} onClick={onSupprimer}>✕ supprimer le rang</button>
+        </div>
+      </div>
+
+      <div className={styles.cotes}>
+        {cote('jardin', 'Côté jardin')}
+        {cote('cour', 'Côté cour')}
+      </div>
+
+      {/* Couche experte : la ligne de notation, éditable telle quelle. */}
+      <label className={styles.notationLigne}>
+        notation
+        <input
+          key={ligne.source}
+          type="text"
+          defaultValue={ligne.source}
+          spellCheck={false}
+          onBlur={(e) => e.target.value.trim() !== ligne.source && onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          }}
+        />
+      </label>
+    </div>
+  )
+}
+
+// ── Vue principale ───────────────────────────────────────────────────────
+
+export type BuilderInitial = { id: string; name: string; notation: string }
+
+export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
+  const router = useRouter()
+  const [nom, setNom] = useState(initial?.name ?? 'Ma salle')
+  const [notation, setNotation] = useState(initial?.notation ?? EXEMPLE)
+  const [deplie, setDeplie] = useState<string | null>(null) // label du rang déplié
+  const [survol, setSurvol] = useState<string | null>(null)
   const [premierRayon, setPremierRayon] = useState(BUILDER_DEFAULTS.premierRayon)
   const [espacement, setEspacement] = useState(BUILDER_DEFAULTS.espacement)
   const [pitch, setPitch] = useState(BUILDER_DEFAULTS.pitch)
   const [allee, setAllee] = useState(BUILDER_DEFAULTS.allee)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, startSaving] = useTransition()
-  const [survol, setSurvol] = useState<string | null>(null)
 
-  // Assistant « Ajouter un rang ».
-  const [aLettre, setALettre] = useState('')
-  const [aType, setAType] = useState<TypeRang>('blocs')
-  const [aExtJ, setAExtJ] = useState(8)
-  const [aMilImp, setAMilImp] = useState(7)
-  const [aMilPair, setAMilPair] = useState(7)
-  const [aExtC, setAExtC] = useState(8)
-  const [aAmovExtJ, setAAmovExtJ] = useState(false)
-  const [aAmovCentre, setAAmovCentre] = useState(false)
-  const [aAmovExtC, setAAmovExtC] = useState(false)
-
-  // Analyse ligne par ligne : les rangs valides nourrissent l'aperçu, les
-  // erreurs restent localisées (on ne perd pas le plan pour une coquille).
   const lignes = useMemo(() => analysePlaceNotation(notation), [notation])
-  const valides = useMemo(() => lignes.filter((l) => l.ok), [lignes])
+  const valides = useMemo(
+    () => lignes.filter((l): l is LigneAnalysee & { ok: true } => l.ok),
+    [lignes],
+  )
   const erreurs = useMemo(() => lignes.filter((l) => !l.ok), [lignes])
 
   const resultat = useMemo(() => {
@@ -108,80 +251,94 @@ export default function BuilderView() {
     }))
   }, [resultat])
 
+  const cible = survol ?? deplie
   const highlightedIds = useMemo(() => {
-    if (!survol || !resultat) return undefined
-    return resultat.seats.filter((s) => s.rowLabel === survol).map((s) => s.id)
-  }, [survol, resultat])
+    if (!cible || !resultat) return undefined
+    return resultat.seats.filter((s) => s.rowLabel === cible).map((s) => s.id)
+  }, [cible, resultat])
 
   const pret = erreurs.length === 0 && resultat !== null
   const totalPlaces = resultat?.seats.length ?? 0
   const amovibles = resultat?.seats.filter((s) => s.removable).length ?? 0
   const slug = slugifier(nom)
 
-  const lettreParDefaut = lettreSuivante(valides.at(-1)?.row.label)
+  // ── Opérations sur les lignes du relevé ────────────────────────────────
 
-  // Construit la ligne de notation depuis l'assistant.
-  const construireLigne = (): string | null => {
-    const lettre = (aLettre.trim() || lettreParDefaut).toUpperCase()
-    if (!/^[A-Z]{1,3}$/.test(lettre)) return null
-    const wrap = (groupe: string, amovible: boolean) => (amovible ? `(${groupe})` : groupe)
-
-    if (aType === 'continu') {
-      if (aMilImp < 1 || aMilPair < 1) return null
-      return `${lettre} ${wrap(`${2 * aMilImp - 1}/1`, aAmovCentre)} ${wrap(`2/${2 * aMilPair}`, aAmovCentre)}`
-    }
-    if (aType === 'fosse') {
-      if (aMilImp < 1 || aMilPair < 1) return null
-      return `${lettre} (1/${2 * aMilImp - 1}) (2/${2 * aMilPair})`
-    }
-    if (aExtJ < 1 || aMilImp < 1 || aMilPair < 1 || aExtC < 1) return null
-    const milImpHi = 2 * aMilImp - 1
-    const milPairHi = 2 * aMilPair
-    const extImpLo = milImpHi + 2
-    const extPairLo = milPairHi + 2
-    return [
-      lettre,
-      wrap(`${extImpLo + 2 * (aExtJ - 1)}/${extImpLo}`, aAmovExtJ),
-      wrap(`${milImpHi}/1`, aAmovCentre),
-      wrap(`2/${milPairHi}`, aAmovCentre),
-      wrap(`${extPairLo}/${extPairLo + 2 * (aExtC - 1)}`, aAmovExtC),
-    ].join(' ')
+  const remplacerLigne = (numero: number, nouvelle: string | null) => {
+    setNotation((n) => {
+      const ls = n.split('\n')
+      if (nouvelle === null) ls.splice(numero - 1, 1)
+      else ls[numero - 1] = nouvelle
+      return ls.join('\n')
+    })
   }
 
-  const lignePreview = construireLigne()
+  const insererApres = (numero: number, contenu: string) => {
+    setNotation((n) => {
+      const ls = n.split('\n')
+      ls.splice(numero, 0, contenu)
+      return ls.join('\n')
+    })
+  }
+
+  const lettreLibre = (): string => {
+    const prises = new Set(valides.map((l) => l.row.label))
+    for (let c = 65; c <= 90; c++) {
+      const lettre = String.fromCharCode(c)
+      if (!prises.has(lettre)) return lettre
+    }
+    return 'Z'
+  }
+
+  const dupliquerRang = (l: LigneAnalysee & { ok: true }) => {
+    insererApres(l.ligne, serialiseRow({ ...l.row, label: lettreLibre() }))
+  }
 
   const ajouterRang = () => {
-    if (!lignePreview) return
-    setNotation((n) => `${n.trimEnd()}\n${lignePreview}\n`)
-    setALettre('') // la suggestion passe automatiquement à la lettre suivante
+    const dernier = valides[valides.length - 1]
+    const contenu = dernier
+      ? serialiseRow({ ...dernier.row, label: lettreLibre() })
+      : `${lettreLibre()} 9/1 2/8`
+    setNotation((n) => `${n.trimEnd()}\n${contenu}\n`)
+    setDeplie(null)
   }
 
-  // Clic sur un chip → sélectionne la ligne correspondante dans l'éditeur.
-  const allerALaLigne = (numero: number) => {
-    const ta = textareaRef.current
-    if (!ta) return
-    const lignesTexte = ta.value.split('\n')
-    const debut = lignesTexte.slice(0, numero - 1).join('\n').length + (numero > 1 ? 1 : 0)
-    const fin = debut + (lignesTexte[numero - 1]?.length ?? 0)
-    ta.focus()
-    ta.setSelectionRange(debut, fin)
+  const deplacerRang = (l: LigneAnalysee, sens: -1 | 1) => {
+    const index = lignes.indexOf(l)
+    const voisin = lignes[index + sens]
+    if (!voisin) return
+    setNotation((n) => {
+      const ls = n.split('\n')
+      const a = ls[l.ligne - 1]
+      ls[l.ligne - 1] = ls[voisin.ligne - 1]
+      ls[voisin.ligne - 1] = a
+      return ls.join('\n')
+    })
   }
+
+  // ── Enregistrement ─────────────────────────────────────────────────────
 
   const enregistrer = () => {
     if (!pret || !resultat) return
     setSaveError(null)
     startSaving(async () => {
-      const reponse = await enregistrerSalle({
-        name: nom.trim() || 'Salle',
-        config: JSON.parse(JSON.stringify(resultat.config)),
-      })
+      const config = JSON.parse(JSON.stringify(resultat.config))
+      const name = nom.trim() || 'Salle'
+      const reponse = initial
+        ? await modifierSalle({ id: initial.id, name, config })
+        : await enregistrerSalle({ name, config })
       if (!reponse.ok) {
         setSaveError(reponse.error)
         return
       }
+      const active = 'active' in reponse && reponse.active === true
       router.push(
         '/admin/salles?ok=' +
-          encodeURIComponent(`« ${nom.trim() || 'Salle'} » enregistrée — activez-la quand vous voulez.`),
+          encodeURIComponent(
+            initial
+              ? `« ${name} » mise à jour${active ? ' — pensez à « Réappliquer le plan ».' : '.'}`
+              : `« ${name} » enregistrée — activez-la quand vous voulez.`,
+          ),
       )
     })
   }
@@ -213,12 +370,11 @@ export default function BuilderView() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <h1>Créer une salle</h1>
+        <h1>{initial ? `Modifier « ${initial.name} »` : 'Créer une salle'}</h1>
         <p className={styles.intro}>
-          Relevez la salle <strong>rang par rang, du fond vers la scène</strong> — avec
-          l&apos;assistant ci-dessous, ou directement dans la notation de la fiche
-          (<code>extérieur·impair milieu·impair milieu·pair extérieur·pair</code>, parenthèses =
-          amovible). Survolez un rang pour le voir sur le plan.
+          Un rang par ligne, <strong>du fond vers la scène</strong>. Cliquez un rang pour éditer
+          ses blocs (sièges, 1ᵉʳ numéro pour les sauts, amovible, séparé) — survolez-le pour le
+          voir sur le plan.
         </p>
       </header>
 
@@ -229,99 +385,102 @@ export default function BuilderView() {
             <input type="text" value={nom} maxLength={100} onChange={(e) => setNom(e.target.value)} />
           </label>
 
-          {/* ── Assistant : écrit la ligne de notation ─────────────────── */}
-          <div className={styles.assistant}>
-            <h2>Ajouter un rang</h2>
-            <div className={styles.assistantLigne}>
-              <label className={styles.mini}>
-                Lettre
-                <input
-                  type="text"
-                  value={aLettre}
-                  placeholder={lettreParDefaut}
-                  maxLength={3}
-                  onChange={(e) => setALettre(e.target.value)}
-                />
-              </label>
-              <label className={styles.mini}>
-                Type
-                <select value={aType} onChange={(e) => setAType(e.target.value as TypeRang)}>
-                  <option value="blocs">3 blocs (allées)</option>
-                  <option value="continu">Continu</option>
-                  <option value="fosse">Central seul (fosse)</option>
-                </select>
-              </label>
-            </div>
-            <div className={styles.assistantLigne}>
-              {aType === 'blocs' && (
-                <label className={styles.mini}>
-                  Ext. jardin
-                  <input type="number" min={1} max={60} value={aExtJ} onChange={(e) => setAExtJ(Number(e.target.value))} />
-                </label>
-              )}
-              <label className={styles.mini}>
-                {aType === 'blocs' ? 'Milieu imp.' : 'Impairs'}
-                <input type="number" min={1} max={99} value={aMilImp} onChange={(e) => setAMilImp(Number(e.target.value))} />
-              </label>
-              <label className={styles.mini}>
-                {aType === 'blocs' ? 'Milieu pairs' : 'Pairs'}
-                <input type="number" min={1} max={99} value={aMilPair} onChange={(e) => setAMilPair(Number(e.target.value))} />
-              </label>
-              {aType === 'blocs' && (
-                <label className={styles.mini}>
-                  Ext. cour
-                  <input type="number" min={1} max={60} value={aExtC} onChange={(e) => setAExtC(Number(e.target.value))} />
-                </label>
-              )}
-            </div>
-            {aType !== 'fosse' && (
-              <div className={styles.assistantLigne}>
-                {aType === 'blocs' && (
-                  <label className={styles.coche}>
-                    <input type="checkbox" checked={aAmovExtJ} onChange={(e) => setAAmovExtJ(e.target.checked)} />
-                    ext. jardin amovible
-                  </label>
-                )}
-                <label className={styles.coche}>
-                  <input type="checkbox" checked={aAmovCentre} onChange={(e) => setAAmovCentre(e.target.checked)} />
-                  centre amovible
-                </label>
-                {aType === 'blocs' && (
-                  <label className={styles.coche}>
-                    <input type="checkbox" checked={aAmovExtC} onChange={(e) => setAAmovExtC(e.target.checked)} />
-                    ext. cour amovible
-                  </label>
-                )}
-              </div>
+          {/* ── L'éditeur de rangs ──────────────────────────────────────── */}
+          <ul className={styles.rangs} onMouseLeave={() => setSurvol(null)}>
+            {lignes.map((l) =>
+              l.ok ? (
+                <li key={`${l.ligne}-${l.row.label}`} className={styles.rang}>
+                  <button
+                    type="button"
+                    className={deplie === l.row.label ? styles.rangCompactOuvert : styles.rangCompact}
+                    onMouseEnter={() => setSurvol(l.row.label)}
+                    onClick={() => setDeplie(deplie === l.row.label ? null : l.row.label)}
+                  >
+                    <span className={styles.rangLettre}>{l.row.label}</span>
+                    <BarreRang row={l.row} />
+                    <span className={styles.rangTotal}>
+                      {resumeRang(l.row).total}
+                      {resumeRang(l.row).sauts.length > 0 && (
+                        <em title={`sauts : ${resumeRang(l.row).sauts.join(', ')} n'existent pas`}> ⤳</em>
+                      )}
+                    </span>
+                    <span className={styles.rangFleches}>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deplacerRang(l, -1)
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && deplacerRang(l, -1)}
+                        aria-label="Monter (vers le fond)"
+                      >
+                        ↑
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deplacerRang(l, 1)
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && deplacerRang(l, 1)}
+                        aria-label="Descendre (vers la scène)"
+                      >
+                        ↓
+                      </span>
+                    </span>
+                  </button>
+                  {deplie === l.row.label && (
+                    <RangDetail
+                      ligne={l}
+                      onChange={(nouvelle) => remplacerLigne(l.ligne, nouvelle)}
+                      onDupliquer={() => dupliquerRang(l)}
+                      onSupprimer={() => {
+                        remplacerLigne(l.ligne, null)
+                        setDeplie(null)
+                      }}
+                    />
+                  )}
+                </li>
+              ) : (
+                <li key={`err-${l.ligne}`} className={styles.rangErreur} title={l.error}>
+                  <span className={styles.rangLettre}>✗</span>
+                  <code>{l.source}</code>
+                  <span className={styles.rangErreurMsg}>{l.error}</span>
+                  <button type="button" onClick={() => remplacerLigne(l.ligne, null)} aria-label="Supprimer cette ligne">
+                    ✕
+                  </button>
+                </li>
+              ),
             )}
-            <div className={styles.assistantPied}>
-              <code className={styles.lignePreview}>{lignePreview ?? '—'}</code>
-              <button type="button" onClick={ajouterRang} disabled={!lignePreview}>
-                Ajouter
-              </button>
-            </div>
+          </ul>
+
+          <div className={styles.barreActionsRangs}>
+            <button type="button" className={styles.blocAjout} onClick={ajouterRang}>
+              + Ajouter un rang (copie du dernier)
+            </button>
+            <button type="button" className={styles.ghost} onClick={chargerBergerac}>
+              Partir de la salle de Bergerac
+            </button>
           </div>
 
-          <label className={styles.champ}>
-            Relevé des rangs
+          <details className={styles.apparence}>
+            <summary>Importer / exporter le relevé (notation texte)</summary>
             <textarea
-              ref={textareaRef}
+              className={styles.notationGlobale}
               value={notation}
-              rows={14}
+              rows={12}
               spellCheck={false}
               onChange={(e) => setNotation(e.target.value)}
             />
-          </label>
-
-          <button type="button" className={styles.ghost} onClick={chargerBergerac}>
-            Partir de la salle de Bergerac (relevé réel)
-          </button>
+          </details>
 
           <details className={styles.apparence}>
             <summary>Apparence du plan (ne change pas la numérotation)</summary>
             <div className={styles.params}>
               <label className={styles.mini}>
-                Distance scène → 1er rang
+                Distance scène → 1ᵉʳ rang
                 <input type="number" value={premierRayon} min={100} max={5000} onChange={(e) => setPremierRayon(Number(e.target.value))} />
               </label>
               <label className={styles.mini}>
@@ -346,18 +505,13 @@ export default function BuilderView() {
           )}
 
           <button type="button" className={styles.telecharger} onClick={enregistrer} disabled={!pret || saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer dans la billetterie'}
+            {saving ? 'Enregistrement…' : initial ? 'Enregistrer les modifications' : 'Enregistrer dans la billetterie'}
           </button>
           <button type="button" className={styles.secondaire} onClick={telecharger} disabled={!pret}>
             Télécharger {slug}.json (sauvegarde fichier)
           </button>
-          <p className={styles.aideCourte}>
-            Une fois enregistrée : <strong>/admin/salles → Activer</strong> — le plan s&apos;applique
-            immédiatement, sans reseed.
-          </p>
         </section>
 
-        {/* ── Aperçu + état rang par rang ───────────────────────────────── */}
         <section className={styles.apercu}>
           <p className={styles.statsBar} role="status">
             {valides.length} rang{valides.length > 1 ? 's' : ''} · {totalPlaces} places
@@ -370,56 +524,6 @@ export default function BuilderView() {
             )}
           </p>
 
-          <div className={styles.chips} onMouseLeave={() => setSurvol(null)}>
-            {lignes.map((l) =>
-              l.ok ? (
-                <button
-                  key={l.ligne}
-                  type="button"
-                  className={survol === l.row.label ? styles.chipActif : styles.chip}
-                  onMouseEnter={() => setSurvol(l.row.label)}
-                  onFocus={() => setSurvol(l.row.label)}
-                  onClick={() => allerALaLigne(l.ligne)}
-                  title={(() => {
-                    const r = resumeRang(l.row)
-                    return (
-                      `Rang ${l.row.label} — ${r.total} places\nimpairs : ${r.impairs}\npairs : ${r.pairs}` +
-                      (r.sauts.length ? `\nsauts : ${r.sauts.join(', ')} (n'existent pas)` : '') +
-                      (r.amovibles ? `\n${r.amovibles} amovibles` : '')
-                    )
-                  })()}
-                >
-                  {l.row.label}
-                  <span>{resumeRang(l.row).total}</span>
-                  {resumeRang(l.row).sauts.length > 0 && <em title="sauts de numérotation">⤳</em>}
-                </button>
-              ) : (
-                <button
-                  key={l.ligne}
-                  type="button"
-                  className={styles.chipErreur}
-                  onClick={() => allerALaLigne(l.ligne)}
-                  title={l.error}
-                >
-                  ligne {l.ligne} ✗
-                </button>
-              ),
-            )}
-          </div>
-
-          {erreurs.length > 0 && (
-            <ul className={styles.listeErreurs}>
-              {erreurs.map((l) => (
-                <li key={l.ligne}>
-                  <button type="button" onClick={() => allerALaLigne(l.ligne)}>
-                    ligne {l.ligne}
-                  </button>{' '}
-                  {l.error}
-                </li>
-              ))}
-            </ul>
-          )}
-
           {resultat ? (
             <SeatMap
               seats={seatViews}
@@ -428,8 +532,7 @@ export default function BuilderView() {
             />
           ) : (
             <p className={styles.apercuVide}>
-              L&apos;aperçu s&apos;affichera dès qu&apos;un rang est valide — ajoutez-en un avec
-              l&apos;assistant.
+              L&apos;aperçu s&apos;affichera dès qu&apos;un rang est valide — « + Ajouter un rang ».
             </p>
           )}
         </section>

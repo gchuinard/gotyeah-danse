@@ -10,7 +10,12 @@ import { generateSeats } from '@/lib/venue/generate'
 import { loadVenueConfig } from '@/lib/venue/load'
 import { parseVenueConfig } from '@/lib/venue/schema'
 
-import { activerSalleAction, desactiverSalleAction, supprimerSalleAction } from './actions'
+import {
+  activerSalleAction,
+  desactiverSalleAction,
+  reappliquerPlanAction,
+  supprimerSalleAction,
+} from './actions'
 import styles from './salles-liste.module.css'
 
 export const metadata: Metadata = { title: 'Salles — Billetterie admin' }
@@ -88,6 +93,9 @@ export default async function SallesPage({ searchParams }: { searchParams: Searc
                 </span>
               </div>
               <div className={styles.actions}>
+                <Link className={styles.secondaire} href={`/admin/salles/${v.id}/modifier`}>
+                  Modifier
+                </Link>
                 {!v.isActive && (
                   <form action={activerSalleAction}>
                     <input type="hidden" name="id" value={v.id} />
@@ -97,11 +105,18 @@ export default async function SallesPage({ searchParams }: { searchParams: Searc
                   </form>
                 )}
                 {v.isActive && (
-                  <form action={desactiverSalleAction}>
-                    <button type="submit" className={styles.secondaire}>
-                      Revenir à la salle par défaut
-                    </button>
-                  </form>
+                  <>
+                    <form action={reappliquerPlanAction}>
+                      <button type="submit" className={styles.activer} title="Re-synchronise le plan depuis cette salle (après une modification)">
+                        Réappliquer le plan
+                      </button>
+                    </form>
+                    <form action={desactiverSalleAction}>
+                      <button type="submit" className={styles.secondaire}>
+                        Revenir à la salle par défaut
+                      </button>
+                    </form>
+                  </>
                 )}
                 {!v.isActive && (
                   <form action={supprimerSalleAction}>

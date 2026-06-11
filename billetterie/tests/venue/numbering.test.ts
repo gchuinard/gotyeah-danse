@@ -67,6 +67,46 @@ describe('numérotation pair-impair', () => {
   })
 })
 
+describe('multi-arcs par section (console partielle, strapontins)', () => {
+  // Rang dont le centre est scindé en 3 arcs CONTIGUS (console amovible au
+  // milieu) + un strapontin SÉPARÉ côté jardin.
+  const config: VenueConfig = {
+    center: { x: 0, y: 1000 },
+    numberingScheme: 'pair-impair',
+    rows: [
+      {
+        label: 'H',
+        radius: 500,
+        arcs: [
+          { section: 'gauche', angleStart: -30, angleEnd: -28, seats: 2 }, // strapontin
+          { section: 'gauche', angleStart: -20, angleEnd: -12, seats: 2 }, // ext jardin (séparé)
+          { section: 'centre', angleStart: -6, angleEnd: -4, seats: 2 },
+          { section: 'centre', angleStart: -2, angleEnd: 2, seats: 4, removable: true, contiguousWithPrevious: true },
+          { section: 'centre', angleStart: 4, angleEnd: 6, seats: 2, contiguousWithPrevious: true },
+        ],
+      },
+    ],
+  }
+
+  it('indexInRow continue sur les arcs contigus, saute sur les séparés', () => {
+    const seats = generateSeats(config)
+    const centre = seats.filter((s) => s.section === 'centre').map((s) => s.indexInRow).sort((a, b) => a - b)
+    expect(centre).toEqual([0, 1, 2, 3, 4, 5, 6, 7]) // 3 arcs contigus = une seule séquence
+    const gauche = seats.filter((s) => s.section === 'gauche').map((s) => s.indexInRow).sort((a, b) => a - b)
+    expect(gauche).toEqual([0, 1, 3, 4]) // trou entre strapontin et ext = rupture de contiguïté
+  })
+
+  it('les ids restent uniques', () => {
+    const seats = generateSeats(config)
+    expect(new Set(seats.map((s) => s.id)).size).toBe(seats.length)
+  })
+
+  it('seuls les sièges de la console sont amovibles', () => {
+    const seats = generateSeats(config)
+    expect(seats.filter((s) => s.removable)).toHaveLength(4)
+  })
+})
+
 describe('salle de Bergerac — sauts réels (place.md)', () => {
   const seats = generateSeats(venueConfig)
   const nums = (label: string) => new Set(seats.filter((s) => s.rowLabel === label).map((s) => s.number))

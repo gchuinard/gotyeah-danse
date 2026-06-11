@@ -125,6 +125,9 @@
 .secondaire,
 .supprimer {
   font: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
   font-size: 0.85rem;
   padding: 0.35rem 0.7rem;
   border-radius: 8px;
