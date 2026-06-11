@@ -6,7 +6,13 @@ import { describe, expect, it } from 'vitest'
 
 import { BUILDER_DEFAULTS, buildVenueConfig } from '@/lib/venue/build'
 import { generateSeats } from '@/lib/venue/generate'
-import { parsePlaceLine, parsePlaceNotation } from '@/lib/venue/place-notation'
+import {
+  analysePlaceNotation,
+  EXEMPLE_BERGERAC,
+  parsePlaceLine,
+  parsePlaceNotation,
+  resumeRang,
+} from '@/lib/venue/place-notation'
 
 describe('parsePlaceLine', () => {
   it('rang standard : B 37/19 17/1 2/18 20/38', () => {
@@ -98,5 +104,54 @@ X (1/15) (2/16) 12
 
   it('refuse un rang en double', () => {
     expect(() => parsePlaceNotation('A 5/1 2/4\nA 5/1 2/4')).toThrow(/double/)
+  })
+})
+
+describe('EXEMPLE_BERGERAC (préchargement du créateur)', () => {
+  it('reproduit la salle réelle : 25 rangs, 754 places, sauts O/R/T', () => {
+    const rows = parsePlaceNotation(EXEMPLE_BERGERAC)
+    expect(rows).toHaveLength(25)
+    const config = buildVenueConfig({ name: 'Bergerac (exemple)', ...BUILDER_DEFAULTS }, rows)
+    const seats = generateSeats(config)
+    expect(seats).toHaveLength(754)
+    const nums = (label: string) =>
+      new Set(seats.filter((s) => s.rowLabel === label).map((s) => s.number))
+    expect(nums('O').has(15)).toBe(false)
+    expect(nums('O').has(31)).toBe(true)
+    expect(nums('T').has(12)).toBe(false)
+    expect(seats.filter((s) => s.removable)).toHaveLength(16 + 16 + 6 + 32) // fosses X/Y + jardin W + consoles H/I
+  })
+})
+
+describe('analysePlaceNotation (éditeur : erreurs localisées)', () => {
+  it("ne s'arrête pas à la première erreur et garde les numéros de ligne", () => {
+    const lignes = analysePlaceNotation('# titre\nA 5/1 2/4\nB patate\n\nC 5/1 2/4\nA 5/1 2/4')
+    expect(lignes).toHaveLength(4)
+    expect(lignes[0]).toMatchObject({ ligne: 2, ok: true })
+    expect(lignes[1]).toMatchObject({ ligne: 3, ok: false })
+    expect(lignes[2]).toMatchObject({ ligne: 5, ok: true })
+    // doublon de A → erreur localisée sur SA ligne, les autres restent ok
+    expect(lignes[3]).toMatchObject({ ligne: 6, ok: false })
+  })
+})
+
+describe('resumeRang', () => {
+  it('détecte les sauts et compte les amovibles', () => {
+    const r = resumeRang(parsePlaceLine('O 31/17 13/1 2/12 16/30 1'))
+    expect(r.total).toBe(29)
+    expect(r.impairs).toBe('1→13, 17→31')
+    expect(r.pairs).toBe('2→12, 16→30')
+    expect(r.sauts).toEqual([14, 15])
+    expect(r.amovibles).toBe(0)
+  })
+
+  it('rang continu : pas de saut, plages simples', () => {
+    const r = resumeRang(parsePlaceLine('A 45/1 2/44'))
+    expect(r).toMatchObject({ total: 45, impairs: '1→45', pairs: '2→44', sauts: [] })
+  })
+
+  it('fosse amovible : tout est compté amovible', () => {
+    const r = resumeRang(parsePlaceLine('X (1/15) (2/16)'))
+    expect(r.amovibles).toBe(16)
   })
 })

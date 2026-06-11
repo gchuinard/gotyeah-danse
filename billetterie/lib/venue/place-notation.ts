@@ -120,3 +120,103 @@ export function parsePlaceNotation(texte: string): ParsedRow[] {
   if (rows.length === 0) throw new Error('Aucun rang : une ligne par rang, ex. « B 37/19 17/1 2/18 20/38 ».')
   return rows
 }
+
+// Relevé réel du Centre Culturel de Bergerac (place.md, sauts compris ; la
+// console H/I est approximée centre-entier-amovible comme dans venue.ts).
+// Point de départ proposé par le créateur de salle, validé par les tests.
+export const EXEMPLE_BERGERAC = `# Centre Culturel de Bergerac — du FOND (A) vers la SCÈNE (Y)
+A 45/1 2/44
+B 37/19 17/1 2/18 20/38
+C 35/19 17/1 2/18 20/36
+D 33/17 15/1 2/16 18/34
+E 33/17 15/1 2/16 18/34
+F 33/17 15/1 2/14 16/32
+G 31/17 15/1 2/14 16/30
+H 35/17 (15/1) (2/16) 18/36
+I 35/17 (15/1) (2/16) 18/36
+J 35/17 15/1 2/14 16/34
+K 33/17 15/1 2/14 16/32
+L 33/17 15/1 2/14 16/32
+M 33/17 13/1 2/14 16/32
+N 29/15 13/1 2/14 16/30
+O 31/17 13/1 2/12 16/30
+P 29/15 13/1 2/12 14/28
+Q 29/15 13/1 2/12 14/28
+R 27/15 11/1 2/12 16/28
+S 27/13 11/1 2/12 14/26
+T 27/15 11/1 2/10 14/26
+U 25/13 11/1 2/10 12/24
+V 25/13 11/1 2/10 12/22
+W (21/11) 9/1 2/10 12/22
+X (1/15) (2/16)
+Y (1/15) (2/16)
+`
+
+// Analyse LIGNE PAR LIGNE, sans s'arrêter à la première erreur — pour
+// l'éditeur du créateur de salle (feedback par rang, erreurs localisées).
+export type LigneAnalysee =
+  | { ligne: number; source: string; ok: true; row: ParsedRow }
+  | { ligne: number; source: string; ok: false; error: string }
+
+export function analysePlaceNotation(texte: string): LigneAnalysee[] {
+  const out: LigneAnalysee[] = []
+  const labels = new Set<string>()
+  texte.split('\n').forEach((brute, index) => {
+    const ligne = brute.trim()
+    if (ligne === '' || ligne.startsWith('#')) return
+    try {
+      const row = parsePlaceLine(ligne)
+      if (labels.has(row.label)) throw new Error(`Rang « ${row.label} » en double.`)
+      labels.add(row.label)
+      out.push({ ligne: index + 1, source: ligne, ok: true, row })
+    } catch (error) {
+      out.push({
+        ligne: index + 1,
+        source: ligne,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  })
+  return out
+}
+
+// Résumé lisible d'un rang : plages réelles, sauts de numérotation, total.
+export type ResumeRang = {
+  total: number
+  impairs: string // ex. « 1→13, 17→31 »
+  pairs: string
+  sauts: number[] // numéros qui n'existent pas (détectés entre milieu et ext)
+  amovibles: number
+}
+
+export function resumeRang(row: ParsedRow): ResumeRang {
+  const sauts: number[] = []
+  const plage = (de: number, n: number) => (n === 1 ? `${de}` : `${de}→${de + 2 * (n - 1)}`)
+
+  const impParts = [plage(1, row.centre.nNeg)]
+  if (row.extJardin) {
+    const attendu = 2 * row.centre.nNeg + 1
+    for (let n = attendu; n < row.extJardin.firstNumber; n += 2) sauts.push(n)
+    impParts.push(plage(row.extJardin.firstNumber, row.extJardin.seats))
+  }
+  const pairParts = [plage(2, row.centre.nPos)]
+  if (row.extCour) {
+    const attendu = 2 * row.centre.nPos + 2
+    for (let n = attendu; n < row.extCour.firstNumber; n += 2) sauts.push(n)
+    pairParts.push(plage(row.extCour.firstNumber, row.extCour.seats))
+  }
+
+  const amovibles =
+    (row.centre.removable ? row.centre.nNeg + row.centre.nPos : 0) +
+    (row.extJardin?.removable ? row.extJardin.seats : 0) +
+    (row.extCour?.removable ? row.extCour.seats : 0)
+
+  return {
+    total: row.centre.nNeg + row.centre.nPos + (row.extJardin?.seats ?? 0) + (row.extCour?.seats ?? 0),
+    impairs: impParts.join(', '),
+    pairs: pairParts.join(', '),
+    sauts: sauts.sort((a, b) => a - b),
+    amovibles,
+  }
+}

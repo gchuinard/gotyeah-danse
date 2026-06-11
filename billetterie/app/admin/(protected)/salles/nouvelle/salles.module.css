@@ -73,15 +73,6 @@
   gap: 0.6rem;
 }
 
-.resume {
-  font-size: 0.9rem;
-  color: #1e6b3a;
-  background: #ecf6ef;
-  border: 1px solid #cce5d4;
-  border-radius: 8px;
-  padding: 0.5rem 0.7rem;
-}
-
 .erreur {
   font-size: 0.88rem;
   color: #b3261e;
@@ -132,36 +123,6 @@
   cursor: not-allowed;
 }
 
-.aide {
-  font-size: 0.85rem;
-  color: var(--gris-chd);
-  background: #fff;
-  border: 1px solid #e8ddd0;
-  border-radius: 10px;
-  padding: 0.8rem 1rem;
-}
-
-.aide h2 {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--terre-2);
-  margin-bottom: 0.4rem;
-}
-
-.aide ol {
-  padding-left: 1.2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.aide code {
-  background: #f2ece3;
-  padding: 0.05rem 0.3rem;
-  border-radius: 4px;
-}
-
 .apercu {
   position: sticky;
   top: 1rem;
@@ -173,4 +134,218 @@
   border-radius: 10px;
   padding: 3rem 1rem;
   text-align: center;
+}
+
+/* ── Assistant « Ajouter un rang » ─────────────────────────────────── */
+
+.assistant {
+  background: #fff;
+  border: 1px solid #e8ddd0;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.assistant h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--terre-2);
+}
+
+.assistantLigne {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.mini {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--terre);
+  flex: 1;
+  min-width: 6rem;
+}
+
+.mini input,
+.mini select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #e8ddd0;
+  border-radius: 8px;
+  background: #fff;
+  width: 100%;
+}
+
+.coche {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--gris-chd);
+}
+
+.assistantPied {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lignePreview {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  background: #f2ece3;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.assistantPied button {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  border-radius: 8px;
+  background: var(--terre);
+  color: var(--sable);
+  border: 1px solid var(--terre);
+  cursor: pointer;
+}
+
+.assistantPied button:hover:not(:disabled) {
+  background: var(--terre-2);
+}
+
+.assistantPied button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Divers ────────────────────────────────────────────────────────── */
+
+.ghost {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--terre-2);
+  border: 1px dashed var(--terre-2);
+  cursor: pointer;
+}
+
+.ghost:hover {
+  background: #f2ece3;
+}
+
+.apparence {
+  font-size: 0.85rem;
+  color: var(--gris-chd);
+}
+
+.apparence summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.apparence .params {
+  margin-top: 0.6rem;
+}
+
+.aideCourte {
+  font-size: 0.82rem;
+  color: var(--gris-chd);
+}
+
+/* ── État rang par rang (au-dessus de l'aperçu) ────────────────────── */
+
+.statsBar {
+  font-size: 0.9rem;
+  color: var(--terre);
+  margin-bottom: 0.5rem;
+}
+
+.statsErreurs {
+  color: #b3261e;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.6rem;
+}
+
+.chip,
+.chipActif,
+.chipErreur {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #e8ddd0;
+  background: #fff;
+  color: var(--terre);
+  cursor: pointer;
+}
+
+.chip span,
+.chipActif span {
+  font-weight: 400;
+  color: var(--gris-chd);
+}
+
+.chip em,
+.chipActif em {
+  font-style: normal;
+  color: #b3543f;
+}
+
+.chip:hover,
+.chipActif {
+  border-color: var(--terre-2);
+  background: #f2ece3;
+}
+
+.chipErreur {
+  border-color: #f3c5c0;
+  background: #fbeae8;
+  color: #b3261e;
+}
+
+.listeErreurs {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: #b3261e;
+  background: #fbeae8;
+  border: 1px solid #f3c5c0;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0.6rem;
+}
+
+.listeErreurs button {
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
 }
