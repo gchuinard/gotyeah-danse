@@ -6,7 +6,7 @@
 //                              (hot reload : on édite venue.ts, le plan bouge,
 //                              pas besoin de re-seeder pendant la calibration)
 
-import type { ArcConfig, RowConfig, SectionId, VenueConfig } from '@/config/venue'
+import type { ArcConfig, SectionId, VenueConfig } from '@/config/venue'
 
 export type GeneratedSeat = {
   id: string // "centre-W-03" — déterministe, sert de clé d'upsert
@@ -28,31 +28,6 @@ export const SECTION_ORDER: Record<SectionId, number> = {
   gauche: 0,
   centre: 1,
   droite: 2,
-}
-
-const SECTION_MIRROR: Record<SectionId, SectionId> = {
-  gauche: 'droite',
-  centre: 'centre',
-  droite: 'gauche',
-}
-
-// Miroir gauche/droite. La fiche technique (public/plan-scan.png) est dessinée
-// vue de la régie / côté scène, donc en MIROIR de ce que voit le public ; les
-// angles de config/venue.ts sont mesurés dessus. `mirror: true` retourne le
-// plan en vue SALLE (face à la scène) : la terrasse accessible repasse à
-// DROITE (côté cour) et la numérotation suit — pairs à gauche (jardin),
-// impairs à droite (cour). Confirmé Gautier 2026-06-11 (terrasse accessible
-// à droite dans la vraie salle, dessinée à gauche sur la fiche).
-function mirrorRow(row: RowConfig): RowConfig {
-  return {
-    ...row,
-    arcs: row.arcs.map((arc) => ({
-      ...arc,
-      section: SECTION_MIRROR[arc.section],
-      angleStart: -arc.angleEnd,
-      angleEnd: -arc.angleStart,
-    })),
-  }
 }
 
 const toRad = (deg: number) => (deg * Math.PI) / 180
@@ -78,8 +53,7 @@ function staticScore(rowOrder: number, angle: number, maxAbsAngle: number): numb
 }
 
 export function generateSeats(config: VenueConfig): GeneratedSeat[] {
-  const { center, numberingScheme } = config
-  const rows = config.mirror ? config.rows.map(mirrorRow) : config.rows
+  const { center, rows, numberingScheme } = config
 
   const maxAbsAngle = Math.max(
     ...rows.flatMap((r) => r.arcs.flatMap((a) => [Math.abs(a.angleStart), Math.abs(a.angleEnd)])),
@@ -105,13 +79,14 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
         .sort((a, b) => a.angle - b.angle)
         .forEach((s, i) => numbered.set(s, i + 1))
     } else {
-      // pair-impair (vue salle, après miroir) : face à la scène, impairs à
-      // droite (côté cour), pairs à gauche (côté jardin), croissants en
-      // s'éloignant de l'axe central.
+      // pair-impair : impairs côté JARDIN (négatif, terrasse accessible),
+      // pairs côté COUR (positif), croissants en s'éloignant de l'axe central.
+      // (Sens confirmé Gautier 2026-06-11 : la terrasse accessible est du côté
+      // impair.)
       const jardin = rowSeats.filter((s) => s.angle < 0).sort((a, b) => Math.abs(a.angle) - Math.abs(b.angle))
       const cour = rowSeats.filter((s) => s.angle >= 0).sort((a, b) => Math.abs(a.angle) - Math.abs(b.angle))
-      cour.forEach((s, i) => numbered.set(s, 2 * i + 1))
-      jardin.forEach((s, i) => numbered.set(s, 2 * i + 2))
+      jardin.forEach((s, i) => numbered.set(s, 2 * i + 1))
+      cour.forEach((s, i) => numbered.set(s, 2 * i + 2))
     }
 
     for (const s of rowSeats) {

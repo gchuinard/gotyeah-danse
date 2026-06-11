@@ -17,10 +17,7 @@ export const metadata: Metadata = {
 }
 
 export default function CalibrationPage() {
-  // Calibration = vérifier la géométrie MESURÉE contre le scan (vue régie) :
-  // on génère SANS le miroir vue-salle, sinon le plan apparaît retourné par
-  // rapport au scan de la fiche.
-  const seats = generateSeats({ ...venueConfig, mirror: false })
+  const seats = generateSeats(venueConfig)
   const bounds = planBounds(seats)
 
   return <CalibrationView seats={seats} bounds={bounds} center={venueConfig.center} />

@@ -10,10 +10,7 @@ import { generateSeats } from '../lib/venue/generate'
 
 const sharp = createRequire('/mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse/package.json')('sharp')
 
-// La calibration vérifie la géométrie MESURÉE sur le scan (vue régie) : on
-// génère donc SANS le miroir vue-salle (mirror:false), sinon le plan apparaît
-// retourné par rapport au scan.
-const seats = generateSeats({ ...venueConfig, mirror: false })
+const seats = generateSeats(venueConfig)
 const circles = seats
   .map(
     (s) =>

@@ -64,10 +64,6 @@ export type VenueConfig = {
   // 'pair-impair': face à la scène, impairs à droite (cour), pairs à
   //                gauche (jardin), croissants du centre — confirmé 2026-06-10
   numberingScheme: NumberingScheme
-  // La fiche technique est dessinée vue de la régie (côté scène) = MIROIR de la
-  // vue du public. Les angles ci-dessus sont mesurés sur la fiche ; `mirror`
-  // retourne le plan généré en vue SALLE. Voir mirrorRow dans lib/venue/generate.ts.
-  mirror?: boolean
 }
 
 // Rangée de fosse : centre amovible + mini-blocs latéraux fixes (3×3 sur la
@@ -116,7 +112,6 @@ const rearRow = (label: string, radius: number, g: number, c: number, d: number)
 export const venueConfig: VenueConfig = {
   center: { x: 716, y: 2520 }, // px scan — convergence des arcs
   numberingScheme: 'pair-impair',
-  mirror: true, // fiche dessinée côté régie → retour en vue salle (terrasse PMR à droite)
   // Ordre du tableau : SCÈNE → FOND. rowOrder 0 = Y (le plus près de la scène).
   rows: [
     // Fosse « collée à la scène » — amovible, transformable en avant-scène
