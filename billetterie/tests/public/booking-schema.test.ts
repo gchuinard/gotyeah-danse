@@ -1,7 +1,8 @@
 // Tests du schéma zod du formulaire public de demande de places.
 //
 // Le schéma reçoit des valeurs issues de FormData : tout arrive en string,
-// d'où les tests de coercition (partySize notamment).
+// d'où les tests de coercition (partySize notamment). Le téléphone est
+// normalisé puis reformaté en "06 12 34 56 78".
 
 import { describe, expect, it } from 'vitest'
 
@@ -10,7 +11,8 @@ import { bookingSchema } from '@/lib/public/booking-schema'
 // Demande valide de référence — chaque test invalide n'écrase qu'un champ.
 const demandeValide = {
   representationId: 'rep-samedi-soir',
-  name: 'Famille Dupont',
+  firstName: 'Jean',
+  lastName: 'Dupont',
   email: 'famille.dupont@example.com',
   phone: '06 12 34 56 78',
   partySize: '4',
@@ -24,7 +26,8 @@ describe('bookingSchema — cas valide', () => {
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.partySize).toBe(4)
-    expect(result.data.name).toBe('Famille Dupont')
+    expect(result.data.firstName).toBe('Jean')
+    expect(result.data.lastName).toBe('Dupont')
     expect(result.data.notes).toBe('Une place PMR si possible')
   })
 
@@ -41,16 +44,18 @@ describe('bookingSchema — cas valide', () => {
     expect(result.data.notes).toBeUndefined()
   })
 
-  it('trim le nom et le téléphone', () => {
+  it('trim prénom/nom et reformate le téléphone', () => {
     const result = bookingSchema.safeParse({
       ...demandeValide,
-      name: '  Famille Dupont  ',
+      firstName: '  Jean  ',
+      lastName: '  Dupont  ',
       phone: ' 0612345678 ',
     })
     expect(result.success).toBe(true)
     if (!result.success) return
-    expect(result.data.name).toBe('Famille Dupont')
-    expect(result.data.phone).toBe('0612345678')
+    expect(result.data.firstName).toBe('Jean')
+    expect(result.data.lastName).toBe('Dupont')
+    expect(result.data.phone).toBe('06 12 34 56 78')
   })
 })
 
@@ -67,19 +72,19 @@ describe('bookingSchema — representationId', () => {
   })
 })
 
-describe('bookingSchema — name', () => {
-  it('refuse un nom trop court (1 caractère)', () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, name: 'A' })
+describe('bookingSchema — prénom / nom', () => {
+  it('refuse un prénom vide', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, firstName: '   ' })
     expect(result.success).toBe(false)
   })
 
-  it("refuse un nom composé uniquement d'espaces (trim avant min)", () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, name: '    ' })
+  it('refuse un nom vide', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, lastName: '' })
     expect(result.success).toBe(false)
   })
 
-  it('refuse un nom de plus de 100 caractères', () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, name: 'a'.repeat(101) })
+  it('refuse un nom de plus de 60 caractères', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, lastName: 'a'.repeat(61) })
     expect(result.success).toBe(false)
   })
 })
@@ -98,24 +103,31 @@ describe('bookingSchema — email', () => {
 })
 
 describe('bookingSchema — phone', () => {
-  it('refuse un numéro trop court (moins de 6 caractères)', () => {
+  it('refuse un numéro trop court', () => {
     const result = bookingSchema.safeParse({ ...demandeValide, phone: '06123' })
     expect(result.success).toBe(false)
   })
 
-  it('refuse un numéro trop long (plus de 20 caractères)', () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, phone: '0'.repeat(21) })
+  it('refuse un mauvais préfixe (00…)', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, phone: '00 12 34 56 78' })
     expect(result.success).toBe(false)
   })
 
-  it('refuse des caractères interdits (lettres)', () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, phone: '06 12 34 AB' })
+  it('refuse des lettres', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, phone: '06 12 34 AB 78' })
     expect(result.success).toBe(false)
   })
 
-  it('accepte le format international avec + . -', () => {
+  it('normalise des chiffres collés en "06 12 34 56 78"', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, phone: '0612345678' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.phone).toBe('06 12 34 56 78')
+  })
+
+  it('accepte et normalise le format international (+33 . -)', () => {
     const result = bookingSchema.safeParse({ ...demandeValide, phone: '+33.6-12 34 56 78' })
     expect(result.success).toBe(true)
+    if (result.success) expect(result.data.phone).toBe('06 12 34 56 78')
   })
 })
 

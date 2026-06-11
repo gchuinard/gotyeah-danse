@@ -5,6 +5,7 @@
 // chargement ; cliquer une suggestion REMPLACE la sélection par ses sièges.
 
 import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
@@ -37,8 +38,12 @@ export default function PlacementView({
   currentIds,
   suggestions,
 }: Props) {
-  // Suggestion 1 pré-appliquée au chargement (si le moteur en a trouvé).
-  const [selection, setSelection] = useState<string[]>(suggestions[0]?.seatIds ?? [])
+  const router = useRouter()
+  // En déplacement : pré-sélection des places ACTUELLES de la réservation.
+  // En émission : suggestion 1 pré-appliquée (si le moteur en a trouvé).
+  const [selection, setSelection] = useState<string[]>(
+    mode === 'deplacement' ? currentIds : (suggestions[0]?.seatIds ?? []),
+  )
   const [hovered, setHovered] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -147,6 +152,17 @@ export default function PlacementView({
             <p className={styles.panelHint}>
               Sélectionnez exactement {partySize} place{partySize > 1 ? 's' : ''} pour valider.
             </p>
+          )}
+
+          {mode === 'deplacement' && (
+            <button
+              type="button"
+              className={styles.cancel}
+              onClick={() => router.push('/admin/demandes')}
+              disabled={pending}
+            >
+              Annuler le déplacement
+            </button>
           )}
         </section>
       </aside>

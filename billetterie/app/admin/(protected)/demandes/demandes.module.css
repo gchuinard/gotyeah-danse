@@ -26,6 +26,27 @@
   text-decoration: underline;
 }
 
+.titreActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rectif {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rectifInput {
+  width: 3rem;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--terre-2);
+  border-radius: 6px;
+  text-align: center;
+}
+
 .bannerOk,
 .bannerErr {
   padding: 0.55rem 0.8rem;

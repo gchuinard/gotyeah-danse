@@ -6,28 +6,37 @@
 
 import { z } from 'zod'
 
+import { FR_PHONE_RE, formatFrPhone, normalizeFrPhone } from './phone'
+
 export const bookingSchema = z.object({
   representationId: z
     .string('Choisissez une représentation.')
     .min(1, 'Choisissez une représentation.'),
 
-  name: z
+  firstName: z
+    .string('Indiquez votre prénom.')
+    .trim()
+    .min(1, 'Indiquez votre prénom.')
+    .max(60, 'Le prénom ne peut pas dépasser 60 caractères.'),
+
+  lastName: z
     .string('Indiquez votre nom.')
     .trim()
-    .min(2, 'Le nom doit contenir au moins 2 caractères.')
-    .max(100, 'Le nom ne peut pas dépasser 100 caractères.'),
+    .min(1, 'Indiquez votre nom.')
+    .max(60, 'Le nom ne peut pas dépasser 60 caractères.'),
 
   email: z
     .email('Adresse email invalide.')
     .max(200, "L'adresse email ne peut pas dépasser 200 caractères."),
 
+  // Téléphone FR : normalisé (séparateurs, +33) puis validé 10 chiffres,
+  // stocké au format "06 12 34 56 78".
   phone: z
     .string('Indiquez votre numéro de téléphone.')
     .trim()
-    .regex(
-      /^[0-9 +.\-]{6,20}$/,
-      'Numéro de téléphone invalide (6 à 20 caractères : chiffres, espaces, +, . ou -).',
-    ),
+    .transform(normalizeFrPhone)
+    .refine((d) => FR_PHONE_RE.test(d), 'Numéro invalide. Format attendu : 06 12 34 56 78.')
+    .transform(formatFrPhone),
 
   // Coercition depuis FormData (les valeurs arrivent en string).
   partySize: z.coerce

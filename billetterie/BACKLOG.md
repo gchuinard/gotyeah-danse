@@ -20,35 +20,40 @@ Aucun engagement d'ordre — prioriser à la demande.
 
 ## ✨ Écran de placement / déplacement
 
-- [ ] **Déplacement : pré-sélectionner les places actuelles.** Quand on entre
-  en mode « déplacer », la sélection par défaut doit être les places déjà
-  attribuées à la réservation (aujourd'hui : sélection vide).
-- [ ] **Bouton « Annuler le déplacement »** pour sortir du mode sans rien
-  changer et revenir à la liste des demandes.
+- [x] **Déplacement : pré-sélectionner les places actuelles.** ✅ 2026-06-11 —
+  en mode déplacement, la sélection part des places actuelles de la réservation
+  (`placement-view.tsx`).
+- [x] **Bouton « Annuler le déplacement »** ✅ 2026-06-11 — bouton qui revient à
+  la liste des demandes sans rien changer (visible en mode déplacement).
 
 ## ✨ Demandes / réservations
 
-- [ ] **Rectifier le nombre de places d'une demande.** Une famille prend
-  6 billets puis finalement 5… ou 7. Permettre à l'admin de changer
-  `partySize` — en gérant les cas : demande déjà placée (retirer/ajouter des
-  billets ?), jauge insuffisante pour l'augmentation.
-- [ ] **L'admin peut passer commande pour quelqu'un.** Créer une demande
-  depuis le back-office (familles qui passent au studio ou appellent),
-  sans rate-limit ni honeypot, avec les mêmes effets (email de confirmation,
-  jauge).
+- [x] **Rectifier le nombre de places d'une demande.** ✅ 2026-06-11 — champ
+  inline + `rectifierPlacesAction` / `changerNombrePlaces`. pending/paid : MAJ
+  directe (vérif jauge si augmentation) ; placed : billets supprimés, retour en
+  `paid` et redirection vers le placement pour ré-attribuer ; cancelled/expired
+  refusé.
+- [x] **L'admin peut passer commande pour quelqu'un.** ✅ 2026-06-11 — page
+  `/admin/demandes/nouvelle` + `creerDemandeAdmin`, mêmes effets (jauge, email),
+  sans rate-limit ni honeypot. Logique de création partagée dans
+  `lib/booking/creer.ts`.
 
 ## ✨ Formulaire public
 
-- [ ] **Séparer « Nom » et « Prénom »** dans le formulaire (deux champs, deux
-  labels) — mais la **recherche admin reste sur le nom complet** (un seul
-  champ de recherche, comme aujourd'hui).
-- [ ] **Forcer le format du téléphone** : `06 66 66 66 66` (masque de saisie /
-  normalisation côté client + validation zod côté serveur).
+- [x] **Séparer « Nom » et « Prénom »** ✅ 2026-06-11 — deux champs ; stockés
+  combinés dans `Booking.name` (`Prénom Nom`), donc recherche/affichage admin
+  inchangés (toujours sur le nom complet, pas de migration DB).
+- [x] **Forcer le format du téléphone** ✅ 2026-06-11 — masque de saisie client
+  (`formatFrPhone`) + normalisation/validation zod serveur (`lib/public/phone.ts`),
+  stocké au format `06 12 34 56 78`.
 
 ## ✨ Plan de salle
 
 - [ ] **Modifier le plan de salle à la main.** Donner un moyen d'ajuster le
   plan sans éditer `config/venue.ts` : à minima déplacer/ajouter/retirer des
-  sièges individuels depuis l'admin. À cadrer : ça touche le contrat
-  « le plan est généré depuis la config » (où stocker les retouches ?
-  surcouche en base type `SeatPatch`, ou édition graphique de la config ?).
+  sièges individuels depuis l'admin. **À CADRER** (volontairement laissé de
+  côté) : ça touche le contrat « le plan est généré depuis la config ». Options
+  à trancher avant de coder — (a) surcouche en base `SeatPatch` appliquée
+  par-dessus le plan généré, (b) éditeur graphique qui réécrit `venue.ts`,
+  (c) ne rien faire et continuer à éditer `venue.ts` à la main (ce qu'on fait
+  pour la calibration). Décider AVANT d'implémenter.

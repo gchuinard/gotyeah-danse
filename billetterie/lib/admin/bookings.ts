@@ -11,6 +11,8 @@ import { randomUUID } from 'node:crypto'
 
 import { Prisma, type PrismaClient } from '@prisma/client'
 
+import { computeJauge } from '@/lib/jauge'
+
 export type BookingAvecBillets = {
   id: string
   name: string
@@ -227,6 +229,57 @@ export async function annulerDemande(
       partySize: booking.partySize,
       representation: booking.representation,
     }
+  })
+}
+
+// Changer le nombre de places d'une demande.
+//  - pending/paid : met à jour partySize (vérif jauge si augmentation) ;
+//  - placed : le placement devient caduc → suppression des billets et retour
+//    en 'paid' pour que l'admin re-place avec le nouveau nombre ;
+//  - cancelled/expired : refusé.
+// `etaitPlace` indique à l'action qu'un re-placement est nécessaire.
+export async function changerNombrePlaces(
+  db: PrismaClient,
+  bookingId: string,
+  nouveauNombre: number,
+): Promise<{ etaitPlace: boolean }> {
+  if (!Number.isInteger(nouveauNombre) || nouveauNombre < 1 || nouveauNombre > 8) {
+    throw new Error('Le nombre de places doit être compris entre 1 et 8.')
+  }
+  return db.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new Error('Demande introuvable.')
+    if (!['pending', 'paid', 'placed'].includes(booking.status)) {
+      throw new Error('Cette demande est annulée ou expirée.')
+    }
+    if (nouveauNombre === booking.partySize) {
+      return { etaitPlace: false }
+    }
+
+    // Capacité max pour CETTE demande = jauge restante + sa propre empreinte
+    // actuelle (partySize, en hold pending/paid ou en billets placed).
+    const jauge = await computeJauge(tx, booking.representationId)
+    const maxPourCetteDemande = jauge + booking.partySize
+    if (nouveauNombre > maxPourCetteDemande) {
+      throw new Error(
+        `Jauge insuffisante : ${maxPourCetteDemande} place(s) au maximum pour cette demande.`,
+      )
+    }
+
+    if (booking.status === 'placed') {
+      await tx.ticket.deleteMany({ where: { bookingId } })
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: { partySize: nouveauNombre, status: 'paid', placedAt: null },
+      })
+      return { etaitPlace: true }
+    }
+
+    await tx.booking.update({
+      where: { id: bookingId },
+      data: { partySize: nouveauNombre },
+    })
+    return { etaitPlace: false }
   })
 }
 

@@ -13,6 +13,7 @@ import { z } from 'zod'
 
 import {
   annulerDemande,
+  changerNombrePlaces,
   chargerBookingAvecBillets,
   marquerPayee,
   prolongerExpiration,
@@ -22,6 +23,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
+const placesSchema = z.coerce.number().int().min(1).max(8)
 
 // Module email créé en parallèle par un autre agent : import dynamique +
 // fonctions optionnelles, pour que la liste fonctionne même si les exports
@@ -78,6 +80,32 @@ export async function marquerPayeeAction(formData: FormData): Promise<void> {
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   redirect(`/admin/placement/${id}`)
+}
+
+// Rectifier le nombre de places. Si la demande était placée, le placement est
+// invalidé et on redirige vers l'écran de placement pour ré-attribuer.
+export async function rectifierPlacesAction(formData: FormData): Promise<void> {
+  await requireAdmin()
+  const id = lireId(formData)
+  const parsed = placesSchema.safeParse(formData.get('places'))
+  if (!parsed.success) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Nombre de places invalide (1 à 8).'))
+  }
+
+  let res: Awaited<ReturnType<typeof changerNombrePlaces>>
+  try {
+    res = await changerNombrePlaces(prisma, id, parsed.data)
+  } catch (error) {
+    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+  }
+
+  revalidatePath('/admin/demandes')
+  revalidatePath('/admin')
+  if (res.etaitPlace) {
+    // Le placement n'est plus valide : on ré-attribue les sièges.
+    redirect(`/admin/placement/${id}`)
+  }
+  redirect(urlListe(formData.get('retour'), 'ok', 'Nombre de places mis à jour.'))
 }
 
 export async function prolongerAction(formData: FormData): Promise<void> {

@@ -4,7 +4,9 @@
 // La liste des représentations (déjà filtrées jauge > 0, dates formatées)
 // vient du server component app/page.tsx.
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
+
+import { formatFrPhone } from '@/lib/public/phone'
 
 import { creerDemande, type DemandeState } from './actions'
 import styles from './demande-form.module.css'
@@ -29,6 +31,7 @@ export default function DemandeForm({
   representations: RepresentationOption[]
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
+  const [phone, setPhone] = useState('')
 
   // Succès « générique » (cas honeypot) : confirmation sobre, rien de plus.
   if (state.ok) {
@@ -65,17 +68,31 @@ export default function DemandeForm({
       </div>
 
       <div className={styles.field}>
-        <label htmlFor="name">Nom et prénom</label>
+        <label htmlFor="firstName">Prénom</label>
         <input
-          id="name"
-          name="name"
+          id="firstName"
+          name="firstName"
           type="text"
-          autoComplete="name"
-          maxLength={100}
+          autoComplete="given-name"
+          maxLength={60}
           required
-          aria-invalid={errors?.name ? true : undefined}
+          aria-invalid={errors?.firstName ? true : undefined}
         />
-        <FieldError messages={errors?.name} />
+        <FieldError messages={errors?.firstName} />
+      </div>
+
+      <div className={styles.field}>
+        <label htmlFor="lastName">Nom</label>
+        <input
+          id="lastName"
+          name="lastName"
+          type="text"
+          autoComplete="family-name"
+          maxLength={60}
+          required
+          aria-invalid={errors?.lastName ? true : undefined}
+        />
+        <FieldError messages={errors?.lastName} />
       </div>
 
       <div className={styles.field}>
@@ -98,9 +115,13 @@ export default function DemandeForm({
           id="phone"
           name="phone"
           type="tel"
+          inputMode="tel"
           autoComplete="tel"
-          maxLength={20}
+          placeholder="06 12 34 56 78"
+          maxLength={14}
           required
+          value={phone}
+          onChange={(e) => setPhone(formatFrPhone(e.target.value))}
           aria-invalid={errors?.phone ? true : undefined}
         />
         <FieldError messages={errors?.phone} />

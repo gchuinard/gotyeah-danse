@@ -187,6 +187,29 @@
   cursor: not-allowed;
 }
 
+.cancel {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  background: transparent;
+  color: #7a7068;
+  border: 1px solid #e8ddd0;
+  cursor: pointer;
+}
+
+.cancel:hover:not(:disabled) {
+  background: #f2ece3;
+  color: #5c3d2e;
+}
+
+.cancel:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .error {
   font-size: 0.85rem;
   color: #a8362a;

@@ -11,19 +11,13 @@
 //
 // ⚠️ Ne JAMAIS logger les données personnelles ni le publicToken.
 
-import { randomUUID } from 'node:crypto'
-
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { prisma } from '@/lib/db'
-import { sendBookingPendingEmail } from '@/lib/email/booking'
-import { computeJauge } from '@/lib/jauge'
+import { creerBookingEnAttente } from '@/lib/booking/creer'
 import { bookingSchema, type BookingInput } from '@/lib/public/booking-schema'
 import { rateLimit } from '@/lib/rate-limit'
-
-const QUATORZE_JOURS_MS = 14 * 24 * 60 * 60 * 1000
 
 export type DemandeState = {
   // true = confirmation générique affichée par l'UI. N'arrive que pour le
@@ -54,7 +48,8 @@ export async function creerDemande(
 
   const parsed = bookingSchema.safeParse({
     representationId: formData.get('representationId'),
-    name: formData.get('name'),
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
     email: formData.get('email'),
     phone: formData.get('phone'),
     partySize: formData.get('partySize'),
@@ -69,57 +64,17 @@ export async function creerDemande(
   }
   const demande = parsed.data
 
-  // Vérification de jauge + création dans la MÊME transaction : deux familles
-  // qui soumettent en même temps ne peuvent pas dépasser la capacité.
-  const result = await prisma.$transaction(async (tx) => {
-    const representation = await tx.representation.findUnique({
-      where: { id: demande.representationId },
-    })
-    if (!representation || !representation.isOpen) {
-      return { error: "Cette représentation n'est pas ouverte à la réservation." } as const
-    }
-
-    const jauge = await computeJauge(tx, representation.id)
-    if (jauge < demande.partySize) {
-      return { error: 'Plus assez de places disponibles' } as const
-    }
-
-    const booking = await tx.booking.create({
-      data: {
-        representationId: representation.id,
-        name: demande.name,
-        email: demande.email,
-        phone: demande.phone,
-        partySize: demande.partySize,
-        notes: demande.notes ?? null,
-        status: 'pending',
-        publicToken: randomUUID(),
-        expiresAt: new Date(Date.now() + QUATORZE_JOURS_MS),
-      },
-    })
-    return { booking, representation } as const
+  const result = await creerBookingEnAttente({
+    representationId: demande.representationId,
+    name: `${demande.firstName} ${demande.lastName}`,
+    email: demande.email,
+    phone: demande.phone,
+    partySize: demande.partySize,
+    notes: demande.notes,
   })
 
   if ('error' in result) {
     return { ok: false, error: result.error }
-  }
-
-  // Email « demande enregistrée » : best effort, son échec ne doit jamais
-  // faire échouer la demande (et on ne logge rien de personnel).
-  try {
-    await sendBookingPendingEmail({
-      name: result.booking.name,
-      email: result.booking.email,
-      partySize: result.booking.partySize,
-      publicToken: result.booking.publicToken,
-      expiresAt: result.booking.expiresAt,
-      representation: {
-        title: result.representation.title,
-        startsAt: result.representation.startsAt,
-      },
-    })
-  } catch {
-    // Ignoré volontairement.
   }
 
   // Hors du try/catch : redirect() fonctionne en levant une exception.

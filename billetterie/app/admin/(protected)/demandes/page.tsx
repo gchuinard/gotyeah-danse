@@ -12,7 +12,13 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
-import { annulerAction, marquerPayeeAction, prolongerAction, renvoyerBilletsAction } from './actions'
+import {
+  annulerAction,
+  marquerPayeeAction,
+  prolongerAction,
+  rectifierPlacesAction,
+  renvoyerBilletsAction,
+} from './actions'
 import { ConfirmSubmit } from './confirm-submit'
 import styles from './demandes.module.css'
 
@@ -132,11 +138,16 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
     <main className={styles.page}>
       <div className={styles.titre}>
         <h1>Demandes</h1>
-        {rep && (
-          <a className={styles.export} href={`/api/admin/export/${rep}`}>
-            Exporter en CSV
-          </a>
-        )}
+        <div className={styles.titreActions}>
+          <Link className={styles.btnLien} href="/admin/demandes/nouvelle">
+            + Nouvelle demande
+          </Link>
+          {rep && (
+            <a className={styles.export} href={`/api/admin/export/${rep}`}>
+              Exporter en CSV
+            </a>
+          )}
+        </div>
       </div>
 
       {ok && <p className={styles.bannerOk}>{ok}</p>}
@@ -255,6 +266,24 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                               </button>
                             </form>
                           </>
+                        )}
+                        {['pending', 'paid', 'placed'].includes(d.status) && (
+                          <form action={rectifierPlacesAction} className={styles.rectif}>
+                            <input type="hidden" name="id" value={d.id} />
+                            <input type="hidden" name="retour" value={retour.toString()} />
+                            <input
+                              type="number"
+                              name="places"
+                              min={1}
+                              max={8}
+                              defaultValue={d.partySize}
+                              aria-label="Nombre de places"
+                              className={styles.rectifInput}
+                            />
+                            <button type="submit" className={styles.btn}>
+                              Rectifier
+                            </button>
+                          </form>
                         )}
                         {['pending', 'paid', 'placed'].includes(d.status) && (
                           <form action={annulerAction}>
