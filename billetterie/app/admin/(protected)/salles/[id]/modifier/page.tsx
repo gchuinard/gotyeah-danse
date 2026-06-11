@@ -22,8 +22,11 @@ export default async function ModifierSallePage({ params }: { params: Promise<{ 
   const venue = await prisma.venue.findUnique({ where: { id } })
   if (!venue) notFound()
 
-  const config = parseVenueConfig(JSON.parse(venue.config), `salle « ${venue.name} »`)
-  const notation = serialiseVenueConfig(config)
+  // Le relevé stocké est la source exacte (couloirs/décalages compris) ;
+  // à défaut, on re-sérialise la config (géométrie indicative).
+  const notation =
+    venue.notation ??
+    serialiseVenueConfig(parseVenueConfig(JSON.parse(venue.config), `salle « ${venue.name} »`))
 
   return <BuilderView initial={{ id: venue.id, name: venue.name, notation }} />
 }

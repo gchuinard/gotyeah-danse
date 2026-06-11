@@ -66,6 +66,10 @@ export type RowConfig = {
   label: string // lettrage réel : A = rang le plus AU FOND, Y = collé à la scène
   radius: number
   arcs: ArcConfig[]
+  // Décalage latéral PUREMENT VISUEL (px, positif = vers cour) : aligne le
+  // dessin d'un rang excentré sans toucher aux angles — la numérotation
+  // pair-impair reste calée sur l'axe.
+  xOffset?: number
 }
 
 export type NumberingScheme = 'continu' | 'pair-impair'

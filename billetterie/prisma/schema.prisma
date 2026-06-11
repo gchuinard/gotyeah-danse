@@ -135,6 +135,10 @@ model Venue {
   id        String   @id @default(cuid())
   name      String
   config    String // VenueConfig sérialisée
+  // Source de l'éditeur : le relevé (notation place.md, couloirs/décalages
+  // compris) — « Modifier » rouvre EXACTEMENT ce qui a été saisi. À défaut
+  // (salle importée en JSON), la config est re-sérialisée en relevé.
+  notation  String?
   isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

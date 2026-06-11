@@ -141,7 +141,7 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
         rowOrder,
         indexInRow: s.indexInRow,
         number: numbered.get(s)!,
-        x: center.x + row.radius * Math.sin(rad),
+        x: center.x + row.radius * Math.sin(rad) + (row.xOffset ?? 0),
         y: center.y - row.radius * Math.cos(rad),
         angle: s.angle,
         removable: s.removable,

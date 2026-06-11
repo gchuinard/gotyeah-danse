@@ -71,9 +71,10 @@ type DetailProps = {
   onChange: (nouvelle: string) => void
   onDupliquer: () => void
   onSupprimer: () => void
+  onCouloir: (actif: boolean) => void
 }
 
-function RangDetail({ ligne, onChange, onDupliquer, onSupprimer }: DetailProps) {
+function RangDetail({ ligne, onChange, onDupliquer, onSupprimer, onCouloir }: DetailProps) {
   const row = ligne.row
 
   const appliquer = (next: ParsedRow) => onChange(serialiseRow(next))
@@ -177,6 +178,31 @@ function RangDetail({ ligne, onChange, onDupliquer, onSupprimer }: DetailProps) 
       <div className={styles.cotes}>
         {cote('jardin', 'Côté jardin')}
         {cote('cour', 'Côté cour')}
+      </div>
+
+      <div className={styles.blocLigne}>
+        <label className={styles.coche} title="Espace élargi entre ce rang et le précédent (vers le fond) : couloir, terrasse…">
+          <input
+            type="checkbox"
+            checked={row.couloirAvant === true}
+            onChange={(e) => onCouloir(e.target.checked)}
+          />
+          couloir / terrasse avant ce rang (côté fond)
+        </label>
+        <label className={styles.miniInline} title="Décale tout le rang pour l'aligner — en largeurs de siège, négatif = vers jardin. Visuel uniquement.">
+          décalage latéral
+          <input
+            type="number"
+            step={0.5}
+            min={-20}
+            max={20}
+            value={row.decalage ?? 0}
+            onChange={(e) => {
+              const d = Number(e.target.value) || 0
+              appliquer({ ...row, decalage: d === 0 ? undefined : d })
+            }}
+          />
+        </label>
       </div>
 
       {/* Couche experte : la ligne de notation, éditable telle quelle. */}
@@ -325,8 +351,8 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
       const config = JSON.parse(JSON.stringify(resultat.config))
       const name = nom.trim() || 'Salle'
       const reponse = initial
-        ? await modifierSalle({ id: initial.id, name, config })
-        : await enregistrerSalle({ name, config })
+        ? await modifierSalle({ id: initial.id, name, config, notation })
+        : await enregistrerSalle({ name, config, notation })
       if (!reponse.ok) {
         setSaveError(reponse.error)
         return
@@ -390,6 +416,11 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
             {lignes.map((l) =>
               l.ok ? (
                 <li key={`${l.ligne}-${l.row.label}`} className={styles.rang}>
+                  {l.row.couloirAvant && (
+                    <span className={styles.couloirSep} aria-label="couloir / terrasse">
+                      ─ ─ couloir ─ ─
+                    </span>
+                  )}
                   <button
                     type="button"
                     className={deplie === l.row.label ? styles.rangCompactOuvert : styles.rangCompact}
@@ -437,8 +468,13 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
                       onChange={(nouvelle) => remplacerLigne(l.ligne, nouvelle)}
                       onDupliquer={() => dupliquerRang(l)}
                       onSupprimer={() => {
-                        remplacerLigne(l.ligne, null)
+                        if (l.couloirLigne !== undefined) remplacerLigne(l.couloirLigne, null)
+                        remplacerLigne(l.ligne - (l.couloirLigne !== undefined ? 1 : 0), null)
                         setDeplie(null)
+                      }}
+                      onCouloir={(actif) => {
+                        if (actif && l.couloirLigne === undefined) insererApres(l.ligne - 1, '---')
+                        else if (!actif && l.couloirLigne !== undefined) remplacerLigne(l.couloirLigne, null)
                       }}
                     />
                   )}

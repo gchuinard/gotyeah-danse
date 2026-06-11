@@ -108,6 +108,36 @@ describe('buildVenueConfig (v2)', () => {
   })
 })
 
+describe('couloir (---) et décalage latéral (<n / >n)', () => {
+  it('--- attache couloirAvant au rang suivant ; >1.5 décale vers cour', () => {
+    const rows = parsePlaceNotation('A 9/1 2/8\n---\nB 9/1 2/8 >1.5\nC 9/1 2/8 <2 12')
+    expect(rows[0].couloirAvant).toBeUndefined()
+    expect(rows[1].couloirAvant).toBe(true)
+    expect(rows[1].decalage).toBe(1.5)
+    expect(rows[2].decalage).toBe(-2) // flag 12 + décalage cumulables
+  })
+
+  it('serialiseRow conserve le décalage (aller-retour)', () => {
+    const row = parsePlaceLine('B 9/1 2/8 >1.5')
+    expect(parsePlaceLine(serialiseRow(row))).toEqual(row)
+  })
+
+  it('build : couloir = écart radial élargi, décalage = xOffset visuel', () => {
+    const rows = parsePlaceNotation('A 9/1 2/8\n---\nB 9/1 2/8 >2\nC 9/1 2/8')
+    const config = buildVenueConfig({ name: 'T', ...BUILDER_DEFAULTS }, rows)
+    // ordre scène → fond : C, B, A — couloir entre B et A.
+    const [c, b, a] = config.rows
+    expect(b.radius - c.radius).toBe(BUILDER_DEFAULTS.espacement)
+    expect(a.radius - b.radius).toBeGreaterThan(BUILDER_DEFAULTS.espacement * 2)
+    expect(b.xOffset).toBeGreaterThan(0)
+    expect(a.xOffset).toBeUndefined()
+    // le décalage ne change PAS la numérotation
+    const seats = generateSeats(config)
+    const bSeats = seats.filter((s) => s.rowLabel === 'B')
+    expect(bSeats.filter((s) => s.number % 2 === 1)).toHaveLength(5)
+  })
+})
+
 describe('sérialisation inverse', () => {
   it('serialiseRow ↔ parsePlaceLine : aller-retour stable', () => {
     for (const ligne of [

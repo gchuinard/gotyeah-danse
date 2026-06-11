@@ -40,6 +40,13 @@ export type ParsedRow = {
   label: string
   jardin: BlocRang[] // impairs, de l'axe vers le mur
   cour: BlocRang[] // pairs, de l'axe vers le mur
+  // Couloir / terrasse ENTRE ce rang et le précédent du relevé (côté fond) —
+  // « --- » sur sa propre ligne dans la notation. Espace vertical élargi.
+  couloirAvant?: boolean
+  // Décalage latéral du rang en largeurs de siège (positif = vers cour) —
+  // « >1.5 » ou « <2 » en fin de ligne. Purement visuel (alignement du
+  // dessin) : la numérotation reste calée sur l'axe.
+  decalage?: number
 }
 
 type Groupe = {
@@ -111,7 +118,19 @@ export function parsePlaceLine(ligne: string): ParsedRow {
   if (!/^[A-Z]{1,3}$/i.test(label)) {
     throw new Error(`« ${nettoyee} » : la ligne doit commencer par la lettre du rang.`)
   }
-  if (tokens.length > 0 && /^(1|12)$/.test(tokens[tokens.length - 1])) tokens.pop()
+  // Modificateurs de fin de ligne, dans n'importe quel ordre : flag 1/12
+  // (position du centre, ignoré) et décalage latéral <n / >n.
+  let decalage = 0
+  for (let i = 0; i < 2 && tokens.length > 0; i++) {
+    const dernier = tokens[tokens.length - 1]
+    if (/^(1|12)$/.test(dernier)) tokens.pop()
+    else {
+      const m = /^([<>])(\d+(?:\.\d+)?)$/.exec(dernier)
+      if (!m) break
+      decalage = (m[1] === '>' ? 1 : -1) * Number(m[2])
+      tokens.pop()
+    }
+  }
   if (tokens.length === 0) throw new Error(`« ${nettoyee} » : aucun bloc de places.`)
 
   const groupes = parseGroupes(tokens, nettoyee)
@@ -140,21 +159,30 @@ export function parsePlaceLine(ligne: string): ParsedRow {
     label: label.toUpperCase(),
     jardin: blocsDuCote(jardinAxe, pipesJardin, ligneAPipes, 1, 'jardin', nettoyee),
     cour: blocsDuCote(courAxe, pipesCour, ligneAPipes, 2, 'cour', nettoyee),
+    ...(decalage !== 0 ? { decalage } : {}),
   }
 }
+
+const COULOIR_RE = /^-{2,}$/ // « --- » seul sur sa ligne = couloir/terrasse
 
 // Parse un relevé complet (une ligne par rang, # = commentaire, vide ignoré).
 // Rangs dans l'ordre du texte (fond → scène, comme une fiche).
 export function parsePlaceNotation(texte: string): ParsedRow[] {
   const rows: ParsedRow[] = []
   const labels = new Set<string>()
+  let couloir = false
   for (const brute of texte.split('\n')) {
     const ligne = brute.trim()
     if (ligne === '' || ligne.startsWith('#')) continue
+    if (COULOIR_RE.test(ligne)) {
+      couloir = true
+      continue
+    }
     const row = parsePlaceLine(ligne)
     if (labels.has(row.label)) throw new Error(`Rang « ${row.label} » en double.`)
     labels.add(row.label)
-    rows.push(row)
+    rows.push(couloir ? { ...row, couloirAvant: true } : row)
+    couloir = false
   }
   if (rows.length === 0) throw new Error('Aucun rang : une ligne par rang, ex. « B 37/19 17/1 2/18 20/38 ».')
   return rows
@@ -162,20 +190,32 @@ export function parsePlaceNotation(texte: string): ParsedRow[] {
 
 // Analyse LIGNE PAR LIGNE, sans s'arrêter à la première erreur (éditeur).
 export type LigneAnalysee =
-  | { ligne: number; source: string; ok: true; row: ParsedRow }
+  | { ligne: number; source: string; ok: true; row: ParsedRow; couloirLigne?: number }
   | { ligne: number; source: string; ok: false; error: string }
 
 export function analysePlaceNotation(texte: string): LigneAnalysee[] {
   const out: LigneAnalysee[] = []
   const labels = new Set<string>()
+  let couloirLigne: number | undefined
   texte.split('\n').forEach((brute, index) => {
     const ligne = brute.trim()
     if (ligne === '' || ligne.startsWith('#')) return
+    if (COULOIR_RE.test(ligne)) {
+      couloirLigne = index + 1
+      return
+    }
     try {
       const row = parsePlaceLine(ligne)
       if (labels.has(row.label)) throw new Error(`Rang « ${row.label} » en double.`)
       labels.add(row.label)
-      out.push({ ligne: index + 1, source: ligne, ok: true, row })
+      out.push({
+        ligne: index + 1,
+        source: ligne,
+        ok: true,
+        row: couloirLigne !== undefined ? { ...row, couloirAvant: true } : row,
+        ...(couloirLigne !== undefined ? { couloirLigne } : {}),
+      })
+      couloirLigne = undefined
     } catch (error) {
       out.push({
         ligne: index + 1,
@@ -211,6 +251,7 @@ export function serialiseRow(row: ParsedRow): string {
     if (b.separe) morceaux.push('|')
     morceaux.push(blocVersGroupe(b, false))
   })
+  if (row.decalage) morceaux.push(`${row.decalage > 0 ? '>' : '<'}${Math.abs(row.decalage)}`)
   return morceaux.join(' ').replace(/\s+\|/g, ' |')
 }
 
@@ -309,6 +350,7 @@ D 33/17 15/1 2/16 18/34
 E 33/17 15/1 2/16 18/34
 F 33/17 15/1 2/14 16/32
 G 31/17 15/1 2/14 16/30
+---
 H 35/17 15/9 (7/1) (2/8) 10/16 18/36
 I 35/17 15/9 (7/1) (2/8) 10/16 18/36
 J 35/17 15/1 2/14 16/34

@@ -24,6 +24,7 @@ const rowSchema = z.object({
   label: z.string().trim().min(1).max(3),
   radius: z.number().positive(),
   arcs: z.array(arcSchema).min(1).max(8),
+  xOffset: z.number().gt(-2000).lt(2000).optional(),
 })
 
 export const venueConfigSchema: z.ZodType<VenueConfig> = z

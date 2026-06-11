@@ -34,7 +34,11 @@ function revalider(): void {
 }
 
 // Depuis le créateur de salle : enregistre la config en base (sans l'activer).
-export async function enregistrerSalle(input: { name: string; config: unknown }): Promise<SalleResult> {
+export async function enregistrerSalle(input: {
+  name: string
+  config: unknown
+  notation?: string
+}): Promise<SalleResult> {
   await requireAdmin()
 
   const name = nameSchema.safeParse(input.name)
@@ -47,7 +51,13 @@ export async function enregistrerSalle(input: { name: string; config: unknown })
     return { ok: false, error: messageErreur(error) }
   }
 
-  await prisma.venue.create({ data: { name: name.data, config: configJson } })
+  await prisma.venue.create({
+    data: {
+      name: name.data,
+      config: configJson,
+      notation: typeof input.notation === 'string' ? input.notation.slice(0, 20_000) : null,
+    },
+  })
   revalidatePath('/admin/salles')
   return { ok: true }
 }
@@ -59,6 +69,7 @@ export async function modifierSalle(input: {
   id: string
   name: string
   config: unknown
+  notation?: string
 }): Promise<SalleResult & { active?: boolean }> {
   await requireAdmin()
 
@@ -76,7 +87,11 @@ export async function modifierSalle(input: {
   try {
     const venue = await prisma.venue.update({
       where: { id: id.data },
-      data: { name: name.data, config: configJson },
+      data: {
+        name: name.data,
+        config: configJson,
+        notation: typeof input.notation === 'string' ? input.notation.slice(0, 20_000) : null,
+      },
     })
     revalidatePath('/admin/salles')
     return { ok: true, active: venue.isActive }

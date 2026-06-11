@@ -509,3 +509,13 @@
 .statsErreurs {
   color: #b3261e;
 }
+
+.couloirSep {
+  display: block;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: #9a948a;
+  padding: 0.15rem 0;
+  user-select: none;
+}

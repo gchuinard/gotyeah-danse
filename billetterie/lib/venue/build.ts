@@ -66,6 +66,16 @@ export function buildVenueConfig(params: BuilderParams, rows: ParsedRow[]): Venu
   const { premierRayon, espacement, pitch, allee } = params
   const ordonnees = [...rows].reverse()
 
+  // Rayons cumulés : un couloir (---) élargit l'espace entre deux rangs.
+  // couloirAvant est « côté fond » dans le relevé ; en ordre scène → fond,
+  // l'écart élargi s'applique en QUITTANT le rang qui le porte.
+  const rayons: number[] = []
+  let r = premierRayon
+  for (let i = 0; i < ordonnees.length; i++) {
+    rayons.push(r)
+    r += espacement * (ordonnees[i].couloirAvant ? 2.4 : 1)
+  }
+
   return {
     name: params.name,
     center: { x: 0, y: 0 },
@@ -93,7 +103,16 @@ export function buildVenueConfig(params: BuilderParams, rows: ParsedRow[]): Venu
         arcs.push({ ...cour[j], ...(contigu ? { contiguousWithPrevious: true } : {}) })
       })
 
-      return { label: row.label, radius: premierRayon + i * espacement, arcs }
+      const radius = rayons[i]
+      return {
+        label: row.label,
+        radius,
+        arcs,
+        // Décalage latéral en largeurs de siège → px à ce rayon (visuel pur).
+        ...(row.decalage
+          ? { xOffset: row.decalage * radius * ((pitch * Math.PI) / 180) }
+          : {}),
+      }
     }),
   }
 }
