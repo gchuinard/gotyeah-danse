@@ -22,7 +22,7 @@
 //    de la scène), transformables en avant-scène, + 2 petits blocs latéraux
 //    fixes de 3 sièges chacun.
 //
-// 25 rangées, 818 places dessinées (la fiche fait foi). Les « terrasses »
+// 25 rangées, 809 places dessinées (la fiche fait foi). Les « terrasses »
 // latérales le long des murs ne sont pas des sièges numérotés : non modélisées.
 //
 // ⚠️ Le tableau `rows` est ordonné de la SCÈNE vers le FOND (rowOrder 0 = Y,
@@ -78,25 +78,43 @@ const fosseRow = (label: string, radius: number, centreSeats: number): RowConfig
   ],
 })
 
-// Bloc du milieu : les murs convergent légèrement → bords extérieurs par rangée.
-const frontRow = (
+// Bloc « normale » (milieu) : exterior jardin (g) + centre + exterior cour (d).
+// Le centre porte les PETITS numéros (milieu) : `nNeg` sièges côté jardin
+// (impairs 1,3,…), `nPos` côté cour (pairs 2,4,…). L'arc du centre est
+// positionné (PITCH ≈ largeur d'un siège) pour que EXACTEMENT `nNeg` sièges
+// tombent à angle < 0. g/d/nNeg/nPos calés sur place.md (fiche). Les « sauts »
+// de numérotation réels de la salle (un siège manquant ici ou là) ne sont PAS
+// encore reproduits — à affiner. centreRemovable approxime la console (H/I).
+const PITCH_MILIEU = 0.95
+const milieuRow = (
   label: string,
   radius: number,
   outerL: number,
   g: number,
-  c: number,
+  nNeg: number,
+  nPos: number,
   d: number,
   outerR: number,
   centreRemovable = false,
-): RowConfig => ({
-  label,
-  radius,
-  arcs: [
-    { section: 'gauche', angleStart: outerL, angleEnd: -7.7, seats: g },
-    { section: 'centre', angleStart: -6.0, angleEnd: 7.6, seats: c, removable: centreRemovable || undefined },
-    { section: 'droite', angleStart: 9.3, angleEnd: outerR, seats: d },
-  ],
-})
+): RowConfig => {
+  const n = nNeg + nPos
+  const cStart = -(nNeg - 0.5) * PITCH_MILIEU
+  return {
+    label,
+    radius,
+    arcs: [
+      { section: 'gauche', angleStart: outerL, angleEnd: -7.7, seats: g },
+      {
+        section: 'centre',
+        angleStart: cStart,
+        angleEnd: cStart + (n - 1) * PITCH_MILIEU,
+        seats: n,
+        removable: centreRemovable || undefined,
+      },
+      { section: 'droite', angleStart: 9.3, angleEnd: outerR, seats: d },
+    ],
+  }
+}
 
 // Bloc du fond (« haute ») : bords et allées constants. Centre SYMÉTRIQUE
 // (split pair/impair égal) — le milieu est numéroté 1→… / 2→… puis les blocs
@@ -129,26 +147,27 @@ export const venueConfig: VenueConfig = {
     fosseRow('Y', 866, 20),
     fosseRow('X', 910, 20),
     // Bloc « normale » (milieu) — 16 rangées W → H, de la scène vers l'allée.
-    // Bord jardin rentré de 1.2° : sur la fiche, le trait d'escalier longe le
-    // dernier fauteuil et faussait la mesure.
-    frontRow('W', 988, -19.3, 8, 10, 8, 20.6),
-    frontRow('V', 1046, -19.1, 9, 11, 8, 20.4),
-    frontRow('U', 1086, -18.9, 9, 11, 9, 20.1),
-    frontRow('T', 1126, -18.7, 9, 12, 9, 19.9),
-    frontRow('S', 1166, -18.5, 9, 12, 9, 19.7),
-    frontRow('R', 1208, -18.3, 9, 12, 9, 19.4),
-    frontRow('Q', 1252, -18.1, 10, 13, 9, 19.2),
-    frontRow('P', 1285, -16.95, 9, 14, 6, 15.5), // rangée rétablie 2026-06-11 (29 pl. : impairs 1→29 à droite, pairs 2→28 à gauche)
-    frontRow('O', 1318, -17.8, 10, 14, 9, 19.0),
-    frontRow('N', 1376, -17.6, 10, 14, 10, 18.8),
-    frontRow('M', 1416, -17.4, 10, 15, 9, 18.5),
-    frontRow('L', 1456, -17.2, 10, 15, 10, 18.3),
-    frontRow('K', 1498, -17.0, 10, 15, 10, 18.1),
-    frontRow('J', 1531, -17.6, 11, 15, 9, 17.0), // rangée rétablie 2026-06-11 (35 pl. : impairs 1→35 à droite, pairs 2→34 à gauche)
-    // « Console salle à la demande » : segment centre amovible (hachuré),
-    // sur les 2 rangées du fond du bloc, côté allée transversale.
-    frontRow('I', 1565, -16.8, 11, 16, 10, 17.8, true),
-    frontRow('H', 1608, -16.6, 11, 17, 10, 17.6, true),
+    // Comptes calés sur place.md / fiche (2026-06-11). Args : label, radius,
+    // bordL, extImpair(g), milieuImpair(nNeg), milieuPair(nPos), extPair(d), bordR.
+    milieuRow('W', 988, -19.3, 8, 4, 6, 8, 20.6),
+    milieuRow('V', 1046, -19.1, 9, 5, 6, 8, 20.4),
+    milieuRow('U', 1086, -18.9, 9, 5, 6, 9, 20.1),
+    milieuRow('T', 1126, -18.7, 9, 5, 7, 9, 19.9),
+    milieuRow('S', 1166, -18.5, 9, 5, 7, 9, 19.7),
+    milieuRow('R', 1208, -18.3, 9, 5, 7, 9, 19.4),
+    milieuRow('Q', 1252, -18.1, 10, 6, 7, 9, 19.2),
+    milieuRow('P', 1285, -16.95, 9, 6, 8, 6, 15.5),
+    milieuRow('O', 1318, -17.8, 10, 6, 8, 9, 19.0),
+    milieuRow('N', 1376, -17.6, 10, 6, 8, 10, 18.8),
+    milieuRow('M', 1416, -17.4, 9, 7, 7, 9, 18.5),
+    milieuRow('L', 1456, -17.2, 9, 8, 7, 9, 18.3),
+    milieuRow('K', 1498, -17.0, 9, 8, 7, 9, 18.1),
+    milieuRow('J', 1531, -17.6, 10, 8, 7, 10, 17.0),
+    // « Console salle à la demande » : centre amovible (hachuré sur la fiche)
+    // sur H et I. Approx : tout le centre marqué amovible (en vrai seuls les
+    // 8 sièges centraux le sont — à affiner).
+    milieuRow('I', 1565, -16.8, 10, 8, 8, 10, 17.8, true),
+    milieuRow('H', 1608, -16.6, 10, 8, 8, 10, 17.6, true),
     // Allée transversale, puis bloc « haute » (fond, 7 rangées G → A)
     rearRow('G', 1704, 8, 16, 7), // impairs 1→31, pairs 2→30
     rearRow('F', 1760, 9, 16, 8), // impairs 1→33, pairs 2→32
