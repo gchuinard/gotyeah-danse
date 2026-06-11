@@ -42,6 +42,12 @@ const STATUTS: Record<string, string> = {
   expired: 'Expirée',
 }
 
+const METHODES: Record<string, string> = {
+  especes: 'Espèces',
+  cheque: 'Chèque',
+  autre: 'Autre',
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ repId: string }> },
@@ -74,7 +80,9 @@ export async function GET(
     },
   })
 
-  const lignes = [['Nom', 'Email', 'Téléphone', 'Statut', 'Places', 'Payé le', 'Scanné']]
+  const lignes = [
+    ['Nom', 'Email', 'Téléphone', 'Statut', 'Places', 'Payé le', 'Règlement', 'Montant', 'Scanné', 'Note interne'],
+  ]
   for (const b of bookings) {
     const places = b.tickets
       .map((t) => `${capitaliser(t.seat.row.section.name)} ${t.seat.row.label} ${t.seat.number}`)
@@ -87,7 +95,11 @@ export async function GET(
       STATUTS[b.status] ?? b.status,
       places,
       b.paidAt ? dateCourte.format(b.paidAt) : '',
+      b.paymentMethod ? (METHODES[b.paymentMethod] ?? b.paymentMethod) : '',
+      // Virgule décimale : Excel FR le lit comme un nombre.
+      b.amountCents !== null ? (b.amountCents / 100).toFixed(2).replace('.', ',') : '',
       b.tickets.length > 0 ? `${scannes}/${b.tickets.length}` : '',
+      b.adminNotes ?? '',
     ])
   }
 

@@ -47,6 +47,68 @@
   text-align: center;
 }
 
+.payerForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payerChamps {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.payerChamps select {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.2rem;
+  border: 1px solid var(--terre-2);
+  border-radius: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.montantInput {
+  width: 3.4rem;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--terre-2);
+  border-radius: 6px;
+  text-align: right;
+}
+
+.adminNotes {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--terre-2);
+  max-width: 16rem;
+}
+
+.annoter {
+  font-size: 0.75rem;
+  color: var(--gris-chd);
+}
+
+.annoter summary {
+  cursor: pointer;
+}
+
+.annoterForm {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.annoterForm input[type='text'] {
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--terre-2);
+  border-radius: 6px;
+  width: 13rem;
+}
+
 .bannerOk,
 .bannerErr {
   padding: 0.55rem 0.8rem;

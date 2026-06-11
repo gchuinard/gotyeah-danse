@@ -255,3 +255,62 @@
     border-radius: 0;
   }
 }
+
+/* ── QR plein écran (billet dans le téléphone) ───────────────────────── */
+
+.qrButton {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.qrHint {
+  font-size: 0.72rem;
+  color: #7a7068;
+}
+
+.qrOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+}
+
+.qrLarge {
+  width: min(82vw, 78vh, 480px);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.qrOverlaySeat {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e1a16;
+  text-align: center;
+}
+
+.qrOverlayHint {
+  font-size: 0.85rem;
+  color: #7a7068;
+}
+
+@media print {
+  .qrHint,
+  .qrOverlay {
+    display: none;
+  }
+}

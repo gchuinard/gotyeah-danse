@@ -24,6 +24,16 @@ import { prisma } from '@/lib/db'
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
 const placesSchema = z.coerce.number().int().min(1).max(8)
+const methodeSchema = z.enum(['especes', 'cheque', 'autre'])
+// Montant en euros saisi par le bénévole ("25", "25,50") → centimes.
+const montantSchema = z
+  .string()
+  .trim()
+  .max(10)
+  .transform((v) => Number(v.replace(',', '.')))
+  .refine((n) => Number.isFinite(n) && n >= 0 && n <= 10_000)
+  .transform((euros) => Math.round(euros * 100))
+const annotationSchema = z.string().trim().max(300)
 
 // Module email créé en parallèle par un autre agent : import dynamique +
 // fonctions optionnelles, pour que la liste fonctionne même si les exports
@@ -68,18 +78,53 @@ function lireId(formData: FormData): string {
   return parsed.data
 }
 
-// pending → paid, puis direction l'écran de placement (écran d'un autre agent).
+// pending → paid (avec règlement facultatif pour la caisse), puis direction
+// l'écran de placement.
 export async function marquerPayeeAction(formData: FormData): Promise<void> {
   await requireAdmin()
   const id = lireId(formData)
+
+  // Méthode/montant : facultatifs, jamais bloquants — une saisie invalide est
+  // simplement ignorée (le paiement physique a déjà eu lieu au studio).
+  const methode = methodeSchema.safeParse(formData.get('methode'))
+  const montantBrut = formData.get('montant')
+  const montant =
+    typeof montantBrut === 'string' && montantBrut.trim() !== ''
+      ? montantSchema.safeParse(montantBrut)
+      : null
+
   try {
-    await marquerPayee(prisma, id)
+    await marquerPayee(prisma, id, {
+      ...(methode.success ? { paymentMethod: methode.data } : {}),
+      ...(montant?.success ? { amountCents: montant.data } : {}),
+    })
   } catch (error) {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   redirect(`/admin/placement/${id}`)
+}
+
+// Annotation interne (n° de chèque, contexte famille…) — visible uniquement
+// dans le back-office, jamais côté famille. Chaîne vide = effacer.
+export async function annoterAction(formData: FormData): Promise<void> {
+  await requireAdmin()
+  const id = lireId(formData)
+  const parsed = annotationSchema.safeParse(formData.get('annotation'))
+  if (!parsed.success) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Annotation invalide (300 caractères max).'))
+  }
+  try {
+    await prisma.booking.update({
+      where: { id },
+      data: { adminNotes: parsed.data === '' ? null : parsed.data },
+    })
+  } catch {
+    redirect(urlListe(formData.get('retour'), 'err', 'Demande introuvable.'))
+  }
+  revalidatePath('/admin/demandes')
+  redirect(urlListe(formData.get('retour'), 'ok', 'Annotation enregistrée.'))
 }
 
 // Rectifier le nombre de places. Si la demande était placée, le placement est

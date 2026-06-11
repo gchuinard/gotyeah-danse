@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 
 import PrintButton from './print-button'
+import QrFullscreen from './qr-fullscreen'
 import styles from './billets.module.css'
 
 // La donnée change côté admin (placement, expiration) : jamais de cache.
@@ -173,14 +174,13 @@ export default async function BilletsPage({
                     </dl>
                     <p className={styles.ticketName}>{booking.name}</p>
                   </div>
-                  {/* QR généré à la volée — n'encode que le qrToken, aucune donnée personnelle */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className={styles.qr}
+                  {/* QR généré à la volée — n'encode que le qrToken, aucune donnée
+                      personnelle. Tap → plein écran (scan facile à l'entrée). */}
+                  <QrFullscreen
                     src={`/api/qr/${t.qrToken}.png`}
-                    alt="QR code du billet"
-                    width={180}
-                    height={180}
+                    rang={t.seat.row.label}
+                    place={t.seat.number}
+                    titre={rep.title}
                   />
                 </article>
               ))}

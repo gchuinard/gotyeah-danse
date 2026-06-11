@@ -13,6 +13,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
 import {
+  annoterAction,
   annulerAction,
   marquerPayeeAction,
   prolongerAction,
@@ -212,6 +213,24 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     <td>
                       <span className={styles.nom}>{d.name}</span>
                       {d.notes && <span className={styles.notes}>{d.notes}</span>}
+                      {d.adminNotes && <span className={styles.adminNotes}>📝 {d.adminNotes}</span>}
+                      <details className={styles.annoter}>
+                        <summary>{d.adminNotes ? 'Modifier la note' : 'Ajouter une note'}</summary>
+                        <form action={annoterAction} className={styles.annoterForm}>
+                          <input type="hidden" name="id" value={d.id} />
+                          <input type="hidden" name="retour" value={retour.toString()} />
+                          <input
+                            type="text"
+                            name="annotation"
+                            maxLength={300}
+                            defaultValue={d.adminNotes ?? ''}
+                            placeholder="chèque n°…, PMR, contexte…"
+                          />
+                          <button type="submit" className={styles.btn}>
+                            OK
+                          </button>
+                        </form>
+                      </details>
                     </td>
                     <td>
                       <span className={styles.contact}>{d.email}</span>
@@ -232,9 +251,24 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                       <div className={styles.actions}>
                         {d.status === 'pending' && (
                           <>
-                            <form action={marquerPayeeAction}>
+                            <form action={marquerPayeeAction} className={styles.payerForm}>
                               <input type="hidden" name="id" value={d.id} />
                               <input type="hidden" name="retour" value={retour.toString()} />
+                              <div className={styles.payerChamps}>
+                                <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
+                                  <option value="cheque">Chèque</option>
+                                  <option value="especes">Espèces</option>
+                                  <option value="autre">Autre</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  name="montant"
+                                  inputMode="decimal"
+                                  placeholder="€"
+                                  aria-label="Montant encaissé en euros"
+                                  className={styles.montantInput}
+                                />
+                              </div>
                               <button type="submit" className={styles.btn}>
                                 Marquer payée
                               </button>

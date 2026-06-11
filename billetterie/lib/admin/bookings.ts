@@ -54,8 +54,19 @@ const selectionBookingAvecBillets = {
 
 type Tx = Prisma.TransactionClient
 
+export type Reglement = {
+  paymentMethod?: 'especes' | 'cheque' | 'autre'
+  amountCents?: number
+}
+
 // pending (non expirée) → paid + paidAt. Erreur française sinon.
-export async function marquerPayee(db: PrismaClient, bookingId: string): Promise<void> {
+// Le règlement (méthode + montant) est facultatif — saisi pour la
+// réconciliation de caisse, jamais bloquant.
+export async function marquerPayee(
+  db: PrismaClient,
+  bookingId: string,
+  reglement: Reglement = {},
+): Promise<void> {
   await db.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } })
     if (!booking) throw new Error('Demande introuvable.')
@@ -67,7 +78,12 @@ export async function marquerPayee(db: PrismaClient, bookingId: string): Promise
     }
     await tx.booking.update({
       where: { id: bookingId },
-      data: { status: 'paid', paidAt: new Date() },
+      data: {
+        status: 'paid',
+        paidAt: new Date(),
+        paymentMethod: reglement.paymentMethod ?? null,
+        amountCents: reglement.amountCents ?? null,
+      },
     })
   })
 }

@@ -78,6 +78,7 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif + **blocage de sièges** (console, fosse, amovibles) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
+| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (espèces/chèques) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 
 Deux tokens de démo pratiques (seed dev) :
@@ -86,9 +87,13 @@ Deux tokens de démo pratiques (seed dev) :
 - `/billets/5f1e7c1a-9b3d-4e6f-8a2c-0d4b6e8f1a3c` — demande **pending** (page d'attente).
 
 Le flux complet : une famille fait une **demande** sur `/` (email de confirmation
-avec lien de suivi) → elle paie au studio, l'admin la marque **payée** → l'admin
-ouvre le **placement** (3 suggestions de l'algo, ajustables siège par siège),
-valide → les **billets + QR** partent par email → le soir, **scan** à l'entrée.
+avec lien de suivi) → elle paie au studio, l'admin la marque **payée** (avec mode
+de règlement + montant, facultatifs — alimentent la caisse de `/admin/stats`) →
+l'admin ouvre le **placement** (3 suggestions de l'algo, ajustables siège par
+siège), valide → les **billets + QR** partent par email (sur téléphone, un tap
+sur le QR l'affiche **plein écran** pour le scan) → le soir, **scan** à l'entrée.
+Chaque demande peut porter une **note interne** bénévole (n° de chèque,
+contexte) visible uniquement dans l'admin et dans l'export CSV.
 
 ## L'algorithme de placement
 

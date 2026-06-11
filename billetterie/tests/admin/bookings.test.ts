@@ -98,6 +98,14 @@ describe('marquerPayee', () => {
     expect(apres.paidAt).toBeInstanceOf(Date)
   })
 
+  it('enregistre le règlement (méthode + montant en centimes) quand fourni', async () => {
+    const booking = await creerBooking('pending')
+    await marquerPayee(db, booking.id, { paymentMethod: 'cheque', amountCents: 2550 })
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.paymentMethod).toBe('cheque')
+    expect(apres.amountCents).toBe(2550)
+  })
+
   it('refuse une demande non pending', async () => {
     const booking = await creerBooking('paid')
     await expect(marquerPayee(db, booking.id)).rejects.toThrow(

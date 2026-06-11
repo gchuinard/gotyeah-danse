@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import AutoRefresh from '@/components/admin/auto-refresh'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { computeJauge } from '@/lib/jauge'
@@ -67,6 +68,8 @@ export default async function DashboardPage() {
 
   return (
     <main className={styles.page}>
+      {/* Soir J : les compteurs (scannés notamment) se rafraîchissent seuls. */}
+      <AutoRefresh seconds={30} />
       <h1>Tableau de bord</h1>
 
       <div className={styles.cartes}>

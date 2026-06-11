@@ -1,0 +1,93 @@
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.page h1 {
+  font-size: 1.4rem;
+  color: var(--terre);
+  margin-bottom: 1.2rem;
+}
+
+.bloc {
+  margin-bottom: 2rem;
+}
+
+.blocHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.8rem;
+}
+
+.blocHeader h2 {
+  font-size: 1.1rem;
+  color: var(--terre);
+}
+
+.date {
+  font-size: 0.85rem;
+  color: var(--gris-chd);
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.carte {
+  background: #fff;
+  border: 1px solid #e8ddd0;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+
+.carte h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--terre-2);
+  margin-bottom: 0.5rem;
+}
+
+.gros {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--terre);
+}
+
+.gros small {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--gris-chd);
+}
+
+.detail {
+  font-size: 0.82rem;
+  color: var(--gris-chd);
+  margin-top: 0.35rem;
+}
+
+.detail a {
+  color: var(--terre-2);
+}
+
+.liste {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.88rem;
+  color: var(--encre, #1e1a16);
+}
+
+.totalCaisse {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e8ddd0;
+  font-weight: 700;
+  color: var(--terre);
+}

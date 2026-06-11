@@ -87,10 +87,15 @@ model Booking {
   email     String
   phone     String
   partySize Int
-  notes     String? // PMR, demandes particulières
+  notes     String? // PMR, demandes particulières (saisi par la famille)
+  adminNotes String? // annotations internes bénévoles (n° de chèque, contexte…)
 
   status      String // pending | paid | placed | cancelled | expired
   publicToken String  @unique // UUID — accès page « mes billets »
+
+  // Règlement (saisi au « marquer payée ») — pour la réconciliation de caisse.
+  paymentMethod String? // especes | cheque | autre
+  amountCents   Int? // montant encaissé en centimes
 
   createdAt  DateTime  @default(now())
   paidAt     DateTime?
