@@ -7,7 +7,7 @@
 
 import type { Metadata } from 'next'
 
-import { venueConfig } from '@/config/venue'
+import { loadVenueConfig } from '@/lib/venue/load'
 import { generateSeats, planBounds } from '@/lib/venue/generate'
 
 import CalibrationView from './calibration-view'
@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 }
 
 export default function CalibrationPage() {
+  const venueConfig = loadVenueConfig()
   const seats = generateSeats(venueConfig)
   const bounds = planBounds(seats)
 

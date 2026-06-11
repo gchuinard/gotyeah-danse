@@ -49,11 +49,15 @@ Aucun engagement d'ordre — prioriser à la demande.
 
 ## ✨ Plan de salle
 
-- [ ] **Modifier le plan de salle à la main.** Donner un moyen d'ajuster le
-  plan sans éditer `config/venue.ts` : à minima déplacer/ajouter/retirer des
-  sièges individuels depuis l'admin. **À CADRER** (volontairement laissé de
-  côté) : ça touche le contrat « le plan est généré depuis la config ». Options
-  à trancher avant de coder — (a) surcouche en base `SeatPatch` appliquée
-  par-dessus le plan généré, (b) éditeur graphique qui réécrit `venue.ts`,
-  (c) ne rien faire et continuer à éditer `venue.ts` à la main (ce qu'on fait
-  pour la calibration). Décider AVANT d'implémenter.
+- [x] **Sauts de numérotation réels.** ✅ 2026-06-11 — `ArcConfig.firstNumber` :
+  les numéros manquants de la salle (rangs M, O, R, T) sont reproduits sur les
+  billets. Verrouillé par `tests/venue/numbering.test.ts` contre `place.md`.
+- [x] **Multi-salles + créateur de salle.** ✅ 2026-06-11 — `VENUE_ID` charge
+  `config/venues/<id>.json` (zod) ; `/admin/salles/nouvelle` : relevé en
+  notation place.md + aperçu live + téléchargement du JSON. La géométrie
+  générée est régulière (indicative) ; la numérotation/contiguïté est fidèle.
+- [ ] **Modifier le plan de salle à la main** (retouches siège par siège depuis
+  l'admin, sans éditer la config). Toujours **À CADRER** : surcouche
+  `SeatPatch` en base vs édition de la config. En pratique, le créateur de
+  salle + l'édition de `venue.ts`/JSON couvrent déjà les besoins connus —
+  ne faire que si un vrai besoin émerge.

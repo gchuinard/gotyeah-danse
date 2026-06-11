@@ -47,6 +47,13 @@ export type ArcConfig = {
   angleEnd: number // degrés, bord cour de l'arc
   seats: number
   removable?: boolean // sièges amovibles (fosse, console)
+  // Numéro du siège de l'arc LE PLUS PROCHE de l'axe (pair-impair uniquement).
+  // Permet les SAUTS de numérotation réels de la salle (ex. rang O : pairs du
+  // milieu jusqu'à 12, puis l'extérieur reprend à 16 — pas de 14). Sans cette
+  // valeur, la numérotation continue depuis l'arc précédent. Doit être de la
+  // parité du côté (impair côté jardin, pair côté cour) ; interdit sur un arc
+  // qui chevauche l'axe (le centre).
+  firstNumber?: number
 }
 
 export type RowConfig = {
@@ -58,11 +65,12 @@ export type RowConfig = {
 export type NumberingScheme = 'continu' | 'pair-impair'
 
 export type VenueConfig = {
+  name?: string // nom de la salle (affichage admin / fichiers multi-salles)
   center: { x: number; y: number } // point de convergence (derrière la scène)
   rows: RowConfig[]
   // 'continu'    : 1..N de jardin à cour sur toute la rangée
-  // 'pair-impair': face à la scène, impairs à droite (cour), pairs à
-  //                gauche (jardin), croissants du centre — confirmé 2026-06-10
+  // 'pair-impair': face à la scène, impairs côté jardin (gauche vu du
+  //                public), pairs côté cour, croissants du centre
   numberingScheme: NumberingScheme
 }
 
@@ -108,7 +116,14 @@ const milieuRow = (
   nPos: number,
   d: number,
   outerR: number,
-  opts: { centreAmovible?: boolean; jardinAmovible?: boolean } = {},
+  opts: {
+    centreAmovible?: boolean
+    jardinAmovible?: boolean
+    // Sauts de numérotation réels (place.md) : premier numéro des blocs
+    // extérieurs quand il ne suit pas le milieu (ex. O : pairs 12 puis 16).
+    extImpairDe?: number
+    extPairDe?: number
+  } = {},
 ): RowConfig => ({
   label,
   radius,
@@ -119,9 +134,16 @@ const milieuRow = (
       angleEnd: -7.7,
       seats: g,
       ...(opts.jardinAmovible ? { removable: true } : {}),
+      ...(opts.extImpairDe !== undefined ? { firstNumber: opts.extImpairDe } : {}),
     },
     centreArc(nNeg, nPos, PITCH_MILIEU, opts.centreAmovible ?? false),
-    { section: 'droite', angleStart: 9.3, angleEnd: outerR, seats: d },
+    {
+      section: 'droite',
+      angleStart: 9.3,
+      angleEnd: outerR,
+      seats: d,
+      ...(opts.extPairDe !== undefined ? { firstNumber: opts.extPairDe } : {}),
+    },
   ],
 })
 
@@ -153,6 +175,7 @@ const fullRow = (label: string, radius: number, angleStart: number, angleEnd: nu
 })
 
 export const venueConfig: VenueConfig = {
+  name: 'Centre Culturel de Bergerac',
   center: { x: 716, y: 2520 }, // px scan — convergence des arcs
   numberingScheme: 'pair-impair',
   // Ordre du tableau : SCÈNE → FOND. rowOrder 0 = Y (le plus près de la scène).
@@ -167,14 +190,14 @@ export const venueConfig: VenueConfig = {
     milieuRow('W', 988, -19.3, 6, 5, 5, 6, 20.6, { jardinAmovible: true }), // (21/11) : terrasse jardin amovible
     milieuRow('V', 1046, -19.1, 7, 6, 5, 6, 20.4),
     milieuRow('U', 1086, -18.9, 7, 6, 5, 7, 20.1),
-    milieuRow('T', 1126, -18.7, 7, 6, 5, 7, 19.9),
+    milieuRow('T', 1126, -18.7, 7, 6, 5, 7, 19.9, { extImpairDe: 15, extPairDe: 14 }), // sauts : 13 et 12 n'existent pas
     milieuRow('S', 1166, -18.5, 8, 6, 6, 7, 19.7),
-    milieuRow('R', 1208, -18.3, 7, 6, 6, 7, 19.4),
+    milieuRow('R', 1208, -18.3, 7, 6, 6, 7, 19.4, { extImpairDe: 15, extPairDe: 16 }), // sauts : 13 et 14 n'existent pas
     milieuRow('Q', 1252, -18.1, 8, 7, 6, 8, 19.2),
     milieuRow('P', 1285, -16.95, 8, 7, 6, 8, 15.5),
-    milieuRow('O', 1318, -17.8, 8, 7, 6, 8, 19.0),
+    milieuRow('O', 1318, -17.8, 8, 7, 6, 8, 19.0, { extImpairDe: 17, extPairDe: 16 }), // sauts : 15 et 14 n'existent pas
     milieuRow('N', 1376, -17.6, 8, 7, 7, 8, 18.8),
-    milieuRow('M', 1416, -17.4, 9, 7, 7, 9, 18.5),
+    milieuRow('M', 1416, -17.4, 9, 7, 7, 9, 18.5, { extImpairDe: 17 }), // saut : 15 n'existe pas
     milieuRow('L', 1456, -17.2, 9, 8, 7, 9, 18.3),
     milieuRow('K', 1498, -17.0, 9, 8, 7, 9, 18.1),
     milieuRow('J', 1531, -17.6, 10, 8, 7, 10, 17.0),

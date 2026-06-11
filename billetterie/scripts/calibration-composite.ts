@@ -5,12 +5,12 @@
 // (sharp est emprunté au node_modules du site vitrine, à la racine du repo).
 
 import { createRequire } from 'node:module'
-import { venueConfig } from '../config/venue'
+import { loadVenueConfig } from '../lib/venue/load'
 import { generateSeats } from '../lib/venue/generate'
 
 const sharp = createRequire('/mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse/package.json')('sharp')
 
-const seats = generateSeats(venueConfig)
+const seats = generateSeats(loadVenueConfig())
 const circles = seats
   .map(
     (s) =>

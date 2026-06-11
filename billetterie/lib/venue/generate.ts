@@ -63,12 +63,15 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
 
   rows.forEach((row, rowOrder) => {
     // Tous les sièges de la rangée physique, toutes sections confondues.
+    // `arc` est conservé : la numérotation pair-impair en a besoin pour les
+    // sauts (ArcConfig.firstNumber).
     const rowSeats = row.arcs.flatMap((arc) =>
       arcAngles(arc).map((angle, indexInRow) => ({
         section: arc.section,
         removable: arc.removable ?? false,
         angle,
         indexInRow,
+        arc,
       })),
     )
 
@@ -82,11 +85,38 @@ export function generateSeats(config: VenueConfig): GeneratedSeat[] {
       // pair-impair : impairs côté JARDIN (négatif, terrasse accessible),
       // pairs côté COUR (positif), croissants en s'éloignant de l'axe central.
       // (Sens confirmé Gautier 2026-06-11 : la terrasse accessible est du côté
-      // impair.)
+      // impair.) Un arc peut déclarer `firstNumber` (numéro de son siège le
+      // plus proche de l'axe) pour reproduire les SAUTS réels de la salle ;
+      // sinon la numérotation continue depuis l'arc précédent.
+      const numeroter = (side: typeof rowSeats, depart: number) => {
+        let prochain = depart
+        let arcCourant: ArcConfig | null = null
+        for (const s of side) {
+          if (s.arc !== arcCourant) {
+            arcCourant = s.arc
+            if (s.arc.firstNumber !== undefined) {
+              if (s.arc.firstNumber % 2 !== depart % 2) {
+                throw new Error(
+                  `Rang ${row.label} : firstNumber ${s.arc.firstNumber} de parité invalide pour ce côté ` +
+                    `(attendu ${depart % 2 === 1 ? 'impair' : 'pair'}) — un arc qui chevauche l'axe ne peut pas en avoir.`,
+                )
+              }
+              if (s.arc.firstNumber < prochain) {
+                throw new Error(
+                  `Rang ${row.label} : firstNumber ${s.arc.firstNumber} recule (le précédent arc s'arrête à ${prochain - 2}).`,
+                )
+              }
+              prochain = s.arc.firstNumber
+            }
+          }
+          numbered.set(s, prochain)
+          prochain += 2
+        }
+      }
       const jardin = rowSeats.filter((s) => s.angle < 0).sort((a, b) => Math.abs(a.angle) - Math.abs(b.angle))
       const cour = rowSeats.filter((s) => s.angle >= 0).sort((a, b) => Math.abs(a.angle) - Math.abs(b.angle))
-      jardin.forEach((s, i) => numbered.set(s, 2 * i + 1))
-      cour.forEach((s, i) => numbered.set(s, 2 * i + 2))
+      numeroter(jardin, 1)
+      numeroter(cour, 2)
     }
 
     for (const s of rowSeats) {

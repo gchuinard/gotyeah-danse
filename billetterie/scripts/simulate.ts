@@ -9,7 +9,7 @@
 // Pure mémoire : pas de DB, pas de Date.now(), pas de Math.random() —
 // tout l'aléatoire passe par mulberry32 et le seed → résultats reproductibles.
 
-import { venueConfig } from '../config/venue'
+import { loadVenueConfig } from '../lib/venue/load'
 import { PLACEMENT_IMPLS, type PlacementImpl } from '../lib/placement'
 import type { SeatState } from '../lib/placement/types'
 import { generateSeats } from '../lib/venue/generate'
@@ -234,7 +234,7 @@ function main(): void {
 
   // Mapping GeneratedSeat → SeatState : tous les sièges (amovibles compris),
   // tous libres au départ.
-  const initialSeats: SeatState[] = generateSeats(venueConfig).map((s) => ({
+  const initialSeats: SeatState[] = generateSeats(loadVenueConfig()).map((s) => ({
     id: s.id,
     section: s.section,
     rowId: s.rowId,

@@ -11,7 +11,7 @@
 // remonte volontairement : la calibration a lieu avant les ventes.
 
 import { PrismaClient } from '@prisma/client'
-import { venueConfig } from '../config/venue'
+import { loadVenueConfig } from '../lib/venue/load'
 import { generateSeats, SECTION_ORDER } from '../lib/venue/generate'
 
 const prisma = new PrismaClient()
@@ -22,6 +22,8 @@ const parisSummer = (iso: string) => new Date(`${iso}:00+02:00`)
 const DAY_MS = 24 * 60 * 60 * 1000
 
 async function seedPlan() {
+  // Salle active : Bergerac intégré, ou config/venues/<VENUE_ID>.json.
+  const venueConfig = loadVenueConfig()
   const seats = generateSeats(venueConfig)
 
   // Sections — id = nom, ordre fixe gauche/centre/droite.

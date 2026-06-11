@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/scan">Scan</Link>
           <Link href="/admin/stats">Stats</Link>
           <Link href="/admin/calibration">Calibration</Link>
+          <Link href="/admin/salles/nouvelle">Créer une salle</Link>
         </nav>
         <form action={seDeconnecter} className={styles.session}>
           <span className={styles.email}>{session.email}</span>

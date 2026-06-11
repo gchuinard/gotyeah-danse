@@ -37,6 +37,7 @@ Dans `.env` :
 | `BREVO_API_KEY` | Sans clé, les emails sont simplement loggés en console (parfait en dev) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | Expéditeur des emails |
 | `PLACEMENT_IMPL` | `baseline` (défaut) ou `custom` |
+| `VENUE_ID` | Salle active : charge `config/venues/<id>.json` (défaut : Bergerac intégré) |
 | `ADMIN_EMAILS` | Liste blanche des admins (emails séparés par des virgules) |
 | `SESSION_SECRET` | Signature des cookies admin — générer : `openssl rand -hex 32` |
 
@@ -80,6 +81,7 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
 | `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (espèces/chèques) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
+| `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
 
 Deux tokens de démo pratiques (seed dev) :
 
@@ -128,6 +130,28 @@ Gautier 2026-06-11) : **impairs côté jardin** (où est la terrasse PMR
 (fond), bloc « normale » H→W (milieu), fosse amovible X/Y (scène). Le tableau
 `rows` de `venue.ts` est ordonné scène→fond (rowOrder 0 = Y) ; le score statique
 dépend du rang **physique** depuis la scène, pas de la lettre.
+
+**Sauts de numérotation** : la salle réelle saute des numéros (ex. rang O,
+pairs 12 puis 16 — pas de 14). `ArcConfig.firstNumber` (numéro du siège de
+l'arc le plus proche de l'axe) les reproduit ; vérifié par
+`tests/venue/numbering.test.ts` contre le relevé `place.md` (qui fait foi).
+
+## Multi-salles & créateur de salle
+
+La salle active vient de `config/venue.ts` (Bergerac, intégré) — ou, si
+**`VENUE_ID`** est défini, du fichier **`config/venues/<VENUE_ID>.json`**
+(validé par zod, `lib/venue/schema.ts`). Pour adapter la billetterie à une
+autre salle :
+
+1. **`/admin/salles/nouvelle`** : relever la salle rang par rang en notation
+   compacte (`B 37/19 17/1 2/18 20/38`, parenthèses = amovible — la grammaire
+   de `place.md`), aperçu live, puis **télécharger le JSON** ;
+2. déposer le fichier dans `config/venues/`, le commiter ;
+3. `VENUE_ID=<id>` dans le `.env`, rebuild, puis **`pnpm db:seed`** (avant
+   toute vente).
+
+La géométrie générée est régulière (rayons/allées uniformes) : fidèle pour la
+numérotation et la contiguïté du placement, indicative pour le dessin.
 
 ## Tests & simulateur
 
@@ -259,6 +283,7 @@ Checklist :
 | `BREVO_API_KEY` | optionnel (emails + codes → console) | **requis** (sinon aucun email ne part, login impossible) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | expéditeur | idem |
 | `PLACEMENT_IMPL` | `baseline` (défaut) \| `custom` | idem |
+| `VENUE_ID` | optionnel — salle JSON de `config/venues/` | idem (re-seeder après changement) |
 | `NODE_ENV` | — | `production` (coupe la démo du seed) |
 
 Documents liés : [PLACEMENT.md](PLACEMENT.md) (spec de l'algo),
