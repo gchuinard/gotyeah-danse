@@ -98,8 +98,8 @@ const TAILLES_DE_GROUPE = [1, 2, 3, 4, 5, 6, 7, 8]
 
 // Sanity check de la fixture réelle, indépendant des implémentations.
 describe('fixture salle réelle', () => {
-  it('contient les 773 sièges de la fiche technique', () => {
-    expect(salleReelle()).toHaveLength(773)
+  it('contient les 837 sièges de la fiche technique', () => {
+    expect(salleReelle()).toHaveLength(837)
   })
 })
 
@@ -175,7 +175,7 @@ for (const [nom, meta] of Object.entries(PLACEMENT_IMPLS)) {
       })
 
       it('groupe plus grand que la plus longue rangée → vide accepté, invariants respectés', () => {
-        // Plus longue rangée de la salle : 20 sièges (fosse centre-AA/BB).
+        // Plus longue rangée de la salle : 20 sièges (fosse centre-Y/X).
         // Une scission sur 2 rangées reste possible pour 21 : on ne force pas
         // le tableau vide, on vérifie les invariants sur ce qui est retourné.
         const seats = salleReelle()

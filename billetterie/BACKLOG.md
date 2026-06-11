@@ -5,14 +5,17 @@ Aucun engagement d'ordre — prioriser à la demande.
 
 ## 🐛 Corrections
 
-- [ ] **Calibration à l'envers + rangée manquante.** Le rang A se retrouve tout
-  au fond alors qu'il doit être le plus proche de la scène, et il manque une
-  rangée : la salle réelle va de **A à X**, la config actuelle s'arrête à U.
-  → Tout est paramétrique : corriger `config/venue.ts` (ordre des rangées /
-  orientation + rangée(s) manquante(s)), vérifier avec
-  `npx tsx scripts/calibration-composite.ts` et `/admin/calibration`, puis
-  re-seeder. ⚠️ À faire AVANT toute mise en prod sérieuse : les billets émis
-  portent rang + numéro.
+- [x] **Calibration à l'envers + rangées manquantes.** ✅ Corrigé le 2026-06-11
+  dans `config/venue.ts`. Lettrage réel rétabli : **A (fond) → Y (scène)**, en
+  3 blocs (haute A→G / normale H→W / fosse X-Y). **2 rangs rétablis** dans le
+  bloc du milieu (les écarts de rayon G→H et L→M révélaient 2 rangs sautés à la
+  calibration d'origine) : 23 → **25 rangs**, 773 → **837 sièges**. Vérifié par
+  comptage objectif des bandes de sièges sur le scan + overlay annoté.
+  ⚠️ **Reste à faire** : (1) confirmer le nombre exact de sièges des 2 rangs
+  rétablis **P** (33) et **J** (35) — actuellement interpolés depuis les
+  voisins ; (2) re-seeder (`pnpm db:seed`) **avant toute vente**. Les rayons des
+  2 nouveaux rangs sont des milieux d'écart (±10 px, sans impact billet) —
+  ajustables aux curseurs de `/admin/calibration` si besoin.
 
 ## ✨ Écran de placement / déplacement
 

@@ -9,9 +9,10 @@ l'accueillir.
 ## 1. Objectif & règles du jeu
 
 Le contexte : le spectacle de fin d'année de l'école, au Centre Culturel de
-Bergerac (salle en éventail, 23 rangées, 773 places modélisées, 3 sections
-gauche / centre / droite, fosse AA/BB amovible, bloc avant A→N, allée
-transversale, bloc arrière O→U — tout vient de `config/venue.ts`).
+Bergerac (salle en éventail, 25 rangées A→Y, 837 places modélisées, 3 sections
+gauche / centre / droite ; fosse amovible X/Y collée à la scène, bloc « normale »
+H→W, allée transversale, bloc « haute » A→G au fond — tout vient de
+`config/venue.ts`).
 
 Les familles réservent **N places** (2 à 6 typiquement) et ne choisissent
 **jamais** leur siège. Quand une réservation passe « payée », l'admin demande
@@ -97,9 +98,10 @@ Des définitions, pas des méthodes. Comment tu les exploites, c'est ton affaire
 
 La qualité intrinsèque 0-100 de chaque siège, **déjà calculée** et fournie dans
 `SeatState.score`. Formule (voir `staticScore` dans `lib/venue/generate.ts`) :
-une cloche gaussienne centrée entre les rangs E et H (pas le rang A, trop près
-de l'avant-scène), pondérée 60 %, plus la centralité angulaire (proximité de
-l'axe de la scène), pondérée 40 %. Tu n'as pas à recalculer ça — tu le consommes.
+une cloche gaussienne centrée sur les rangs physiquement à ~8 rangs de la scène
+(ni l'avant-scène, ni le fond), pondérée 60 %, plus la centralité angulaire
+(proximité de l'axe de la scène), pondérée 40 %. La cloche dépend du rang
+**physique** (rowOrder, 0 = scène), pas de la lettre. Tu consommes le résultat.
 
 ### Run
 
@@ -149,16 +151,16 @@ exactement là que se joue ta partie — voir §6.
 ## 4. La baseline
 
 `lib/placement/baseline.ts` est **volontairement naïve** : elle prend la
-première fenêtre libre en partant du rang A, dans l'ordre de lecture, et
-s'arrête à 3 propositions. Elle ignore le score statique, ignore le malus des
-restes, ne scinde jamais.
+première fenêtre libre en partant de la scène (rangs Y/X), dans l'ordre de
+lecture, et s'arrête à 3 propositions. Elle ignore le score statique, ignore le
+malus des restes, ne scinde jamais.
 
 Elle existe pour une seule raison : être **l'étalon du simulateur**. Toute
 implémentation custom doit la battre, sinon à quoi bon.
 
 Pourquoi elle est mauvaise : elle concentre tout le monde devant (y compris la
-fosse et le rang A, qui ont de mauvais scores statiques), elle découpe les runs
-sans réfléchir et sème des restes de 1 siège un peu partout. Ne l'améliore
+fosse X/Y et les premiers rangs, qui ont de mauvais scores statiques), elle
+découpe les runs sans réfléchir et sème des restes de 1 siège un peu partout. Ne l'améliore
 pas — l'intelligence va dans `custom.ts`.
 
 ## 5. Le harnais

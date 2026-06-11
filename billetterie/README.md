@@ -1,8 +1,8 @@
 # Billetterie — spectacle de l'école de danse
 
 Billetterie self-hosted pour le spectacle de fin d'année de l'école de danse
-Desha-Moulin, au **Centre Culturel de Bergerac** (salle en éventail, 23 rangées,
-773 places modélisées). Pas de SaaS, pas de commission : un Raspberry Pi 5,
+Desha-Moulin, au **Centre Culturel de Bergerac** (salle en éventail, 25 rangées
+A→Y, 837 places modélisées). Pas de SaaS, pas de commission : un Raspberry Pi 5,
 une base SQLite, et c'est tout.
 
 **Principes métier verrouillés** (ne pas les « améliorer ») :
@@ -50,10 +50,10 @@ pnpm dev                 # http://localhost:3000
 
 Le seed est **relançable** (upserts, ids déterministes). En dev il crée :
 
-- les **773 sièges calibrés** (générés depuis `config/venue.ts`, scores statiques compris) ;
+- les **837 sièges calibrés** (générés depuis `config/venue.ts`, scores statiques compris) ;
 - **2 représentations** ouvertes (`rep-samedi`, `rep-dimanche`) ;
 - **6 demandes de démo** (pending/paid/placed), dont une **placée avec 4 billets**
-  (Famille Dupuis, rang G central).
+  (Famille Dupuis, rang R central).
 
 Les demandes de démo sont **gardées par `NODE_ENV !== 'production'`** : en prod,
 le seed ne crée que le plan de salle et les représentations.
@@ -93,7 +93,7 @@ valide → les **billets + QR** partent par email → le soir, **scan** à l'ent
 ## L'algorithme de placement
 
 La baseline (`lib/placement/baseline.ts`) est **volontairement naïve** : première
-fenêtre libre depuis le rang A. `lib/placement/custom.ts` est le terrain de jeu
+fenêtre libre depuis la scène (rangs Y/X). `lib/placement/custom.ts` est le terrain de jeu
 du dev : passer `implemented` à `true`, activer avec `PLACEMENT_IMPL=custom`.
 Le harnais : `pnpm test` (5 invariants) et le simulateur Monte Carlo seedé,
 `pnpm simulate --impl=baseline --runs=200 --seed=42` vs `--impl=custom` — même
@@ -117,6 +117,12 @@ Après toute modification de `config/venue.ts`, **relancer `pnpm db:seed`**
 AVANT les ventes, jamais après). Numérotation **pair-impair** confirmée sur la
 fiche : face à la scène, impairs côté cour (droite), pairs côté jardin,
 croissants depuis l'axe central.
+
+**Lettrage des rangs** (confirmé Gautier, 2026-06-11) : la salle est numérotée
+**A (tout au fond) → Y (collé à la scène)**, en 3 blocs — bloc « haute » A→G
+(fond), bloc « normale » H→W (milieu), fosse amovible X/Y (scène). Le tableau
+`rows` de `venue.ts` est ordonné scène→fond (rowOrder 0 = Y) ; le score statique
+dépend du rang **physique** depuis la scène, pas de la lettre.
 
 ## Tests & simulateur
 

@@ -1,4 +1,4 @@
-// Baseline VOLONTAIREMENT naïve : première fenêtre libre en partant du rang A.
+// Baseline VOLONTAIREMENT naïve : première fenêtre libre en partant de la scène.
 //
 // Elle ignore le score des sièges, ne scinde jamais un groupe, et remplit la
 // salle dans l'ordre de lecture. C'est le point de comparaison du simulateur :

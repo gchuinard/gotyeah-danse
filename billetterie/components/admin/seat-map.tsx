@@ -8,7 +8,8 @@
 // tout seul via viewBox, pas de zoom/pan en V1.
 //
 // La scène est en BAS du plan : le point de convergence des arcs (y ≈ 2520)
-// est sous tous les sièges, le rang A est le plus bas.
+// est sous tous les sièges. La fosse Y/X est la plus basse (près de la scène),
+// le rang A est le plus haut (fond de salle).
 
 import { useMemo } from 'react'
 

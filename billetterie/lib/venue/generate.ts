@@ -9,12 +9,12 @@
 import type { ArcConfig, SectionId, VenueConfig } from '@/config/venue'
 
 export type GeneratedSeat = {
-  id: string // "centre-A-03" — déterministe, sert de clé d'upsert
+  id: string // "centre-W-03" — déterministe, sert de clé d'upsert
   section: SectionId
   sectionOrder: number // 0 = gauche, 1 = centre, 2 = droite
-  rowId: string // "centre-A"
+  rowId: string // "centre-W"
   rowLabel: string
-  rowOrder: number // 0 = rang A
+  rowOrder: number // 0 = rang le plus proche de la scène (fosse Y)
   indexInRow: number // position dans SA section, 0 = côté jardin
   number: number // numéro affiché sur le billet
   x: number
@@ -40,11 +40,12 @@ function arcAngles(arc: ArcConfig): number[] {
   return Array.from({ length: seats }, (_, i) => angleStart + i * step)
 }
 
-// Score statique 0-100 : cloche centrée sur les rangs E-H (PAS le rang A,
-// trop proche de l'avant-scène) pondérée 60 %, + centralité angulaire 40 %.
-// Le résultat est un point de départ : l'admin peut l'ajuster siège par siège.
+// Score statique 0-100 : cloche centrée sur les rangs physiquement à ~8 rangs
+// de la scène (ni trop près de l'avant-scène, ni au fond) pondérée 60 %,
+// + centralité angulaire 40 %. Le score dépend du rowOrder PHYSIQUE (0 = scène),
+// pas du lettrage. Point de départ : l'admin peut l'ajuster siège par siège.
 function staticScore(rowOrder: number, angle: number, maxAbsAngle: number): number {
-  const ROW_IDEAL = 7.5 // entre E (6) et H (9) — AA/BB (fosse) occupent les ordres 0-1
+  const ROW_IDEAL = 7.5 // ~8e rang depuis la scène — la fosse (Y/X) occupe les ordres 0-1
   const ROW_SPREAD = 3.5
   const bell = Math.exp(-0.5 * ((rowOrder - ROW_IDEAL) / ROW_SPREAD) ** 2)
   const centrality = maxAbsAngle === 0 ? 1 : 1 - Math.abs(angle) / maxAbsAngle

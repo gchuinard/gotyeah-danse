@@ -133,7 +133,7 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
     }
 
     // Repère SCÈNE : en bas du plan (y croissant vers la scène), centré sur
-    // l'axe de la salle, entre le rang A et le point de convergence.
+    // l'axe de la salle, entre la fosse (rang Y) et le point de convergence.
     const maxSeatY = Math.max(...seats.map((s) => s.y))
     const scene = {
       width: bounds.width * 0.42,

@@ -11,15 +11,24 @@
 // (pas de siège mesuré ≈ 24 px). Les UNITÉS sont les PIXELS du scan :
 // l'overlay de /admin/calibration s'aligne donc presque sans réglage.
 //
-// Structure relevée (23 rangées, 783 places dessinées — la fiche fait foi,
-// les « ~600 » annoncés étaient une approximation) :
-//  - fosse d'orchestre : 2 rangées amovibles (AA, BB) transformables en
-//    avant-scène, + 2 petits blocs latéraux fixes de 4 sièges ;
-//  - bloc avant : 14 rangées A→N ; le segment CENTRE des rangées M et N est
+// LETTRAGE RÉEL (corrigé le 2026-06-11, confirmé par Gautier) : la salle est
+// numérotée A (tout AU FOND) → Y (collé à la SCÈNE), en 3 blocs :
+//  - bloc « haute » (fond)   : 7 rangées  A → G  (A au fond, G côté allée) ;
+//  - allée transversale ;
+//  - bloc « normale » (milieu) : 16 rangées H → W  (H côté allée, W vers la
+//    scène) ; le segment CENTRE des 2 rangées du fond du bloc (H, I) est
 //    amovible (hachuré sur la fiche : « console salle à la demande ») ;
-//  - allée transversale, puis bloc arrière : 7 rangées O→U.
-//  - les « terrasses » latérales le long des murs ne sont pas des sièges
-//    numérotés sur la fiche : non modélisées.
+//  - fosse « collée à la scène » : 2 rangées amovibles  X, Y  (Y au plus près
+//    de la scène), transformables en avant-scène, + 2 petits blocs latéraux
+//    fixes de 3 sièges chacun.
+//
+// 25 rangées, 837 places dessinées (la fiche fait foi). Les « terrasses »
+// latérales le long des murs ne sont pas des sièges numérotés : non modélisées.
+//
+// ⚠️ Le tableau `rows` est ordonné de la SCÈNE vers le FOND (rowOrder 0 = Y,
+// rangée la plus proche de la scène). Le lettrage décroît donc Y → A dans
+// l'ordre du tableau. Ne pas réordonner sans comprendre que `rowOrder` (issu
+// de l'index du tableau) pilote le score statique.
 //
 // Conventions :
 //  - angles en degrés, 0 = axe central, négatif = côté jardin (gauche vu du
@@ -41,7 +50,7 @@ export type ArcConfig = {
 }
 
 export type RowConfig = {
-  label: string // A = rang le plus proche de la scène (AA/BB = fosse)
+  label: string // lettrage réel : A = rang le plus AU FOND, Y = collé à la scène
   radius: number
   arcs: ArcConfig[]
 }
@@ -69,7 +78,7 @@ const fosseRow = (label: string, radius: number, centreSeats: number): RowConfig
   ],
 })
 
-// Bloc avant : les murs convergent légèrement → bords extérieurs par rangée.
+// Bloc du milieu : les murs convergent légèrement → bords extérieurs par rangée.
 const frontRow = (
   label: string,
   radius: number,
@@ -89,7 +98,7 @@ const frontRow = (
   ],
 })
 
-// Bloc arrière : bords et allées constants.
+// Bloc du fond (« haute ») : bords et allées constants.
 const rearRow = (label: string, radius: number, g: number, c: number, d: number): RowConfig => ({
   label,
   radius,
@@ -103,34 +112,39 @@ const rearRow = (label: string, radius: number, g: number, c: number, d: number)
 export const venueConfig: VenueConfig = {
   center: { x: 716, y: 2520 }, // px scan — convergence des arcs
   numberingScheme: 'pair-impair',
+  // Ordre du tableau : SCÈNE → FOND. rowOrder 0 = Y (le plus près de la scène).
   rows: [
-    // Fosse d'orchestre — amovible, transformable en avant-scène
-    fosseRow('AA', 866, 20),
-    fosseRow('BB', 910, 20),
-    // Bloc avant (14 rangées) — bord jardin rentré de 1.2° : sur la fiche,
-    // le trait d'escalier longe le dernier fauteuil et faussait la mesure.
-    frontRow('A', 988, -19.3, 8, 10, 8, 20.6),
-    frontRow('B', 1046, -19.1, 9, 11, 8, 20.4),
-    frontRow('C', 1086, -18.9, 9, 11, 9, 20.1),
-    frontRow('D', 1126, -18.7, 9, 12, 9, 19.9),
-    frontRow('E', 1166, -18.5, 9, 12, 9, 19.7),
-    frontRow('F', 1208, -18.3, 9, 12, 9, 19.4),
-    frontRow('G', 1252, -18.1, 10, 13, 9, 19.2),
-    frontRow('H', 1318, -17.8, 10, 14, 9, 19.0),
-    frontRow('I', 1376, -17.6, 10, 14, 10, 18.8),
-    frontRow('J', 1416, -17.4, 10, 15, 9, 18.5),
-    frontRow('K', 1456, -17.2, 10, 15, 10, 18.3),
-    frontRow('L', 1498, -17.0, 10, 15, 10, 18.1),
-    // « Console salle à la demande » : segment centre amovible (hachuré)
-    frontRow('M', 1565, -16.8, 11, 16, 10, 17.8, true),
-    frontRow('N', 1608, -16.6, 11, 17, 10, 17.6, true),
-    // Allée transversale, puis bloc arrière (7 rangées)
-    rearRow('O', 1704, 10, 16, 10),
-    rearRow('P', 1760, 10, 16, 10),
-    rearRow('Q', 1800, 11, 16, 11),
-    rearRow('R', 1842, 11, 17, 11),
-    rearRow('S', 1884, 11, 17, 11),
-    rearRow('T', 1926, 11, 18, 11),
-    rearRow('U', 1974, 12, 18, 12),
+    // Fosse « collée à la scène » — amovible, transformable en avant-scène
+    fosseRow('Y', 866, 20),
+    fosseRow('X', 910, 20),
+    // Bloc « normale » (milieu) — 16 rangées W → H, de la scène vers l'allée.
+    // Bord jardin rentré de 1.2° : sur la fiche, le trait d'escalier longe le
+    // dernier fauteuil et faussait la mesure.
+    frontRow('W', 988, -19.3, 8, 10, 8, 20.6),
+    frontRow('V', 1046, -19.1, 9, 11, 8, 20.4),
+    frontRow('U', 1086, -18.9, 9, 11, 9, 20.1),
+    frontRow('T', 1126, -18.7, 9, 12, 9, 19.9),
+    frontRow('S', 1166, -18.5, 9, 12, 9, 19.7),
+    frontRow('R', 1208, -18.3, 9, 12, 9, 19.4),
+    frontRow('Q', 1252, -18.1, 10, 13, 9, 19.2),
+    frontRow('P', 1285, -15.8, 8, 14, 7, 16.7), // rangée rétablie 2026-06-11 (29 pl. : impairs 1→29, pairs 2→28)
+    frontRow('O', 1318, -17.8, 10, 14, 9, 19.0),
+    frontRow('N', 1376, -17.6, 10, 14, 10, 18.8),
+    frontRow('M', 1416, -17.4, 10, 15, 9, 18.5),
+    frontRow('L', 1456, -17.2, 10, 15, 10, 18.3),
+    frontRow('K', 1498, -17.0, 10, 15, 10, 18.1),
+    frontRow('J', 1531, -16.9, 10, 15, 10, 17.95), // rangée rétablie 2026-06-11 (35 pl. : impairs 1→35, pairs 2→34)
+    // « Console salle à la demande » : segment centre amovible (hachuré),
+    // sur les 2 rangées du fond du bloc, côté allée transversale.
+    frontRow('I', 1565, -16.8, 11, 16, 10, 17.8, true),
+    frontRow('H', 1608, -16.6, 11, 17, 10, 17.6, true),
+    // Allée transversale, puis bloc « haute » (fond, 7 rangées G → A)
+    rearRow('G', 1704, 10, 16, 10),
+    rearRow('F', 1760, 10, 16, 10),
+    rearRow('E', 1800, 11, 16, 11),
+    rearRow('D', 1842, 11, 17, 11),
+    rearRow('C', 1884, 11, 17, 11),
+    rearRow('B', 1926, 11, 18, 11),
+    rearRow('A', 1974, 12, 18, 12),
   ],
 }

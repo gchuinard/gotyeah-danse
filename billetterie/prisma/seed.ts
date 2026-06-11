@@ -117,15 +117,16 @@ async function seedRepresentations() {
 // ADMIN_EMAILS du .env (login par code envoyé par email).
 
 // Booking de démo « placé » : ses billets occupent 4 sièges contigus du
-// rang G central. qrToken = UUID fixes écrits en dur (clé d'upsert).
+// rang R central (rang central, bon score). qrToken = UUID fixes écrits en
+// dur (clé d'upsert).
 const PLACED_DEMO = {
   publicToken: 'f6a8c0e2-4b6d-4f8a-9c1e-3d5f7a9b1c3e',
   representationId: 'rep-samedi',
   tickets: [
-    { qrToken: '9b1d3f5a-7c9e-4b2d-8f4a-6c8e0a2c4e6f', seatId: 'centre-G-04' },
-    { qrToken: '4d6f8a0c-2e4b-4d7f-9a1c-3e5a7c9e1f3b', seatId: 'centre-G-05' },
-    { qrToken: 'e2b4d6f8-0a2c-4e6b-8d0f-2a4c6e8b0d2f', seatId: 'centre-G-06' },
-    { qrToken: '7a9c1e3b-5d7f-4a8c-9e2b-4f6a8c0e2a4c', seatId: 'centre-G-07' },
+    { qrToken: '9b1d3f5a-7c9e-4b2d-8f4a-6c8e0a2c4e6f', seatId: 'centre-R-04' },
+    { qrToken: '4d6f8a0c-2e4b-4d7f-9a1c-3e5a7c9e1f3b', seatId: 'centre-R-05' },
+    { qrToken: 'e2b4d6f8-0a2c-4e6b-8d0f-2a4c6e8b0d2f', seatId: 'centre-R-06' },
+    { qrToken: '7a9c1e3b-5d7f-4a8c-9e2b-4f6a8c0e2a4c', seatId: 'centre-R-07' },
   ],
 }
 
