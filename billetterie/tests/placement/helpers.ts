@@ -31,7 +31,7 @@ export function row(spec: RowSpec): SeatState[] {
   }))
 }
 
-// Salle réelle (837 sièges) : projection GeneratedSeat → SeatState.
+// Salle réelle (818 sièges) : projection GeneratedSeat → SeatState.
 // `estLibre` décide de l'occupation (par défaut : tout est libre).
 export function salleReelle(
   estLibre: (seatId: string, index: number) => boolean = () => true,

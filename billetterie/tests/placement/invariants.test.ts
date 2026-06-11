@@ -98,8 +98,8 @@ const TAILLES_DE_GROUPE = [1, 2, 3, 4, 5, 6, 7, 8]
 
 // Sanity check de la fixture réelle, indépendant des implémentations.
 describe('fixture salle réelle', () => {
-  it('contient les 837 sièges de la fiche technique', () => {
-    expect(salleReelle()).toHaveLength(837)
+  it('contient les 818 sièges de la fiche technique', () => {
+    expect(salleReelle()).toHaveLength(818)
   })
 })
 

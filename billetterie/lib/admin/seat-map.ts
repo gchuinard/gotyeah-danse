@@ -2,7 +2,7 @@
 //
 // Le statut d'un siège n'existe pas en base (voir schema.prisma) : il se
 // déduit ici de l'existence d'un Ticket (occupé) ou d'un SeatOverride
-// (bloqué). Trois requêtes, assemblage en mémoire — 837 sièges, trivial.
+// (bloqué). Trois requêtes, assemblage en mémoire — 818 sièges, trivial.
 
 import type { PrismaClient } from '@prisma/client'
 

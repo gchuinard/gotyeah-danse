@@ -22,7 +22,7 @@
 //    de la scène), transformables en avant-scène, + 2 petits blocs latéraux
 //    fixes de 3 sièges chacun.
 //
-// 25 rangées, 837 places dessinées (la fiche fait foi). Les « terrasses »
+// 25 rangées, 818 places dessinées (la fiche fait foi). Les « terrasses »
 // latérales le long des murs ne sont pas des sièges numérotés : non modélisées.
 //
 // ⚠️ Le tableau `rows` est ordonné de la SCÈNE vers le FOND (rowOrder 0 = Y,
@@ -98,15 +98,26 @@ const frontRow = (
   ],
 })
 
-// Bloc du fond (« haute ») : bords et allées constants.
+// Bloc du fond (« haute ») : bords et allées constants. Centre SYMÉTRIQUE
+// (split pair/impair égal) — le milieu est numéroté 1→… / 2→… puis les blocs
+// extérieurs continuent (g = sièges extérieurs jardin, d = extérieurs cour).
 const rearRow = (label: string, radius: number, g: number, c: number, d: number): RowConfig => ({
   label,
   radius,
   arcs: [
     { section: 'gauche', angleStart: -14.8, angleEnd: -6.6, seats: g },
-    { section: 'centre', angleStart: -5.4, angleEnd: 6.6, seats: c },
+    { section: 'centre', angleStart: -6.0, angleEnd: 6.0, seats: c },
     { section: 'droite', angleStart: 7.9, angleEnd: 16.1, seats: d },
   ],
+})
+
+// Rangée CONTINUE : un seul arc plein largeur, sans allées (un seul `rowId`,
+// donc contigu de bout en bout). Le rang A (tout au fond) n'est pas coupé par
+// les escaliers. Numérotation pair-impair depuis l'axe, comme les autres.
+const fullRow = (label: string, radius: number, angleStart: number, angleEnd: number, seats: number): RowConfig => ({
+  label,
+  radius,
+  arcs: [{ section: 'centre', angleStart, angleEnd, seats }],
 })
 
 export const venueConfig: VenueConfig = {
@@ -139,12 +150,12 @@ export const venueConfig: VenueConfig = {
     frontRow('I', 1565, -16.8, 11, 16, 10, 17.8, true),
     frontRow('H', 1608, -16.6, 11, 17, 10, 17.6, true),
     // Allée transversale, puis bloc « haute » (fond, 7 rangées G → A)
-    rearRow('G', 1704, 10, 16, 10),
-    rearRow('F', 1760, 10, 16, 10),
-    rearRow('E', 1800, 11, 16, 11),
-    rearRow('D', 1842, 11, 17, 11),
-    rearRow('C', 1884, 11, 17, 11),
-    rearRow('B', 1926, 11, 18, 11),
-    rearRow('A', 1974, 12, 18, 12),
+    rearRow('G', 1704, 8, 16, 7), // impairs 1→31, pairs 2→30
+    rearRow('F', 1760, 9, 16, 8), // impairs 1→33, pairs 2→32
+    rearRow('E', 1800, 9, 16, 9), // impairs 1→33, pairs 2→34
+    rearRow('D', 1842, 9, 16, 9), // impairs 1→33, pairs 2→34
+    rearRow('C', 1884, 9, 18, 9), // impairs 1→35, pairs 2→36
+    rearRow('B', 1926, 10, 18, 10), // impairs 1→37, pairs 2→38
+    fullRow('A', 1974, -15.5, 15.4, 45), // rang continu (pas d'allées) : impairs 1→45, pairs 2→44
   ],
 }
