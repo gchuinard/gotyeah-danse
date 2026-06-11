@@ -77,7 +77,7 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
 | `/admin/demandes` | File des demandes : marquer payée, prolonger, annuler |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
-| `/admin/plan` | Plan de salle interactif + **blocage de sièges** (console, fosse, amovibles) |
+| `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
 | `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (espèces/chèques) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
 
-import { bloquerSieges, debloquerSieges } from './actions'
+import { basculerAmovible, bloquerSieges, debloquerSieges } from './actions'
 import styles from './plan.module.css'
 
 const POLL_MS = 5000
@@ -26,15 +26,18 @@ type Props = {
   initialSeats: SeatView[]
 }
 
+type Mode = 'consultation' | 'blocages' | 'amovibles'
+
 export default function PlanView({ representations, repId, initialSeats }: Props) {
   const router = useRouter()
   const [seats, setSeats] = useState<SeatView[]>(initialSeats)
-  const [overrideMode, setOverrideMode] = useState(false)
+  const [mode, setMode] = useState<Mode>('consultation')
   const [selection, setSelection] = useState<string[]>([])
   const [reasonChoice, setReasonChoice] = useState<string>('console_son')
   const [customReason, setCustomReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const overrideMode = mode === 'blocages'
 
   // Re-synchronise quand le serveur renvoie un nouvel état (revalidation
   // après une action) — pattern « adjusting state during render », pas
@@ -114,10 +117,24 @@ export default function PlanView({ representations, repId, initialSeats }: Props
     )
   }
 
-  const quitOverrideMode = () => {
-    setOverrideMode(false)
+  const quitterMode = () => {
+    setMode('consultation')
     setSelection([])
     setError(null)
+  }
+
+  // Mode amovibles : un clic bascule directement le siège (optimiste, l'action
+  // serveur suit ; en cas d'échec, on rétablit).
+  const basculer = (seat: SeatView) => {
+    const cible = !seat.removable
+    setSeats((prev) => prev.map((s) => (s.id === seat.id ? { ...s, removable: cible } : s)))
+    startTransition(async () => {
+      const result = await basculerAmovible({ seatId: seat.id, removable: cible })
+      if (!result.ok) {
+        setError(result.error)
+        setSeats((prev) => prev.map((s) => (s.id === seat.id ? { ...s, removable: !cible } : s)))
+      }
+    })
   }
 
   const bloquer = () => {
@@ -199,18 +216,57 @@ export default function PlanView({ representations, repId, initialSeats }: Props
           <SeatMap
             seats={seats}
             selectedIds={overrideMode ? selection : undefined}
-            onSeatClick={overrideMode ? toggleSeat : undefined}
-            clickBlocked
-            caption={overrideMode ? 'Mode blocages — cliquez les sièges à bloquer ou débloquer' : undefined}
+            onSeatClick={overrideMode ? toggleSeat : mode === 'amovibles' ? basculer : undefined}
+            clickBlocked={overrideMode}
+            clickAll={mode === 'amovibles'}
+            caption={
+              overrideMode
+                ? 'Mode blocages — cliquez les sièges à bloquer ou débloquer'
+                : mode === 'amovibles'
+                  ? 'Mode amovibles — chaque clic bascule fixe ↔ amovible (pointillés)'
+                  : undefined
+            }
           />
         </div>
 
         <aside className={styles.panel}>
-          {!overrideMode ? (
-            <button type="button" className={styles.primary} onClick={() => setOverrideMode(true)}>
-              Gérer les blocages
-            </button>
-          ) : (
+          {mode === 'consultation' && (
+            <>
+              <button type="button" className={styles.primary} onClick={() => setMode('blocages')}>
+                Gérer les blocages
+              </button>
+              <button type="button" className={styles.secondary} onClick={() => setMode('amovibles')}>
+                Gérer les amovibles
+              </button>
+            </>
+          )}
+
+          {mode === 'amovibles' && (
+            <div className={styles.overridePanel}>
+              <h2 className={styles.panelTitle}>Amovibles</h2>
+              <p className={styles.panelHint}>
+                Cliquez un siège pour le basculer fixe ↔ amovible (contour en pointillés).
+                C&apos;est une propriété du fauteuil, commune à toutes les représentations —
+                pour neutraliser des sièges sur UNE représentation, utilisez les blocages.
+              </p>
+              <p className={styles.panelHint}>
+                ⚠️ Un re-seed (<code>pnpm db:seed</code>) réinitialise les amovibles depuis la
+                config de la salle.
+              </p>
+              {error && (
+                <p className={styles.error} role="alert">
+                  {error}
+                </p>
+              )}
+              <div className={styles.panelActions}>
+                <button type="button" className={styles.ghost} onClick={quitterMode}>
+                  Terminer
+                </button>
+              </div>
+            </div>
+          )}
+
+          {mode === 'blocages' && (
             <div className={styles.overridePanel}>
               <h2 className={styles.panelTitle}>Blocages</h2>
               <p className={styles.panelHint}>
@@ -265,7 +321,7 @@ export default function PlanView({ representations, repId, initialSeats }: Props
                 >
                   Débloquer la sélection ({selectedBloques.length})
                 </button>
-                <button type="button" className={styles.ghost} onClick={quitOverrideMode}>
+                <button type="button" className={styles.ghost} onClick={quitterMode}>
                   Terminer
                 </button>
               </div>

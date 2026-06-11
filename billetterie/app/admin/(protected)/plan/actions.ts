@@ -92,3 +92,36 @@ export async function debloquerSieges(input: {
   revalidatePath('/admin/plan')
   return { ok: true }
 }
+
+const amovibleSchema = z.object({
+  seatId: z.string().min(1).max(64),
+  removable: z.boolean(),
+})
+
+// Bascule le caractère AMOVIBLE d'un siège — propriété physique du fauteuil,
+// donc globale (toutes représentations), contrairement aux blocages.
+// ⚠️ `pnpm db:seed` réécrit ce champ depuis la config : les retouches faites
+// ici sont perdues à chaque re-seed (même contrat que les scores).
+export async function basculerAmovible(input: {
+  seatId: string
+  removable: boolean
+}): Promise<OverrideResult> {
+  await requireAdmin()
+
+  const parsed = amovibleSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: 'Demande invalide.' }
+  }
+
+  try {
+    await prisma.seat.update({
+      where: { id: parsed.data.seatId },
+      data: { removable: parsed.data.removable },
+    })
+  } catch {
+    return { ok: false, error: 'Siège introuvable.' }
+  }
+
+  revalidatePath('/admin/plan')
+  return { ok: true }
+}

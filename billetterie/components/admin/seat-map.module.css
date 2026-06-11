@@ -7,6 +7,10 @@
   gap: 0.5rem;
 }
 
+.mapWrap {
+  position: relative;
+}
+
 .svg {
   width: 100%;
   height: auto;
@@ -14,6 +18,58 @@
   background: #fff;
   border: 1px solid #e6ded2;
   border-radius: 10px;
+  touch-action: none; /* le glisser-déplacer gère le tactile */
+  cursor: grab;
+}
+
+.svgZoome {
+  cursor: grabbing;
+}
+
+.zoomControls {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.zoomControls button {
+  width: 2rem;
+  height: 2rem;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  border: 1px solid #e6ded2;
+  border-radius: 8px;
+  background: #faf7f2;
+  color: #5c3d2e;
+  cursor: pointer;
+}
+
+.zoomControls button:hover:not(:disabled) {
+  background: #f2ece3;
+}
+
+.zoomControls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.rowLabel {
+  font-size: 26px;
+  font-weight: 700;
+  fill: #9a948a;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.legendHint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #9a948a;
 }
 
 /* ---- Sièges ---- */
