@@ -5,17 +5,19 @@ Aucun engagement d'ordre — prioriser à la demande.
 
 ## 🐛 Corrections
 
-- [x] **Calibration à l'envers + rangées manquantes.** ✅ Corrigé le 2026-06-11
-  dans `config/venue.ts`. Lettrage réel rétabli : **A (fond) → Y (scène)**, en
-  3 blocs (haute A→G / normale H→W / fosse X-Y). **2 rangs rétablis** dans le
-  bloc du milieu (les écarts de rayon G→H et L→M révélaient 2 rangs sautés à la
-  calibration d'origine) : 23 → **25 rangs**, 773 → **837 sièges**. Vérifié par
-  comptage objectif des bandes de sièges sur le scan + overlay annoté.
-  ⚠️ **Reste à faire** : (1) confirmer le nombre exact de sièges des 2 rangs
-  rétablis **P** (33) et **J** (35) — actuellement interpolés depuis les
-  voisins ; (2) re-seeder (`pnpm db:seed`) **avant toute vente**. Les rayons des
-  2 nouveaux rangs sont des milieux d'écart (±10 px, sans impact billet) —
-  ajustables aux curseurs de `/admin/calibration` si besoin.
+- [x] **Calibration à l'envers + rangées manquantes + miroir vue salle.**
+  ✅ Corrigé le 2026-06-11 dans `config/venue.ts`. Lettrage réel rétabli :
+  **A (fond) → Y (scène)**, 3 blocs (haute A→G / normale H→W / fosse X-Y).
+  **2 rangs rétablis** dans le bloc du milieu (écarts de rayon G→H et L→M =
+  2 rangs sautés à la calibration d'origine) : 23 → **25 rangs**, 773 →
+  **837 sièges**. Comptes réels confirmés par Gautier : **P = 29** (impairs
+  1→29, pairs 2→28), **J = 35** (impairs 1→35, pairs 2→34).
+  **Miroir** : la fiche est dessinée côté régie (terrasse PMR à gauche sur la
+  fiche, à droite dans la salle) → flag `mirror: true` retourne le plan en vue
+  salle (impairs à droite/cour, pairs à gauche/jardin). Calibration en
+  `mirror: false` pour rester calée sur le scan.
+  ⚠️ **Reste à faire** : re-seeder (`pnpm db:seed`) **avant toute vente** — déjà
+  fait une fois le 2026-06-11, à refaire après ce correctif miroir.
 
 ## ✨ Écran de placement / déplacement
 

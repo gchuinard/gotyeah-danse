@@ -64,6 +64,10 @@ export type VenueConfig = {
   // 'pair-impair': face à la scène, impairs à droite (cour), pairs à
   //                gauche (jardin), croissants du centre — confirmé 2026-06-10
   numberingScheme: NumberingScheme
+  // La fiche technique est dessinée vue de la régie (côté scène) = MIROIR de la
+  // vue du public. Les angles ci-dessus sont mesurés sur la fiche ; `mirror`
+  // retourne le plan généré en vue SALLE. Voir mirrorRow dans lib/venue/generate.ts.
+  mirror?: boolean
 }
 
 // Rangée de fosse : centre amovible + mini-blocs latéraux fixes (3×3 sur la
@@ -112,6 +116,7 @@ const rearRow = (label: string, radius: number, g: number, c: number, d: number)
 export const venueConfig: VenueConfig = {
   center: { x: 716, y: 2520 }, // px scan — convergence des arcs
   numberingScheme: 'pair-impair',
+  mirror: true, // fiche dessinée côté régie → retour en vue salle (terrasse PMR à droite)
   // Ordre du tableau : SCÈNE → FOND. rowOrder 0 = Y (le plus près de la scène).
   rows: [
     // Fosse « collée à la scène » — amovible, transformable en avant-scène
@@ -127,13 +132,13 @@ export const venueConfig: VenueConfig = {
     frontRow('S', 1166, -18.5, 9, 12, 9, 19.7),
     frontRow('R', 1208, -18.3, 9, 12, 9, 19.4),
     frontRow('Q', 1252, -18.1, 10, 13, 9, 19.2),
-    frontRow('P', 1285, -15.8, 8, 14, 7, 16.7), // rangée rétablie 2026-06-11 (29 pl. : impairs 1→29, pairs 2→28)
+    frontRow('P', 1285, -16.95, 9, 14, 6, 15.5), // rangée rétablie 2026-06-11 (29 pl. : impairs 1→29 à droite, pairs 2→28 à gauche)
     frontRow('O', 1318, -17.8, 10, 14, 9, 19.0),
     frontRow('N', 1376, -17.6, 10, 14, 10, 18.8),
     frontRow('M', 1416, -17.4, 10, 15, 9, 18.5),
     frontRow('L', 1456, -17.2, 10, 15, 10, 18.3),
     frontRow('K', 1498, -17.0, 10, 15, 10, 18.1),
-    frontRow('J', 1531, -16.9, 10, 15, 10, 17.95), // rangée rétablie 2026-06-11 (35 pl. : impairs 1→35, pairs 2→34)
+    frontRow('J', 1531, -17.6, 11, 15, 9, 17.0), // rangée rétablie 2026-06-11 (35 pl. : impairs 1→35 à droite, pairs 2→34 à gauche)
     // « Console salle à la demande » : segment centre amovible (hachuré),
     // sur les 2 rangées du fond du bloc, côté allée transversale.
     frontRow('I', 1565, -16.8, 11, 16, 10, 17.8, true),

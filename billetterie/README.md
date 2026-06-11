@@ -124,6 +124,14 @@ croissants depuis l'axe central.
 `rows` de `venue.ts` est ordonné scène→fond (rowOrder 0 = Y) ; le score statique
 dépend du rang **physique** depuis la scène, pas de la lettre.
 
+**Miroir vue salle** : la fiche technique est dessinée **vue de la régie / côté
+scène**, donc en miroir de ce que voit le public (la terrasse PMR « accessible »
+est à droite dans la salle mais à gauche sur la fiche). Les angles de `venue.ts`
+sont mesurés sur la fiche ; le flag `mirror: true` retourne le plan généré en
+**vue salle** (face à la scène) : terrasse accessible et numéros **impairs à
+droite** (cour), **pairs à gauche** (jardin). Les outils de calibration, eux,
+génèrent en `mirror: false` pour rester alignés sur le scan.
+
 ## Tests & simulateur
 
 ```sh
