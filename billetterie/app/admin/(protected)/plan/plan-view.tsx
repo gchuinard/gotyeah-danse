@@ -250,8 +250,9 @@ export default function PlanView({ representations, repId, initialSeats }: Props
                 pour neutraliser des sièges sur UNE représentation, utilisez les blocages.
               </p>
               <p className={styles.panelHint}>
-                ⚠️ Un re-seed (<code>pnpm db:seed</code>) réinitialise les amovibles depuis la
-                config de la salle.
+                Vos bascules sont conservées lors des synchronisations du plan (activation
+                d&apos;une salle, seed) — seule l&apos;arrivée d&apos;un plan entièrement
+                nouveau repart de la config.
               </p>
               {error && (
                 <p className={styles.error} role="alert">

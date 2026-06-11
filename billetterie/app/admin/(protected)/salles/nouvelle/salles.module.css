@@ -112,6 +112,26 @@
   cursor: not-allowed;
 }
 
+.secondaire {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: var(--sable, #faf7f2);
+  color: var(--terre, #5c3d2e);
+  border: 1px solid var(--terre-2, #8b5e4a);
+  cursor: pointer;
+}
+
+.secondaire:hover:not(:disabled) {
+  background: #f2ece3;
+}
+
+.secondaire:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .aide {
   font-size: 0.85rem;
   color: var(--gris-chd);

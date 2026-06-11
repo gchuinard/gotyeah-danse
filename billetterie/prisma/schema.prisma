@@ -126,6 +126,20 @@ model Ticket {
   @@index([bookingId])
 }
 
+// Salle de spectacle enregistrée depuis l'admin (créateur de salle).
+// `config` est une VenueConfig en JSON (validée par lib/venue/schema.ts).
+// AU PLUS UNE salle est active : l'activer matérialise son plan
+// (Section/Row/Seat) directement depuis l'admin — sans reseed ni rebuild.
+// Sans salle active : VENUE_ID (fichier) puis la salle intégrée font foi.
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  config    String // VenueConfig sérialisée
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Code de connexion à usage unique (login admin sans mot de passe).
 // Les admins autorisés sont la liste blanche ADMIN_EMAILS du .env ;
 // seul le HASH du code est stocké.

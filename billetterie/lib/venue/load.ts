@@ -12,6 +12,8 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
+import type { PrismaClient } from '@prisma/client'
+
 import { venueConfig as bergerac, type VenueConfig } from '@/config/venue'
 
 import { parseVenueConfig } from './schema'
@@ -39,4 +41,23 @@ export function loadVenueConfig(): VenueConfig {
     )
   }
   return parseVenueConfig(JSON.parse(brut), fichier)
+}
+
+// Salle ACTIVE, en tenant compte des salles enregistrées dans l'admin :
+//  1. la Venue marquée isActive en base (activée depuis /admin/salles) ;
+//  2. sinon le fichier VENUE_ID ;
+//  3. sinon la salle intégrée (Bergerac).
+// Utilisée par le seed et /admin/salles ; les outils de calibration restent
+// volontairement sur loadVenueConfig (fichier/intégré, workflow scan).
+export async function loadActiveVenueConfig(
+  db: PrismaClient,
+): Promise<{ config: VenueConfig; source: 'base' | 'fichier' | 'integree' }> {
+  const active = await db.venue.findFirst({ where: { isActive: true } })
+  if (active) {
+    return {
+      config: parseVenueConfig(JSON.parse(active.config), `salle « ${active.name} »`),
+      source: 'base',
+    }
+  }
+  return { config: loadVenueConfig(), source: process.env.VENUE_ID ? 'fichier' : 'integree' }
 }

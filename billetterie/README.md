@@ -138,20 +138,26 @@ l'arc le plus proche de l'axe) les reproduit ; vérifié par
 
 ## Multi-salles & créateur de salle
 
-La salle active vient de `config/venue.ts` (Bergerac, intégré) — ou, si
-**`VENUE_ID`** est défini, du fichier **`config/venues/<VENUE_ID>.json`**
-(validé par zod, `lib/venue/schema.ts`). Pour adapter la billetterie à une
-autre salle :
+Les salles vivent **en base** (table `Venue`) et se gèrent depuis l'admin —
+**sans reseed ni rebuild** :
 
 1. **`/admin/salles/nouvelle`** : relever la salle rang par rang en notation
    compacte (`B 37/19 17/1 2/18 20/38`, parenthèses = amovible — la grammaire
-   de `place.md`), aperçu live, puis **télécharger le JSON** ;
-2. déposer le fichier dans `config/venues/`, le commiter ;
-3. `VENUE_ID=<id>` dans le `.env`, rebuild, puis **`pnpm db:seed`** (avant
-   toute vente).
+   de `place.md`), aperçu live, puis **« Enregistrer dans la billetterie »** ;
+2. **`/admin/salles`** : **Activer** la salle — le plan (Section/Row/Seat) est
+   synchronisé immédiatement par `lib/venue/sync.ts`. Garde-fous : refus si
+   des billets existent sur des sièges qui disparaîtraient ; les bascules
+   fixe ↔ amovible faites sur le plan sont conservées. À faire AVANT les
+   ventes. « Revenir à la salle par défaut » restaure VENUE_ID/intégrée.
+
+Résolution de la salle active (`loadActiveVenueConfig`) : salle activée en
+base → fichier `config/venues/<VENUE_ID>.json` (zod) → Bergerac intégré.
+`pnpm db:seed` utilise la même synchro et la même résolution. Le bouton
+« Télécharger le JSON » du créateur reste là pour la sauvegarde fichier.
 
 La géométrie générée est régulière (rayons/allées uniformes) : fidèle pour la
-numérotation et la contiguïté du placement, indicative pour le dessin.
+numérotation et la contiguïté du placement, indicative pour le dessin. Les
+outils de calibration (overlay scan) restent sur la config fichier/intégrée.
 
 ## Tests & simulateur
 

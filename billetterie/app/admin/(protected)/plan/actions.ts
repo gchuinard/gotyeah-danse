@@ -100,8 +100,8 @@ const amovibleSchema = z.object({
 
 // Bascule le caractère AMOVIBLE d'un siège — propriété physique du fauteuil,
 // donc globale (toutes représentations), contrairement aux blocages.
-// ⚠️ `pnpm db:seed` réécrit ce champ depuis la config : les retouches faites
-// ici sont perdues à chaque re-seed (même contrat que les scores).
+// Les retouches survivent aux synchronisations du plan : lib/venue/sync.ts ne
+// réécrit pas `removable` sur les sièges existants.
 export async function basculerAmovible(input: {
   seatId: string
   removable: boolean

@@ -6,7 +6,8 @@
 //   ( … ) = bloc amovible · rang continu : A 45/1 2/44
 // Les sauts de numérotation réels (ex. pairs 12 puis 16) sont capturés.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
@@ -15,6 +16,7 @@ import { generateSeats } from '@/lib/venue/generate'
 import { parsePlaceNotation } from '@/lib/venue/place-notation'
 import { parseVenueConfig } from '@/lib/venue/schema'
 
+import { enregistrerSalle } from '../actions'
 import styles from './salles.module.css'
 
 const EXEMPLE = `# Une ligne par rang, du FOND vers la SCÈNE.
@@ -37,12 +39,15 @@ function slugifier(nom: string): string {
 }
 
 export default function BuilderView() {
+  const router = useRouter()
   const [nom, setNom] = useState('Ma salle')
   const [notation, setNotation] = useState(EXEMPLE)
   const [premierRayon, setPremierRayon] = useState(BUILDER_DEFAULTS.premierRayon)
   const [espacement, setEspacement] = useState(BUILDER_DEFAULTS.espacement)
   const [pitch, setPitch] = useState(BUILDER_DEFAULTS.pitch)
   const [allee, setAllee] = useState(BUILDER_DEFAULTS.allee)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, startSaving] = useTransition()
 
   const resultat = useMemo(() => {
     try {
@@ -74,6 +79,25 @@ export default function BuilderView() {
       status: 'libre' as const,
     }))
   }, [resultat])
+
+  const enregistrer = () => {
+    if (!resultat.ok) return
+    setSaveError(null)
+    startSaving(async () => {
+      const reponse = await enregistrerSalle({
+        name: nom.trim() || 'Salle',
+        config: JSON.parse(JSON.stringify(resultat.config)),
+      })
+      if (!reponse.ok) {
+        setSaveError(reponse.error)
+        return
+      }
+      router.push(
+        '/admin/salles?ok=' +
+          encodeURIComponent(`« ${nom.trim() || 'Salle'} » enregistrée — activez-la quand vous voulez.`),
+      )
+    })
+  }
 
   const telecharger = () => {
     if (!resultat.ok) return
@@ -151,23 +175,34 @@ export default function BuilderView() {
             </p>
           )}
 
-          <button type="button" className={styles.telecharger} onClick={telecharger} disabled={!resultat.ok}>
-            Télécharger {slug}.json
+          <button
+            type="button"
+            className={styles.telecharger}
+            onClick={enregistrer}
+            disabled={!resultat.ok || saving}
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer dans la billetterie'}
+          </button>
+          {saveError && (
+            <p className={styles.erreur} role="alert">
+              {saveError}
+            </p>
+          )}
+          <button type="button" className={styles.secondaire} onClick={telecharger} disabled={!resultat.ok}>
+            Télécharger {slug}.json (sauvegarde fichier)
           </button>
 
           <div className={styles.aide}>
-            <h2>Activer cette salle</h2>
+            <h2>Et ensuite ?</h2>
             <ol>
               <li>
-                Déposer le fichier dans <code>config/venues/{slug}.json</code> (le commiter).
+                <strong>Enregistrer</strong> ajoute la salle à <code>/admin/salles</code> ;
               </li>
               <li>
-                Dans le <code>.env</code> : <code>VENUE_ID={slug}</code>.
+                là-bas, <strong>Activer</strong> applique le plan immédiatement — sans reseed ni
+                rebuild (refusé si des billets existent sur des sièges qui disparaîtraient) ;
               </li>
-              <li>
-                Rebuild (prod : <code>docker compose up -d --build</code>) puis{' '}
-                <code>pnpm db:seed</code> — AVANT toute vente.
-              </li>
+              <li>à faire AVANT d&apos;ouvrir les ventes de la représentation.</li>
             </ol>
           </div>
         </section>

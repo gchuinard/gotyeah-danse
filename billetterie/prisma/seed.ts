@@ -1,18 +1,14 @@
-// Seed de la billetterie — REPRODUCTIBLE et RELANÇABLE (upsert partout,
-// ids déterministes issus de lib/venue/generate.ts).
+// Seed de la billetterie — REPRODUCTIBLE et RELANÇABLE.
 //
-// ⚠️ Le champ Seat.score est ré-écrit à CHAQUE seed (update complet).
-//    Une fois que l'admin a ajusté les scores à la main, ne plus relancer
-//    le seed — la calibration (config/venue.ts + re-seed) se fait AVANT.
-//
-// Après les upserts, les sièges/rangées absents du plan généré sont
-// supprimés (deleteMany notIn) pour que la calibration ne laisse pas
-// d'orphelins. Si un siège supprimé porte des tickets, l'erreur FK
-// remonte volontairement : la calibration a lieu avant les ventes.
+// Le plan (Section/Row/Seat) est matérialisé par lib/venue/sync.ts —
+// la MÊME synchro que l'activation d'une salle depuis /admin/salles.
+// Salle utilisée : la salle active en base, sinon VENUE_ID, sinon Bergerac.
+// Voir lib/venue/sync.ts pour les garanties (garde billets, removable
+// préservé sur les sièges existants, scores ré-écrits).
 
 import { PrismaClient } from '@prisma/client'
-import { loadVenueConfig } from '../lib/venue/load'
-import { generateSeats, SECTION_ORDER } from '../lib/venue/generate'
+import { loadActiveVenueConfig } from '../lib/venue/load'
+import { syncPlan } from '../lib/venue/sync'
 
 const prisma = new PrismaClient()
 
@@ -22,82 +18,13 @@ const parisSummer = (iso: string) => new Date(`${iso}:00+02:00`)
 const DAY_MS = 24 * 60 * 60 * 1000
 
 async function seedPlan() {
-  // Salle active : Bergerac intégré, ou config/venues/<VENUE_ID>.json.
-  const venueConfig = loadVenueConfig()
-  const seats = generateSeats(venueConfig)
-
-  // Sections — id = nom, ordre fixe gauche/centre/droite.
-  const sections = (Object.entries(SECTION_ORDER) as [string, number][]).map(([id, order]) => ({
-    id,
-    name: id,
-    order,
-  }))
-  await prisma.$transaction(
-    sections.map((s) =>
-      prisma.section.upsert({
-        where: { id: s.id },
-        update: { name: s.name, order: s.order },
-        create: s,
-      }),
-    ),
-  )
-
-  // Rangées — une par couple (section, label), dédupliquées depuis les sièges.
-  const rows = new Map<string, { id: string; sectionId: string; label: string; order: number }>()
-  for (const s of seats) {
-    rows.set(s.rowId, { id: s.rowId, sectionId: s.section, label: s.rowLabel, order: s.rowOrder })
+  const { config, source } = await loadActiveVenueConfig(prisma)
+  console.log(`Salle : ${config.name ?? 'sans nom'} (source : ${source})`)
+  const result = await syncPlan(prisma, config)
+  if (result.deleted > 0) {
+    console.log(`Synchro : ${result.deleted} siège(s) orphelin(s) supprimé(s)`)
   }
-  await prisma.$transaction(
-    [...rows.values()].map((r) =>
-      prisma.row.upsert({
-        where: { id: r.id },
-        update: { sectionId: r.sectionId, label: r.label, order: r.order },
-        create: r,
-      }),
-    ),
-  )
-
-  // Sièges — upserts groupés par rangée (paquets de transaction → perf SQLite).
-  const byRow = new Map<string, typeof seats>()
-  for (const s of seats) {
-    const list = byRow.get(s.rowId) ?? []
-    list.push(s)
-    byRow.set(s.rowId, list)
-  }
-  for (const rowSeats of byRow.values()) {
-    await prisma.$transaction(
-      rowSeats.map((s) => {
-        const data = {
-          rowId: s.rowId,
-          number: s.number,
-          indexInRow: s.indexInRow,
-          x: s.x,
-          y: s.y,
-          angle: s.angle,
-          removable: s.removable,
-          score: s.score,
-        }
-        return prisma.seat.upsert({
-          where: { id: s.id },
-          update: data, // TOUS les champs, score compris (cf. avertissement en tête)
-          create: { id: s.id, ...data },
-        })
-      }),
-    )
-  }
-
-  // Nettoyage des orphelins de calibration (sièges d'abord, FK oblige).
-  const deletedSeats = await prisma.seat.deleteMany({
-    where: { id: { notIn: seats.map((s) => s.id) } },
-  })
-  const deletedRows = await prisma.row.deleteMany({
-    where: { id: { notIn: [...rows.keys()] } },
-  })
-  if (deletedSeats.count || deletedRows.count) {
-    console.log(`Calibration : ${deletedSeats.count} siège(s) et ${deletedRows.count} rangée(s) orphelins supprimés`)
-  }
-
-  return { sections: sections.length, rows: rows.size, seats: seats.length }
+  return result
 }
 
 async function seedRepresentations() {
