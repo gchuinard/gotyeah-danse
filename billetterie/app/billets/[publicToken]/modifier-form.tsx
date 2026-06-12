@@ -45,6 +45,7 @@ export default function ModifierForm(props: Props) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [changements, setChangements] = useState<string[] | null>(null)
+  const [recapOuvert, setRecapOuvert] = useState(false)
   const [confirmAnnulation, setConfirmAnnulation] = useState(false)
 
   // Valeurs de référence pour le « avant → après » (mises à jour à chaque save).
@@ -103,6 +104,7 @@ export default function ModifierForm(props: Props) {
 
     reference.current = apres
     setChangements(lignes)
+    setRecapOuvert(true)
     router.refresh()
   }
 
@@ -183,22 +185,6 @@ export default function ModifierForm(props: Props) {
         <textarea id="m-notes" rows={3} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
-      {changements !== null && (
-        <div className={styles.confirmation} role="status">
-          {changements.length === 0 ? (
-            <span>Aucune modification à enregistrer.</span>
-          ) : (
-            <>
-              <strong>Demande mise à jour ✓</strong>
-              <ul className={styles.diff}>
-                {changements.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )}
       {error && (
         <p className={styles.formError} role="alert">
           {error}
@@ -226,6 +212,30 @@ export default function ModifierForm(props: Props) {
         danger
         onCancel={() => setConfirmAnnulation(false)}
         onConfirm={annuler}
+      />
+
+      {/* Récap des modifications, en popup. */}
+      <ConfirmDialog
+        open={recapOuvert}
+        hideCancel
+        confirmLabel="Fermer"
+        title={changements && changements.length > 0 ? 'Demande mise à jour ✓' : 'Aucune modification'}
+        message={
+          changements && changements.length > 0 ? (
+            <>
+              <p style={{ margin: '0 0 0.5rem' }}>Voici ce qui a changé :</p>
+              <ul className={styles.diff}>
+                {changements.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            'Aucun champ n’a été modifié.'
+          )
+        }
+        onCancel={() => setRecapOuvert(false)}
+        onConfirm={() => setRecapOuvert(false)}
       />
     </div>
   )

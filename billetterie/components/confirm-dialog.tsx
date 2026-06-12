@@ -14,6 +14,8 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmer',
   cancelLabel = 'Annuler',
   danger = false,
+  // Mode INFO (récap) : un seul bouton (pas de choix oui/non).
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: {
@@ -23,6 +25,7 @@ export function ConfirmDialog({
   confirmLabel?: string
   cancelLabel?: string
   danger?: boolean
+  hideCancel?: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -49,9 +52,11 @@ export function ConfirmDialog({
         {title && <h2 className={styles.title}>{title}</h2>}
         <div className={styles.message}>{message}</div>
         <div className={styles.actions}>
-          <button type="button" className={styles.cancel} onClick={onCancel}>
-            {cancelLabel}
-          </button>
+          {!hideCancel && (
+            <button type="button" className={styles.cancel} onClick={onCancel}>
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             className={danger ? styles.danger : styles.confirm}
