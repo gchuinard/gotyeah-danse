@@ -4,6 +4,7 @@
 // (voir lib/email/send.ts). Aucun accès DB ici — tout arrive en paramètre.
 
 import { render } from 'react-email'
+import { codeDemande } from '@/lib/booking/code'
 import BookingCancelledEmail from '@/emails/booking-cancelled'
 import BookingMovedEmail from '@/emails/booking-moved'
 import BookingPendingEmail from '@/emails/booking-pending'
@@ -84,6 +85,7 @@ export async function sendBookingPendingEmail(booking: {
         ? formatDate.format(booking.expiresAt)
         : 'la fin du délai de 14 jours',
       billetsUrl,
+      codeDemande: codeDemande(booking.publicToken),
     }),
   )
 

@@ -22,6 +22,7 @@ export interface BookingPendingProps {
   representationDateText: string
   dateLimiteText: string
   billetsUrl: string
+  codeDemande: string
 }
 
 // Palette de l'école : sable / encre / terre.
@@ -85,6 +86,15 @@ const signature: React.CSSProperties = {
   margin: '16px 0 0',
 }
 
+const codeStyle: React.CSSProperties = {
+  fontFamily: 'ui-monospace, "Courier New", monospace',
+  fontSize: '24px',
+  fontWeight: 'bold',
+  letterSpacing: '4px',
+  color: terre,
+  margin: '4px 0 0',
+}
+
 export default function BookingPendingEmail({
   name,
   partySize,
@@ -92,6 +102,7 @@ export default function BookingPendingEmail({
   representationDateText,
   dateLimiteText,
   billetsUrl,
+  codeDemande,
 }: BookingPendingProps) {
   const places = partySize > 1 ? `${partySize} places` : '1 place'
   return (
@@ -119,6 +130,16 @@ export default function BookingPendingEmail({
             Une fois le règlement reçu, vos places seront attribuées par notre équipe et vos
             billets apparaîtront sur votre page de suivi.
           </Text>
+          <Section style={encadre}>
+            <Text style={{ ...paragraphe, margin: 0, fontSize: '14px' }}>
+              <strong>Votre identifiant de demande :</strong>
+            </Text>
+            <Text style={codeStyle}>{codeDemande}</Text>
+            <Text style={{ ...paragraphe, margin: '8px 0 0', fontSize: '13px', color: '#6b6258' }}>
+              Gardez-le : avec votre adresse e-mail, il vous permet de retrouver, modifier ou
+              annuler votre demande depuis l&rsquo;onglet « J&rsquo;ai déjà une demande ».
+            </Text>
+          </Section>
           <Section style={{ textAlign: 'center', margin: '24px 0' }}>
             <Button href={billetsUrl} style={bouton}>
               Suivre ma demande
@@ -147,4 +168,5 @@ BookingPendingEmail.PreviewProps = {
   representationDateText: 'samedi 27 juin 2026 à 20h30',
   dateLimiteText: 'jeudi 25 juin 2026',
   billetsUrl: 'http://localhost:3000/billets/exemple-token',
+  codeDemande: 'AB3CDE',
 } satisfies BookingPendingProps

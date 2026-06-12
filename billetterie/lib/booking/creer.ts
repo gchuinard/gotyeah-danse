@@ -26,16 +26,44 @@ export type NouvelleDemande = {
 }
 
 type Resultat =
-  | { error: string }
+  | { error: string; dejaEnCours?: boolean }
   | { booking: { publicToken: string }; representationTitle: string }
 
 export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<Resultat> {
+  const now = new Date()
+  // Email normalisé en minuscules : clé d'identification d'une demande
+  // (détection de doublon + accès « j'ai déjà une demande »).
+  const email = demande.email.trim().toLowerCase()
   const result = await prisma.$transaction(async (tx) => {
     const representation = await tx.representation.findUnique({
       where: { id: demande.representationId },
     })
     if (!representation || !representation.isOpen) {
       return { ok: false as const, error: "Cette représentation n'est pas ouverte à la réservation." }
+    }
+
+    // Une seule demande active par email : on évite les doublons. Une demande
+    // en attente (non expirée) ou déjà payée/placée bloque une nouvelle.
+    const existante = await tx.booking.findFirst({
+      where: {
+        representationId: representation.id,
+        email,
+        OR: [
+          { status: 'pending', OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+          { status: { in: ['paid', 'placed'] } },
+        ],
+      },
+      select: { status: true },
+    })
+    if (existante) {
+      return {
+        ok: false as const,
+        dejaEnCours: true,
+        error:
+          existante.status === 'pending'
+            ? 'Une demande est déjà en cours pour cet email. Utilisez l’onglet « J’ai déjà une demande » ci-dessus pour la modifier.'
+            : 'Une demande déjà réglée existe pour cet email. Pour tout changement, contactez les permanences de l’école.',
+      }
     }
 
     const jauge = await computeJauge(tx, representation.id)
@@ -51,7 +79,7 @@ export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<R
       data: {
         representationId: representation.id,
         name: demande.name,
-        email: demande.email,
+        email,
         phone: demande.phone,
         partySize: demande.partySize,
         notes: demande.notes ?? null,
@@ -65,7 +93,9 @@ export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<R
     return { ok: true as const, booking, representation }
   })
 
-  if (!result.ok) return { error: result.error }
+  if (!result.ok) {
+    return { error: result.error, ...('dejaEnCours' in result ? { dejaEnCours: true } : {}) }
+  }
 
   // Email « demande enregistrée » : best effort, on ne logge rien de personnel.
   try {

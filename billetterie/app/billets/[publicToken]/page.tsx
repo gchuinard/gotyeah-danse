@@ -8,8 +8,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { codeDemande } from '@/lib/booking/code'
 import { prisma } from '@/lib/db'
+import { computeJauge } from '@/lib/jauge'
 
+import ModifierForm from './modifier-form'
 import PrintButton from './print-button'
 import QrFullscreen from './qr-fullscreen'
 import styles from './billets.module.css'
@@ -73,6 +76,10 @@ export default async function BilletsPage({
   const rep = booking.representation
   const repDate = formatDateHeure(rep.startsAt)
 
+  // Plafond de places pour l'édition (jauge restante + ses propres places).
+  const maxPlaces =
+    booking.status === 'pending' ? (await computeJauge(prisma, rep.id)) + booking.partySize : 0
+
   return (
     <main className={styles.page}>
       <div className={styles.inner}>
@@ -84,26 +91,24 @@ export default async function BilletsPage({
             </header>
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>Votre demande</h2>
-              <dl className={styles.recap}>
-                <div className={styles.recapRow}>
-                  <dt>Représentation</dt>
-                  <dd>{rep.title}</dd>
-                </div>
-                <div className={styles.recapRow}>
-                  <dt>Date</dt>
-                  <dd>{repDate}</dd>
-                </div>
-                <div className={styles.recapRow}>
-                  <dt>Places demandées</dt>
-                  <dd>
-                    {booking.partySize} place{booking.partySize > 1 ? 's' : ''}
-                  </dd>
-                </div>
-                <div className={styles.recapRow}>
-                  <dt>Au nom de</dt>
-                  <dd>{booking.name}</dd>
-                </div>
-              </dl>
+              <p className={styles.text}>
+                {rep.title} — {repDate}. Tant qu&apos;elle n&apos;est pas réglée, vous pouvez la
+                modifier ou l&apos;annuler ci-dessous.
+              </p>
+              <p className={styles.text}>
+                Votre identifiant de demande : <strong>{codeDemande(publicToken)}</strong>{' '}
+                (notez-le : avec votre email, il vous permet d&apos;y revenir depuis l&apos;accueil).
+              </p>
+              <ModifierForm
+                token={publicToken}
+                name={booking.name}
+                phone={booking.phone}
+                partySize={booking.partySize}
+                notes={booking.notes ?? ''}
+                pmr={booking.pmr}
+                pmrCompanions={booking.pmrCompanions}
+                maxPlaces={maxPlaces}
+              />
             </section>
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>Règlement</h2>

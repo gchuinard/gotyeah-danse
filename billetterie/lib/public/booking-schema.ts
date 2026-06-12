@@ -28,7 +28,9 @@ export const bookingSchema = z.object({
 
   email: z
     .email('Adresse email invalide.')
-    .max(200, "L'adresse email ne peut pas dépasser 200 caractères."),
+    .max(200, "L'adresse email ne peut pas dépasser 200 caractères.")
+    // Normalisée en minuscules : sert de clé d'identification d'une demande.
+    .transform((v) => v.trim().toLowerCase()),
 
   // Téléphone FR : normalisé (séparateurs, +33) puis validé 10 chiffres,
   // stocké au format "06 12 34 56 78".

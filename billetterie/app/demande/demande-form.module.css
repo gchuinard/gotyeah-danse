@@ -52,6 +52,40 @@
   color: var(--terre-2);
 }
 
+/* Lien-bouton discret (« identifiant oublié ? »). */
+.lien {
+  font: inherit;
+  font-size: 0.85rem;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--terre-2);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Bouton « Annuler ma demande » (édition d'une demande en attente). */
+.annuler {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid #e0c4bd;
+  border-radius: 8px;
+  background: transparent;
+  color: #b3463c;
+  cursor: pointer;
+}
+
+.annuler:hover:not(:disabled) {
+  background: #fbeae8;
+}
+
+.annuler:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Bloc PMR (accessibilité) */
 .pmr {
   display: flex;

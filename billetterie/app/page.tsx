@@ -7,7 +7,9 @@
 import { prisma } from '@/lib/db'
 import { representationsOuvertes } from '@/lib/jauge'
 
+import AccesForm from './demande/acces-form'
 import DemandeForm from './demande/demande-form'
+import Onglets from './demande/onglets'
 import styles from './page.module.css'
 
 export const dynamic = 'force-dynamic'
@@ -44,11 +46,18 @@ export default async function Home() {
         </section>
 
         <section className={styles.formCard} aria-label="Demande de places">
-          {representationId ? (
-            <DemandeForm representationId={representationId} />
-          ) : (
-            <p className={styles.complet}>Les demandes de places ne sont pas ouvertes pour le moment.</p>
-          )}
+          <Onglets
+            nouvelle={
+              representationId ? (
+                <DemandeForm representationId={representationId} />
+              ) : (
+                <p className={styles.complet}>
+                  Les demandes de places ne sont pas ouvertes pour le moment.
+                </p>
+              )
+            }
+            acces={<AccesForm />}
+          />
         </section>
       </main>
     </div>
