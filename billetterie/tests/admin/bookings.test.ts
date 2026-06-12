@@ -162,6 +162,17 @@ describe('emettreBillets', () => {
     await expect(emettreBillets(db, booking.id, ['s1', 's2'])).rejects.toThrow(/bloqué/)
   })
 
+  it('place sur un siège « réservé PMR » et consomme la réservation', async () => {
+    await db.seatOverride.create({
+      data: { representationId: 'rep-test', seatId: 's2', reason: 'pmr' },
+    })
+    const booking = await creerBooking('paid', 2)
+    await emettreBillets(db, booking.id, ['s1', 's2'])
+    expect(await db.ticket.count({ where: { bookingId: booking.id } })).toBe(2)
+    // L'override PMR du siège attribué a été levé.
+    expect(await db.seatOverride.count({ where: { seatId: 's2' } })).toBe(0)
+  })
+
   it('siège déjà ticketé → erreur propre, rien créé (course entre bénévoles)', async () => {
     const premier = await creerBooking('paid', 1)
     await emettreBillets(db, premier.id, ['s5'])

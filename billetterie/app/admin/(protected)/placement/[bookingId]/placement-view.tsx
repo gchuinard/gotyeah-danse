@@ -86,7 +86,12 @@ export default function PlacementView({
           highlightedIds={highlightedIds}
           currentIds={mode === 'deplacement' ? currentIds : undefined}
           onSeatClick={toggleSeat}
-          caption={mode === 'deplacement' ? 'Les places actuelles de la famille sont cliquables.' : undefined}
+          clickPmr
+          caption={
+            mode === 'deplacement'
+              ? 'Les places actuelles de la famille sont cliquables.'
+              : 'Les places « réservé PMR » (bleues) sont sélectionnables pour une famille PMR.'
+          }
         />
       </div>
 

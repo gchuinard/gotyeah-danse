@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 
 import { Prisma, type PrismaClient } from '@prisma/client'
 
+import { PMR_REASON } from '@/lib/admin/seat-map'
 import { computeJauge } from '@/lib/jauge'
 
 export type BookingAvecBillets = {
@@ -103,10 +104,14 @@ async function verifierSiegesDisponibles(
   if (existants !== seatIds.length) {
     throw new Error("Un de ces sièges n'existe pas dans le plan.")
   }
-  const bloques = await tx.seatOverride.count({
+  // Les blocages « réservé PMR » sont placeables à la main (ces sièges sont
+  // justement gardés pour les familles PMR) ; les autres blocages (console,
+  // fosse, amovibles non posés…) restent interdits.
+  const blocages = await tx.seatOverride.findMany({
     where: { representationId, seatId: { in: seatIds } },
+    select: { reason: true },
   })
-  if (bloques > 0) {
+  if (blocages.some((b) => b.reason !== PMR_REASON)) {
     throw new Error('Un de ces sièges est bloqué pour cette représentation.')
   }
   // Même message que le catch P2002 : pour le bénévole, le siège est pris,
@@ -154,6 +159,10 @@ export async function emettreBillets(
         )
       }
       await verifierSiegesDisponibles(tx, booking.representationId, seatIds)
+      // Une réservation PMR remplie est consommée : on lève l'override.
+      await tx.seatOverride.deleteMany({
+        where: { representationId: booking.representationId, seatId: { in: seatIds }, reason: PMR_REASON },
+      })
 
       await tx.ticket.createMany({
         data: seatIds.map((seatId) => ({
@@ -196,6 +205,9 @@ export async function deplacerBillets(
 
       await tx.ticket.deleteMany({ where: { bookingId: booking.id } })
       await verifierSiegesDisponibles(tx, booking.representationId, seatIds)
+      await tx.seatOverride.deleteMany({
+        where: { representationId: booking.representationId, seatId: { in: seatIds }, reason: PMR_REASON },
+      })
 
       await tx.ticket.createMany({
         data: seatIds.map((seatId) => ({

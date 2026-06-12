@@ -74,6 +74,9 @@ export type SeatMapProps = {
   // Mode « gérer les sièges » : tous les sièges NON occupés sont cliquables
   // (un siège attribué ne se cycle pas).
   clickAll?: boolean
+  // Placement : autorise aussi le clic sur les sièges « réservé PMR » — ils
+  // sont mis de côté pour les familles PMR, donc sélectionnables à la main.
+  clickPmr?: boolean
   // Lignes de repère (debug) dessinées sous les sièges, en coordonnées du plan
   // — ex. axes radiaux des allées dans le créateur de salle.
   guides?: { x1: number; y1: number; x2: number; y2: number }[]
@@ -88,6 +91,7 @@ export default function SeatMap({
   onSeatClick,
   clickBlocked = false,
   clickAll = false,
+  clickPmr = false,
   guides,
   caption,
 }: SeatMapProps) {
@@ -241,6 +245,7 @@ export default function SeatMap({
     if (clickAll) return seat.status !== 'occupe'
     if (seat.status === 'libre') return true
     if (current.has(seat.id)) return true
+    if (clickPmr && isPmr(seat)) return true
     if (clickBlocked && seat.status === 'bloque') return true
     return false
   }
