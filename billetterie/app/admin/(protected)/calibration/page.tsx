@@ -7,6 +7,7 @@
 
 import type { Metadata } from 'next'
 
+import { AISLE_AXES } from '@/config/venue'
 import { loadVenueConfig } from '@/lib/venue/load'
 import { generateSeats, planBounds } from '@/lib/venue/generate'
 
@@ -21,5 +22,12 @@ export default function CalibrationPage() {
   const seats = generateSeats(venueConfig)
   const bounds = planBounds(seats)
 
-  return <CalibrationView seats={seats} bounds={bounds} center={venueConfig.center} />
+  return (
+    <CalibrationView
+      seats={seats}
+      bounds={bounds}
+      center={venueConfig.center}
+      aisleAxes={[AISLE_AXES.jardin, AISLE_AXES.cour]}
+    />
+  )
 }

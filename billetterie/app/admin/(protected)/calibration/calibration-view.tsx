@@ -17,6 +17,9 @@ type Props = {
   seats: GeneratedSeat[]
   bounds: Bounds
   center: { x: number; y: number }
+  // Axes radiaux des allées (degrés) — tracés en debug pour vérifier que les
+  // allées s'alignent d'un rang à l'autre sur toute la profondeur.
+  aisleAxes: number[]
 }
 
 type OverlaySettings = {
@@ -62,11 +65,12 @@ function loadSettings(): OverlaySettings {
   }
 }
 
-export default function CalibrationView({ seats, bounds, center }: Props) {
+export default function CalibrationView({ seats, bounds, center, aisleAxes }: Props) {
   const [settings, setSettings] = useState<OverlaySettings>(DEFAULT_SETTINGS)
   const [hydrated, setHydrated] = useState(false)
   const [scanMissing, setScanMissing] = useState(false)
   const [scanRetry, setScanRetry] = useState(0)
+  const [showAisles, setShowAisles] = useState(true)
 
   // Chargement des réglages persistés (après hydratation, pour éviter tout
   // mismatch SSR/client). Le setState synchrone est volontaire : un seul
@@ -150,7 +154,9 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
     const maxY = Math.max(bounds.minY + bounds.height, center.y + 120, scene.y + scene.height + 40)
     const viewBox = { minX, minY, width: maxX - minX, height: maxY - minY }
 
-    return { seatRadius, rowSpacing, rowLabels, scene, viewBox }
+    const maxRadius = radii.length > 0 ? radii[radii.length - 1] : 0
+
+    return { seatRadius, rowSpacing, rowLabels, scene, viewBox, maxRadius }
   }, [seats, bounds, center])
 
   const counters = useMemo(() => {
@@ -163,7 +169,15 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
     return { total: seats.length, bySection, removable }
   }, [seats])
 
-  const { seatRadius, rowSpacing, rowLabels, scene, viewBox } = derived
+  const { seatRadius, rowSpacing, rowLabels, scene, viewBox, maxRadius } = derived
+
+  // Lignes radiales des axes d'allées (debug) : du point de convergence
+  // jusqu'au-delà du dernier rang. Alignées ⇒ allées droites sur la profondeur.
+  const aisleLines = aisleAxes.map((deg) => {
+    const rad = (deg * Math.PI) / 180
+    const r = maxRadius + rowSpacing
+    return { deg, x2: center.x + r * Math.sin(rad), y2: center.y - r * Math.cos(rad) }
+  })
   const fontSize = rowSpacing * 0.55
   const offsetRange = Math.round(Math.max(viewBox.width, viewBox.height))
 
@@ -317,6 +331,18 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
               </div>
             </div>
 
+            <label
+              className={styles.control}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            >
+              <input
+                type="checkbox"
+                checked={showAisles}
+                onChange={(e) => setShowAisles(e.target.checked)}
+              />
+              <span>Axes des allées (debug)</span>
+            </label>
+
             <button type="button" className={styles.reset} onClick={() => setSettings(DEFAULT_SETTINGS)}>
               Réinitialiser
             </button>
@@ -380,6 +406,22 @@ export default function CalibrationView({ seats, bounds, center }: Props) {
               <line x1={center.x - 40} y1={center.y} x2={center.x + 40} y2={center.y} />
               <line x1={center.x} y1={center.y - 40} x2={center.x} y2={center.y + 40} />
             </g>
+
+            {/* Axes radiaux des allées (debug) — vérifie l'alignement vertical. */}
+            {showAisles &&
+              aisleLines.map((l) => (
+                <line
+                  key={l.deg}
+                  x1={center.x}
+                  y1={center.y}
+                  x2={l.x2}
+                  y2={l.y2}
+                  stroke="#2f6f4f"
+                  strokeWidth={3}
+                  strokeDasharray="14 10"
+                  opacity={0.85}
+                />
+              ))}
 
             {/* Étiquettes de rangée, côtés jardin et cour. */}
             {rowLabels.map((l) => (
