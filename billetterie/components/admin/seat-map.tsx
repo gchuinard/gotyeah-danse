@@ -67,6 +67,9 @@ export type SeatMapProps = {
   // Mode « gérer les sièges » : tous les sièges NON occupés sont cliquables
   // (un siège attribué ne se cycle pas).
   clickAll?: boolean
+  // Lignes de repère (debug) dessinées sous les sièges, en coordonnées du plan
+  // — ex. axes radiaux des allées dans le créateur de salle.
+  guides?: { x1: number; y1: number; x2: number; y2: number }[]
   caption?: string
 }
 
@@ -78,6 +81,7 @@ export default function SeatMap({
   onSeatClick,
   clickBlocked = false,
   clickAll = false,
+  guides,
   caption,
 }: SeatMapProps) {
   const selected = useMemo(() => new Set(selectedIds ?? []), [selectedIds])
@@ -251,6 +255,21 @@ export default function SeatMap({
           onPointerCancel={onPointerUp}
           onClickCapture={onClickCapture}
         >
+          {/* Repères (debug) : axes d'allées, sous tout le reste. */}
+          {guides?.map((g, i) => (
+            <line
+              key={`guide-${i}`}
+              x1={g.x1}
+              y1={g.y1}
+              x2={g.x2}
+              y2={g.y2}
+              stroke="#2f6f4f"
+              strokeWidth={2}
+              strokeDasharray="10 8"
+              opacity={0.7}
+            />
+          ))}
+
           {/* Lettres de rang, sous les sièges. */}
           {geometry.rowLabels.map((l) => (
             <text key={l.key} className={styles.rowLabel} x={l.x} y={l.y} textAnchor={l.anchor}>

@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
-import { BUILDER_DEFAULTS, buildVenueConfig } from '@/lib/venue/build'
+import { BUILDER_DEFAULTS, buildVenueConfig, type RowGeometry } from '@/lib/venue/build'
 import { generateSeats } from '@/lib/venue/generate'
 import {
   analysePlaceNotation,
@@ -235,8 +235,14 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
   const [survol, setSurvol] = useState<string | null>(null)
   const [premierRayon, setPremierRayon] = useState(BUILDER_DEFAULTS.premierRayon)
   const [espacement, setEspacement] = useState(BUILDER_DEFAULTS.espacement)
-  const [pitch, setPitch] = useState(BUILDER_DEFAULTS.pitch)
-  const [allee, setAllee] = useState(BUILDER_DEFAULTS.allee)
+  const [seatPitch, setSeatPitch] = useState(BUILDER_DEFAULTS.seatPitch)
+  const [aisleWidth, setAisleWidth] = useState(BUILDER_DEFAULTS.aisleWidth)
+  // Surcharges de géométrie PAR RANG (sélection) : { label: {seatPitch?, aisleWidth?} }.
+  const [perRow, setPerRow] = useState<Record<string, RowGeometry>>({})
+  const [selection, setSelection] = useState<string[]>([]) // lettres des rangs cochés
+  const [applyPitch, setApplyPitch] = useState(BUILDER_DEFAULTS.seatPitch)
+  const [applyAisle, setApplyAisle] = useState(BUILDER_DEFAULTS.aisleWidth)
+  const [showGuides, setShowGuides] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, startSaving] = useTransition()
 
@@ -250,15 +256,21 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
   const resultat = useMemo(() => {
     if (valides.length === 0) return null
     try {
+      const overrides = new Map(
+        Object.entries(perRow).filter(
+          ([, g]) => g.seatPitch !== undefined || g.aisleWidth !== undefined,
+        ),
+      )
       const config = buildVenueConfig(
-        { name: nom.trim() || 'Salle', premierRayon, espacement, pitch, allee },
+        { name: nom.trim() || 'Salle', premierRayon, espacement, seatPitch, aisleWidth },
         valides.map((l) => l.row),
+        overrides,
       )
       return { config, seats: generateSeats(config) }
     } catch {
       return null
     }
-  }, [valides, nom, premierRayon, espacement, pitch, allee])
+  }, [valides, nom, premierRayon, espacement, seatPitch, aisleWidth, perRow])
 
   const seatViews: SeatView[] = useMemo(() => {
     if (!resultat) return []
@@ -282,6 +294,66 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
     if (!cible || !resultat) return undefined
     return resultat.seats.filter((s) => s.rowLabel === cible).map((s) => s.id)
   }, [cible, resultat])
+
+  // Repères (debug) : axes radiaux des allées. Les allées du créateur sont
+  // « émergentes » (centre + écart) → on trace 2 lignes à l'angle MÉDIAN des
+  // allées jardin / cour, depuis le point de convergence. Indicatif : si une
+  // allée d'un rang s'écarte de la ligne, ça se voit à l'œil.
+  const guides = useMemo(() => {
+    if (!resultat || !showGuides) return undefined
+    const { rows, center } = resultat.config
+    const jardin: number[] = []
+    const cour: number[] = []
+    let maxR = 0
+    for (const row of rows) {
+      maxR = Math.max(maxR, row.radius)
+      const c = row.arcs.filter((a) => a.section === 'centre')
+      const g = row.arcs.filter((a) => a.section === 'gauche')
+      const d = row.arcs.filter((a) => a.section === 'droite')
+      if (c.length && g.length) {
+        jardin.push((Math.min(...c.map((a) => a.angleStart)) + Math.max(...g.map((a) => a.angleEnd))) / 2)
+      }
+      if (c.length && d.length) {
+        cour.push((Math.max(...c.map((a) => a.angleEnd)) + Math.min(...d.map((a) => a.angleStart))) / 2)
+      }
+    }
+    const median = (xs: number[]) =>
+      xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : null
+    const r = maxR + 60
+    const ligne = (deg: number) => {
+      const rad = (deg * Math.PI) / 180
+      return { x1: center.x, y1: center.y, x2: center.x + r * Math.sin(rad), y2: center.y - r * Math.cos(rad) }
+    }
+    const out: { x1: number; y1: number; x2: number; y2: number }[] = []
+    const mj = median(jardin)
+    const mc = median(cour)
+    if (mj !== null) out.push(ligne(mj))
+    if (mc !== null) out.push(ligne(mc))
+    return out.length ? out : undefined
+  }, [resultat, showGuides])
+
+  // ── Sélection de rangs + surcharge de géométrie ────────────────────────
+
+  const labelsValides = useMemo(() => valides.map((l) => l.row.label), [valides])
+
+  const toggleSelection = (label: string) =>
+    setSelection((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]))
+
+  const appliquerGeo = () => {
+    setPerRow((prev) => {
+      const next = { ...prev }
+      for (const label of selection) next[label] = { seatPitch: applyPitch, aisleWidth: applyAisle }
+      return next
+    })
+  }
+
+  const effacerGeo = () => {
+    setPerRow((prev) => {
+      const next = { ...prev }
+      for (const label of selection) delete next[label]
+      return next
+    })
+  }
 
   const pret = erreurs.length === 0 && resultat !== null
   const totalPlaces = resultat?.seats.length ?? 0
@@ -421,21 +493,38 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
                       ─ ─ couloir ─ ─
                     </span>
                   )}
-                  <button
-                    type="button"
-                    className={deplie === l.row.label ? styles.rangCompactOuvert : styles.rangCompact}
-                    onMouseEnter={() => setSurvol(l.row.label)}
-                    onClick={() => setDeplie(deplie === l.row.label ? null : l.row.label)}
-                  >
-                    <span className={styles.rangLettre}>{l.row.label}</span>
-                    <BarreRang row={l.row} />
-                    <span className={styles.rangTotal}>
-                      {resumeRang(l.row).total}
-                      {resumeRang(l.row).sauts.length > 0 && (
-                        <em title={`sauts : ${resumeRang(l.row).sauts.join(', ')} n'existent pas`}> ⤳</em>
+                  <div className={styles.rangRangee}>
+                    <input
+                      type="checkbox"
+                      className={styles.rangCoche}
+                      checked={selection.includes(l.row.label)}
+                      onChange={() => toggleSelection(l.row.label)}
+                      aria-label={`Sélectionner le rang ${l.row.label}`}
+                      title="Sélectionner ce rang (réglages de largeur)"
+                    />
+                    <button
+                      type="button"
+                      className={deplie === l.row.label ? styles.rangCompactOuvert : styles.rangCompact}
+                      onMouseEnter={() => setSurvol(l.row.label)}
+                      onClick={() => setDeplie(deplie === l.row.label ? null : l.row.label)}
+                    >
+                      <span className={styles.rangLettre}>{l.row.label}</span>
+                      <BarreRang row={l.row} />
+                      {perRow[l.row.label] && (
+                        <span
+                          className={styles.rangGeo}
+                          title={`Largeurs spécifiques — siège ${perRow[l.row.label].seatPitch ?? seatPitch} px, allée ${perRow[l.row.label].aisleWidth ?? aisleWidth} px`}
+                        >
+                          ⚙
+                        </span>
                       )}
-                    </span>
-                    <span className={styles.rangFleches}>
+                      <span className={styles.rangTotal}>
+                        {resumeRang(l.row).total}
+                        {resumeRang(l.row).sauts.length > 0 && (
+                          <em title={`sauts : ${resumeRang(l.row).sauts.join(', ')} n'existent pas`}> ⤳</em>
+                        )}
+                      </span>
+                      <span className={styles.rangFleches}>
                       <span
                         role="button"
                         tabIndex={0}
@@ -460,8 +549,9 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
                       >
                         ↓
                       </span>
-                    </span>
-                  </button>
+                      </span>
+                    </button>
+                  </div>
                   {deplie === l.row.label && (
                     <RangDetail
                       ligne={l}
@@ -501,6 +591,67 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
             </button>
           </div>
 
+          {/* ── Largeurs par rang (sélection) ──────────────────────────── */}
+          <div className={styles.selToolbar}>
+            <div className={styles.selEntete}>
+              <strong>Largeurs par rang</strong>
+              <span className={styles.selInfo}>
+                {selection.length === 0
+                  ? 'Cochez des rangs pour leur donner une largeur de siège / d’allée propre.'
+                  : `${selection.length} rang${selection.length > 1 ? 's' : ''} sélectionné${selection.length > 1 ? 's' : ''}`}
+              </span>
+              {labelsValides.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.lien}
+                  onClick={() =>
+                    setSelection(selection.length === labelsValides.length ? [] : labelsValides)
+                  }
+                >
+                  {selection.length === labelsValides.length ? 'Tout décocher' : 'Tout cocher'}
+                </button>
+              )}
+            </div>
+            <div className={styles.selChamps}>
+              <label className={styles.mini}>
+                Largeur d’un siège (px)
+                <input
+                  type="number"
+                  value={applyPitch}
+                  min={6}
+                  max={80}
+                  onChange={(e) => setApplyPitch(Number(e.target.value))}
+                />
+              </label>
+              <label className={styles.mini}>
+                Largeur des allées (px)
+                <input
+                  type="number"
+                  value={applyAisle}
+                  min={0}
+                  max={200}
+                  onChange={(e) => setApplyAisle(Number(e.target.value))}
+                />
+              </label>
+              <button
+                type="button"
+                className={styles.blocAjout}
+                disabled={selection.length === 0}
+                onClick={appliquerGeo}
+              >
+                Appliquer aux cochés
+              </button>
+              <button
+                type="button"
+                className={styles.ghost}
+                disabled={selection.length === 0}
+                onClick={effacerGeo}
+              >
+                Réinitialiser (valeur globale)
+              </button>
+            </div>
+          </div>
+
           <details className={styles.apparence}>
             <summary>Importer / exporter le relevé (notation texte)</summary>
             <textarea
@@ -513,25 +664,29 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
           </details>
 
           <details className={styles.apparence}>
-            <summary>Apparence du plan (ne change pas la numérotation)</summary>
+            <summary>Géométrie globale du plan (ne change pas la numérotation)</summary>
             <div className={styles.params}>
               <label className={styles.mini}>
-                Distance scène → 1ᵉʳ rang
+                Distance scène → 1ᵉʳ rang (px)
                 <input type="number" value={premierRayon} min={100} max={5000} onChange={(e) => setPremierRayon(Number(e.target.value))} />
               </label>
               <label className={styles.mini}>
-                Espace entre rangs
+                Espace entre rangs (px)
                 <input type="number" value={espacement} min={10} max={300} onChange={(e) => setEspacement(Number(e.target.value))} />
               </label>
               <label className={styles.mini}>
-                Largeur d&apos;un siège (°)
-                <input type="number" value={pitch} min={0.2} max={5} step={0.05} onChange={(e) => setPitch(Number(e.target.value))} />
+                Largeur d&apos;un siège (px)
+                <input type="number" value={seatPitch} min={6} max={80} onChange={(e) => setSeatPitch(Number(e.target.value))} />
               </label>
               <label className={styles.mini}>
-                Largeur des allées (°)
-                <input type="number" value={allee} min={0.5} max={15} step={0.5} onChange={(e) => setAllee(Number(e.target.value))} />
+                Largeur des allées (px)
+                <input type="number" value={aisleWidth} min={0} max={200} onChange={(e) => setAisleWidth(Number(e.target.value))} />
               </label>
             </div>
+            <p className={styles.apparenceNote}>
+              En pixels (longueurs réelles, pas des angles) : le fond de la salle ne se dilate plus.
+              Pour donner une largeur propre à certains rangs, cochez-les ci-dessus.
+            </p>
           </details>
 
           {saveError && (
@@ -558,12 +713,17 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
                 · {erreurs.length} ligne{erreurs.length > 1 ? 's' : ''} en erreur
               </strong>
             )}
+            <label className={styles.guideToggle}>
+              <input type="checkbox" checked={showGuides} onChange={(e) => setShowGuides(e.target.checked)} />
+              axes des allées
+            </label>
           </p>
 
           {resultat ? (
             <SeatMap
               seats={seatViews}
               highlightedIds={highlightedIds}
+              guides={guides}
               caption={`Aperçu — ${nom || 'salle'} (géométrie indicative)`}
             />
           ) : (
