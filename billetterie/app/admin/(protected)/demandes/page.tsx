@@ -101,6 +101,10 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   const retour = new URLSearchParams()
   if (statut) retour.set('statut', statut)
   if (q) retour.set('q', q)
+  // Filtre courant à reconduire après un placement (lien → écran → retour).
+  const retourQs = retour.toString()
+  const avecRetour = (base: string) =>
+    retourQs ? `${base}${base.includes('?') ? '&' : '?'}retour=${encodeURIComponent(retourQs)}` : base
 
   const where: Prisma.BookingWhereInput = {
     ...(statut === 'expiree'
@@ -267,13 +271,16 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                           </>
                         )}
                         {d.status === 'paid' && (
-                          <Link className={styles.btnLien} href={`/admin/placement/${d.id}`}>
+                          <Link className={styles.btnLien} href={avecRetour(`/admin/placement/${d.id}`)}>
                             Placer
                           </Link>
                         )}
                         {d.status === 'placed' && (
                           <>
-                            <Link className={styles.btnLien} href={`/admin/placement/${d.id}?mode=deplacer`}>
+                            <Link
+                              className={styles.btnLien}
+                              href={avecRetour(`/admin/placement/${d.id}?mode=deplacer`)}
+                            >
                               Déplacer
                             </Link>
                             <form action={renvoyerBilletsAction}>

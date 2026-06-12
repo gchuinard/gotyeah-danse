@@ -22,12 +22,29 @@ const schema = z.object({
   bookingId: z.string().min(1),
   seatIds: z.array(z.string().min(1)).min(1),
   mode: z.enum(['emission', 'deplacement']),
+  retour: z.string().max(200).optional(),
 })
+
+// Reconstruit la query de retour à partir de la liste BLANCHE de filtres —
+// on ne fait jamais confiance à la chaîne brute reçue du client.
+function urlRetour(retour?: string): string {
+  const safe = new URLSearchParams()
+  if (retour) {
+    const recu = new URLSearchParams(retour)
+    for (const cle of ['statut', 'q'] as const) {
+      const v = recu.get(cle)
+      if (v) safe.set(cle, v)
+    }
+  }
+  const qs = safe.toString()
+  return '/admin/demandes' + (qs ? `?${qs}` : '')
+}
 
 export async function validerPlacement(input: {
   bookingId: string
   seatIds: string[]
   mode: 'emission' | 'deplacement'
+  retour?: string
 }): Promise<PlacementActionResult> {
   await requireAdmin()
 
@@ -35,7 +52,7 @@ export async function validerPlacement(input: {
   if (!parsed.success) {
     return { ok: false, error: 'Demande invalide.' }
   }
-  const { bookingId, seatIds, mode } = parsed.data
+  const { bookingId, seatIds, mode, retour } = parsed.data
 
   let booking
   try {
@@ -65,5 +82,5 @@ export async function validerPlacement(input: {
 
   revalidatePath('/admin/plan')
   revalidatePath('/admin/demandes')
-  redirect('/admin/demandes')
+  redirect(urlRetour(retour))
 }

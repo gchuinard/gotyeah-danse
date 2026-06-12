@@ -23,7 +23,10 @@ html {
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* `clip` et non `hidden` : empêche le débordement horizontal SANS créer de
+     conteneur de défilement — sinon `position: sticky` (panneau de placement)
+     cesse de fonctionner. */
+  overflow-x: clip;
 }
 
 body {

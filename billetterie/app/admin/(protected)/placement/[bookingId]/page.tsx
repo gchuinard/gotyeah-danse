@@ -52,13 +52,14 @@ export default async function PlacementPage({
   searchParams,
 }: {
   params: Promise<{ bookingId: string }>
-  searchParams: Promise<{ mode?: string | string[] }>
+  searchParams: Promise<{ mode?: string | string[]; retour?: string | string[] }>
 }) {
   await requireAdmin()
 
   const { bookingId } = await params
-  const { mode: modeParam } = await searchParams
+  const { mode: modeParam, retour: retourParam } = await searchParams
   const wantsDeplacement = (Array.isArray(modeParam) ? modeParam[0] : modeParam) === 'deplacer'
+  const retour = (Array.isArray(retourParam) ? retourParam[0] : retourParam) ?? ''
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -141,6 +142,7 @@ export default async function PlacementPage({
         seats={seatMap}
         currentIds={currentIds}
         suggestions={suggestions.map((s) => ({ seatIds: s.seatIds, score: s.score }))}
+        retour={retour}
       />
     </div>
   )

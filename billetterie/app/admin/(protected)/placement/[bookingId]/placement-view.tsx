@@ -22,6 +22,8 @@ type Props = {
   seats: SeatView[]
   currentIds: string[]
   suggestions: SuggestionView[]
+  // Filtre de la liste des demandes à reconduire au retour (query string).
+  retour: string
 }
 
 function sameIds(a: string[], b: string[]): boolean {
@@ -37,8 +39,10 @@ export default function PlacementView({
   seats,
   currentIds,
   suggestions,
+  retour,
 }: Props) {
   const router = useRouter()
+  const urlDemandes = `/admin/demandes${retour ? `?${retour}` : ''}`
   // En déplacement : pré-sélection des places ACTUELLES de la réservation.
   // En émission : suggestion 1 pré-appliquée (si le moteur en a trouvé).
   const [selection, setSelection] = useState<string[]>(
@@ -67,8 +71,8 @@ export default function PlacementView({
   const valider = () => {
     setError(null)
     startTransition(async () => {
-      // Succès → redirect('/admin/demandes') côté serveur, on ne revient pas.
-      const result = await validerPlacement({ bookingId, seatIds: selection, mode })
+      // Succès → redirect('/admin/demandes?…') côté serveur, on ne revient pas.
+      const result = await validerPlacement({ bookingId, seatIds: selection, mode, retour })
       if (result && !result.ok) setError(result.error)
     })
   }
@@ -167,7 +171,7 @@ export default function PlacementView({
             <button
               type="button"
               className={styles.cancel}
-              onClick={() => router.push('/admin/demandes')}
+              onClick={() => router.push(urlDemandes)}
               disabled={pending}
             >
               Annuler le déplacement
