@@ -19,8 +19,11 @@ export type BuilderParams = {
 export const BUILDER_DEFAULTS: Omit<BuilderParams, 'name'> = {
   premierRayon: 900,
   espacement: 45,
-  pitch: 0.95,
-  allee: 2.5,
+  // Largeur angulaire d'un siège. À 900 px de rayon, 1.3° ≈ 20 px d'arc entre
+  // deux centres — assez pour que les pastilles (Ø 18 px) ne se chevauchent
+  // pas au premier rang. Réglable par salle dans « Apparence du plan ».
+  pitch: 1.3,
+  allee: 2.8,
 }
 
 // Géométrie des arcs d'UN côté, de l'axe vers le mur (sans contiguïté — elle

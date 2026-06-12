@@ -64,7 +64,8 @@ export type SeatMapProps = {
   // Mode « gérer les blocages » : autorise aussi le clic sur les sièges bloqués
   // (pour les débloquer). Par défaut, seuls libre/current sont cliquables.
   clickBlocked?: boolean
-  // Mode « gérer les amovibles » : TOUS les sièges sont cliquables.
+  // Mode « gérer les sièges » : tous les sièges NON occupés sont cliquables
+  // (un siège attribué ne se cycle pas).
   clickAll?: boolean
   caption?: string
 }
@@ -126,7 +127,7 @@ export default function SeatMap({
   const box = view ?? geometry.base
 
   const svgRef = useRef<SVGSVGElement | null>(null)
-  const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const dragRef = useRef<{ x: number; y: number; moved: boolean; pointerId: number } | null>(null)
 
   const clampView = (v: Box): Box => {
     const { base } = geometry
@@ -173,8 +174,11 @@ export default function SeatMap({
   }, [geometry.base])
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    dragRef.current = { x: e.clientX, y: e.clientY, moved: false }
-    e.currentTarget.setPointerCapture(e.pointerId)
+    // On NE capture PAS le pointeur ici : sous capture, le `pointerup` d'un
+    // simple clic est redirigé vers le <svg>, donc le `click` synthétisé cible
+    // le <svg> et n'atteint jamais le <g> du siège (clic « mort »). On ne
+    // capture qu'au premier vrai déplacement (pan), voir onPointerMove.
+    dragRef.current = { x: e.clientX, y: e.clientY, moved: false, pointerId: e.pointerId }
   }
 
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -183,6 +187,15 @@ export default function SeatMap({
     const dx = e.clientX - drag.x
     const dy = e.clientY - drag.y
     if (!drag.moved && Math.hypot(dx, dy) < DRAG_SEUIL_PX) return
+    if (!drag.moved) {
+      // Vrai déplacement → on bascule en pan et on capture pour suivre le
+      // pointeur même hors du cadre. Le clic sera neutralisé (onClickCapture).
+      try {
+        e.currentTarget.setPointerCapture(drag.pointerId)
+      } catch {
+        // pointeur déjà relâché : sans gravité.
+      }
+    }
     drag.moved = true
     drag.x = e.clientX
     drag.y = e.clientY
@@ -214,7 +227,7 @@ export default function SeatMap({
 
   const clickable = (seat: SeatView): boolean => {
     if (!onSeatClick) return false
-    if (clickAll) return true
+    if (clickAll) return seat.status !== 'occupe'
     if (seat.status === 'libre') return true
     if (current.has(seat.id)) return true
     if (clickBlocked && seat.status === 'bloque') return true

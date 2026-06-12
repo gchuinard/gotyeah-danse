@@ -106,6 +106,51 @@
   color: #5a544c;
 }
 
+.cycleList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #5a544c;
+}
+
+.cycleList li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.cycleList strong {
+  color: #5c3d2e;
+}
+
+.dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.dotLibre {
+  background: #faf7f2;
+  border: 2px solid #8b5e4a;
+}
+
+.dotBloque {
+  background: #dcd6cd;
+  border: 2px solid #9a948a;
+}
+
+.dotRemovable {
+  background: #faf7f2;
+  border: 2px dashed #8b5e4a;
+}
+
 .field {
   display: flex;
   flex-direction: column;

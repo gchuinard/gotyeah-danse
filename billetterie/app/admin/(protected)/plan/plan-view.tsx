@@ -1,6 +1,11 @@
 'use client'
 
-// Vue plan interactive : polling 5 s (multi-bénévoles) + mode blocages.
+// Vue plan interactive : polling 5 s (multi-bénévoles) + mode édition.
+//
+// Le mode « édition » regroupe blocage et amovible en UN clic qui cycle :
+//   valide → bloqué → amovible → valide
+// (cf. cyclerSiege côté serveur). Le blocage est par représentation,
+// l'amovible est une propriété physique du fauteuil (toutes représentations).
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
 
-import { basculerAmovible, bloquerSieges, debloquerSieges } from './actions'
+import { cyclerSiege, type EtatSiege } from './actions'
 import styles from './plan.module.css'
 
 const POLL_MS = 5000
@@ -26,18 +31,23 @@ type Props = {
   initialSeats: SeatView[]
 }
 
-type Mode = 'consultation' | 'blocages' | 'amovibles'
+type Mode = 'consultation' | 'edition'
+
+// État « de cycle » d'un siège (occupé : hors cycle).
+function etatDe(seat: SeatView): EtatSiege | 'occupe' {
+  if (seat.status === 'occupe') return 'occupe'
+  if (seat.status === 'bloque') return 'bloque'
+  return seat.removable ? 'amovible' : 'valide'
+}
 
 export default function PlanView({ representations, repId, initialSeats }: Props) {
   const router = useRouter()
   const [seats, setSeats] = useState<SeatView[]>(initialSeats)
   const [mode, setMode] = useState<Mode>('consultation')
-  const [selection, setSelection] = useState<string[]>([])
   const [reasonChoice, setReasonChoice] = useState<string>('console_son')
   const [customReason, setCustomReason] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-  const overrideMode = mode === 'blocages'
+  const [, startTransition] = useTransition()
 
   // Re-synchronise quand le serveur renvoie un nouvel état (revalidation
   // après une action) — pattern « adjusting state during render », pas
@@ -97,82 +107,61 @@ export default function PlanView({ representations, repId, initialSeats }: Props
     let libres = 0
     let occupes = 0
     let bloques = 0
+    let amovibles = 0
     for (const s of seats) {
-      if (s.status === 'libre') libres += 1
-      else if (s.status === 'occupe') occupes += 1
-      else bloques += 1
+      if (s.status === 'occupe') occupes += 1
+      else if (s.status === 'bloque') bloques += 1
+      else {
+        libres += 1
+        if (s.removable) amovibles += 1
+      }
     }
-    return { libres, occupes, bloques, capacite: seats.length }
+    return { libres, occupes, bloques, amovibles, capacite: seats.length }
   }, [seats])
 
-  const seatById = useMemo(() => new Map(seats.map((s) => [s.id, s])), [seats])
-  const selectedLibres = selection.filter((id) => seatById.get(id)?.status === 'libre')
-  const selectedBloques = selection.filter((id) => seatById.get(id)?.status === 'bloque')
-
-  const effectiveReason = reasonChoice === 'autre' ? customReason.trim() : reasonChoice
-
-  const toggleSeat = (seat: SeatView) => {
-    setSelection((prev) =>
-      prev.includes(seat.id) ? prev.filter((id) => id !== seat.id) : [...prev, seat.id],
-    )
-  }
+  const effectiveReason =
+    (reasonChoice === 'autre' ? customReason.trim() : reasonChoice) || 'autre'
 
   const quitterMode = () => {
     setMode('consultation')
-    setSelection([])
     setError(null)
   }
 
-  // Mode amovibles : un clic bascule directement le siège (optimiste, l'action
-  // serveur suit ; en cas d'échec, on rétablit).
-  const basculer = (seat: SeatView) => {
-    const cible = !seat.removable
-    setSeats((prev) => prev.map((s) => (s.id === seat.id ? { ...s, removable: cible } : s)))
-    startTransition(async () => {
-      const result = await basculerAmovible({ seatId: seat.id, removable: cible })
-      if (!result.ok) {
-        setError(result.error)
-        setSeats((prev) => prev.map((s) => (s.id === seat.id ? { ...s, removable: !cible } : s)))
-      }
-    })
+  // Applique localement (optimiste) un état de cycle à un siège.
+  const appliquer = (id: string, etat: EtatSiege, reason?: string) => {
+    setSeats((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s
+        if (etat === 'bloque') return { ...s, status: 'bloque', overrideReason: reason }
+        if (etat === 'amovible')
+          return { ...s, status: 'libre', removable: true, overrideReason: undefined }
+        return { ...s, status: 'libre', removable: false, overrideReason: undefined }
+      }),
+    )
   }
 
-  const bloquer = () => {
+  // Un clic = un cran de cycle. Optimiste, puis réconciliation sur la réponse
+  // serveur (qui fait foi : il relit l'état réel en base).
+  const cycler = (seat: SeatView) => {
+    const courant = etatDe(seat)
+    if (courant === 'occupe') return
+    const suivant: EtatSiege =
+      courant === 'valide' ? 'bloque' : courant === 'bloque' ? 'amovible' : 'valide'
+
     setError(null)
+    appliquer(seat.id, suivant, effectiveReason)
     startTransition(async () => {
-      const result = await bloquerSieges({ repId, seatIds: selectedLibres, reason: effectiveReason })
+      const result = await cyclerSiege({ repId, seatId: seat.id, reason: effectiveReason })
       if (!result.ok) {
         setError(result.error)
+        appliquer(seat.id, courant, seat.overrideReason) // rétablit
         return
       }
-      // Mise à jour locale immédiate (la revalidation + le polling suivront).
-      const blockedNow = new Set(selectedLibres)
-      setSeats((prev) =>
-        prev.map((s) =>
-          blockedNow.has(s.id) ? { ...s, status: 'bloque', overrideReason: effectiveReason } : s,
-        ),
-      )
-      setSelection((prev) => prev.filter((id) => !blockedNow.has(id)))
+      appliquer(seat.id, result.state, result.reason)
     })
   }
 
-  const debloquer = () => {
-    setError(null)
-    startTransition(async () => {
-      const result = await debloquerSieges({ repId, seatIds: selectedBloques })
-      if (!result.ok) {
-        setError(result.error)
-        return
-      }
-      const freedNow = new Set(selectedBloques)
-      setSeats((prev) =>
-        prev.map((s) =>
-          freedNow.has(s.id) ? { ...s, status: 'libre', overrideReason: undefined } : s,
-        ),
-      )
-      setSelection((prev) => prev.filter((id) => !freedNow.has(id)))
-    })
-  }
+  const enEdition = mode === 'edition'
 
   return (
     <div className={styles.page}>
@@ -205,6 +194,10 @@ export default function PlanView({ representations, repId, initialSeats }: Props
             <dd>{stats.bloques}</dd>
           </div>
           <div className={styles.stat}>
+            <dt>Amovibles</dt>
+            <dd>{stats.amovibles}</dd>
+          </div>
+          <div className={styles.stat}>
             <dt>Capacité</dt>
             <dd>{stats.capacite}</dd>
           </div>
@@ -215,66 +208,44 @@ export default function PlanView({ representations, repId, initialSeats }: Props
         <div className={styles.mapColumn}>
           <SeatMap
             seats={seats}
-            selectedIds={overrideMode ? selection : undefined}
-            onSeatClick={overrideMode ? toggleSeat : mode === 'amovibles' ? basculer : undefined}
-            clickBlocked={overrideMode}
-            clickAll={mode === 'amovibles'}
+            onSeatClick={enEdition ? cycler : undefined}
+            clickAll={enEdition}
             caption={
-              overrideMode
-                ? 'Mode blocages — cliquez les sièges à bloquer ou débloquer'
-                : mode === 'amovibles'
-                  ? 'Mode amovibles — chaque clic bascule fixe ↔ amovible (pointillés)'
-                  : undefined
+              enEdition
+                ? 'Mode édition — chaque clic : valide → bloqué → amovible → valide'
+                : undefined
             }
           />
         </div>
 
         <aside className={styles.panel}>
           {mode === 'consultation' && (
-            <>
-              <button type="button" className={styles.primary} onClick={() => setMode('blocages')}>
-                Gérer les blocages
-              </button>
-              <button type="button" className={styles.secondary} onClick={() => setMode('amovibles')}>
-                Gérer les amovibles
-              </button>
-            </>
+            <button type="button" className={styles.primary} onClick={() => setMode('edition')}>
+              Gérer les sièges
+            </button>
           )}
 
-          {mode === 'amovibles' && (
+          {mode === 'edition' && (
             <div className={styles.overridePanel}>
-              <h2 className={styles.panelTitle}>Amovibles</h2>
+              <h2 className={styles.panelTitle}>Gérer les sièges</h2>
               <p className={styles.panelHint}>
-                Cliquez un siège pour le basculer fixe ↔ amovible (contour en pointillés).
-                C&apos;est une propriété du fauteuil, commune à toutes les représentations —
-                pour neutraliser des sièges sur UNE représentation, utilisez les blocages.
+                Cliquez un siège pour le faire défiler&nbsp;:
               </p>
-              <p className={styles.panelHint}>
-                Vos bascules sont conservées lors des synchronisations du plan (activation
-                d&apos;une salle, seed) — seule l&apos;arrivée d&apos;un plan entièrement
-                nouveau repart de la config.
-              </p>
-              {error && (
-                <p className={styles.error} role="alert">
-                  {error}
-                </p>
-              )}
-              <div className={styles.panelActions}>
-                <button type="button" className={styles.ghost} onClick={quitterMode}>
-                  Terminer
-                </button>
-              </div>
-            </div>
-          )}
-
-          {mode === 'blocages' && (
-            <div className={styles.overridePanel}>
-              <h2 className={styles.panelTitle}>Blocages</h2>
-              <p className={styles.panelHint}>
-                {selection.length === 0
-                  ? 'Cliquez sur des sièges libres (à bloquer) ou bloqués (à débloquer).'
-                  : `${selection.length} siège${selection.length > 1 ? 's' : ''} sélectionné${selection.length > 1 ? 's' : ''} — ${selectedLibres.length} à bloquer, ${selectedBloques.length} à débloquer.`}
-              </p>
+              <ol className={styles.cycleList}>
+                <li>
+                  <span className={`${styles.dot} ${styles.dotLibre}`} /> <strong>valide</strong> —
+                  disponible à la vente
+                </li>
+                <li>
+                  <span className={`${styles.dot} ${styles.dotBloque}`} /> <strong>bloqué</strong>{' '}
+                  — neutralisé pour CETTE représentation (raison ci-dessous)
+                </li>
+                <li>
+                  <span className={`${styles.dot} ${styles.dotRemovable}`} />{' '}
+                  <strong>amovible</strong> — fauteuil démontable (propriété du siège, TOUTES les
+                  représentations)
+                </li>
+              </ol>
 
               <label className={styles.field}>
                 Raison du blocage
@@ -299,6 +270,11 @@ export default function PlanView({ representations, repId, initialSeats }: Props
                 </label>
               )}
 
+              <p className={styles.panelHint}>
+                Un siège déjà attribué (occupé) ne peut pas être modifié. Les bascules survivent
+                aux synchronisations du plan.
+              </p>
+
               {error && (
                 <p className={styles.error} role="alert">
                   {error}
@@ -306,22 +282,6 @@ export default function PlanView({ representations, repId, initialSeats }: Props
               )}
 
               <div className={styles.panelActions}>
-                <button
-                  type="button"
-                  className={styles.primary}
-                  onClick={bloquer}
-                  disabled={pending || selectedLibres.length === 0 || effectiveReason.length === 0}
-                >
-                  Bloquer la sélection ({selectedLibres.length})
-                </button>
-                <button
-                  type="button"
-                  className={styles.secondary}
-                  onClick={debloquer}
-                  disabled={pending || selectedBloques.length === 0}
-                >
-                  Débloquer la sélection ({selectedBloques.length})
-                </button>
                 <button type="button" className={styles.ghost} onClick={quitterMode}>
                   Terminer
                 </button>
