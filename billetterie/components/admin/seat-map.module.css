@@ -83,10 +83,11 @@
   stroke: #8b5e4a;
 }
 
-/* Zébrure : un rang sur deux. Défini juste après .libre (donc avant
-   .selected / .current / .highlighted, qui doivent rester prioritaires). */
+/* Zébrure : un rang sur deux, sur le CONTOUR du cercle (pas le remplissage),
+   dans une teinte nettement distincte du brun de base. Défini juste après
+   .libre (donc avant .selected / .current / .highlighted, prioritaires). */
 .libreAlt {
-  fill: #ece2d2;
+  stroke: #2f8f7d;
 }
 
 .pmr {

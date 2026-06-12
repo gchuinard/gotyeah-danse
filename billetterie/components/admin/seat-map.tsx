@@ -296,7 +296,7 @@ export default function SeatMap({
                   : seat.status === 'bloque'
                     ? styles.bloque
                     : styles.libre,
-              // Zébrure : un rang sur deux légèrement teinté (lecture des rangs).
+              // Zébrure : un rang sur deux, contour teinté (lecture des rangs).
               seat.status === 'libre' && seat.rowOrder % 2 === 1 ? styles.libreAlt : '',
               seat.removable && seat.status !== 'bloque' ? styles.removable : '',
               current.has(seat.id) ? styles.current : '',
