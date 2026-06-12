@@ -2,12 +2,13 @@
 
 // Server action du mode « gérer les sièges » de la vue plan.
 //
-// Un seul geste (cyclerSiege) fait défiler les trois états d'un siège :
-//   valide → bloqué → amovible → valide
-// Le blocage est PAR représentation (SeatOverride) ; l'amovible est une
-// propriété PHYSIQUE du fauteuil, donc globale (toutes représentations).
-// L'état courant est relu en base dans la transaction pour éviter tout
-// désaccord avec le client (deux bénévoles en parallèle).
+// Un seul geste (cyclerSiege) fait défiler les états d'un siège :
+//   valide → bloqué → réservé PMR → amovible → valide
+// Blocage et « réservé PMR » sont PAR représentation (SeatOverride, motif
+// libre vs motif « pmr ») ; l'amovible est une propriété PHYSIQUE du fauteuil,
+// donc globale (toutes représentations). L'état courant est relu en base dans
+// la transaction pour éviter tout désaccord avec le client (deux bénévoles en
+// parallèle).
 //
 // L'action re-vérifie la session (défense en profondeur après proxy.ts et le
 // layout) puis valide l'entrée avec zod.
@@ -15,6 +16,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { PMR_REASON } from '@/lib/admin/seat-map'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
@@ -24,7 +26,7 @@ const cyclerSchema = z.object({
   reason: z.string().trim().min(1).max(120),
 })
 
-export type EtatSiege = 'valide' | 'bloque' | 'amovible'
+export type EtatSiege = 'valide' | 'bloque' | 'pmr' | 'amovible'
 export type CycleResult =
   | { ok: true; state: EtatSiege; reason?: string }
   | { ok: false; error: string }
@@ -56,14 +58,22 @@ export async function cyclerSiege(input: {
 
         const override = await tx.seatOverride.findUnique({
           where: { representationId_seatId: { representationId: repId, seatId } },
-          select: { id: true },
+          select: { id: true, reason: true },
         })
 
-        // bloqué → amovible : on lève le blocage ET on pose la propriété amovible.
         if (override) {
-          await tx.seatOverride.delete({ where: { id: override.id } })
-          await tx.seat.update({ where: { id: seatId }, data: { removable: true } })
-          return { state: 'amovible' }
+          // réservé PMR → amovible : on lève l'override ET on pose l'amovible.
+          if (override.reason === PMR_REASON) {
+            await tx.seatOverride.delete({ where: { id: override.id } })
+            await tx.seat.update({ where: { id: seatId }, data: { removable: true } })
+            return { state: 'amovible' }
+          }
+          // bloqué → réservé PMR : on change juste le motif de l'override.
+          await tx.seatOverride.update({
+            where: { id: override.id },
+            data: { reason: PMR_REASON },
+          })
+          return { state: 'pmr', reason: PMR_REASON }
         }
         // amovible → valide
         if (seat.removable) {

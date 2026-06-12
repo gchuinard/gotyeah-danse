@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import type { SeatView } from '@/lib/admin/seat-map'
+import { PMR_REASON, type SeatView } from '@/lib/admin/seat-map'
 
 import styles from './seat-map.module.css'
 
@@ -34,6 +34,7 @@ export const REASON_LABELS: Record<string, string> = {
   console_son: 'console son',
   fosse_avant_scene: 'fosse avant-scène',
   amovibles_non_poses: 'amovibles non posés',
+  [PMR_REASON]: 'réservé PMR',
 }
 
 function sectionLabel(id: string): string {
@@ -44,11 +45,17 @@ function reasonLabel(reason: string): string {
   return REASON_LABELS[reason] ?? reason
 }
 
+function isPmr(seat: SeatView): boolean {
+  return seat.status === 'bloque' && seat.overrideReason === PMR_REASON
+}
+
 function seatTitle(seat: SeatView): string {
   let title = `Rang ${seat.rowLabel} place ${seat.number} — ${sectionLabel(seat.section)}`
   if (seat.removable) title += ' — amovible'
   if (seat.status === 'occupe' && seat.occupant) title += ` — ${seat.occupant}`
-  if (seat.status === 'bloque') title += ` — bloqué${seat.overrideReason ? ` (${reasonLabel(seat.overrideReason)})` : ''}`
+  if (isPmr(seat)) title += ' — réservé PMR'
+  else if (seat.status === 'bloque')
+    title += ` — bloqué${seat.overrideReason ? ` (${reasonLabel(seat.overrideReason)})` : ''}`
   return title
 }
 
@@ -279,9 +286,18 @@ export default function SeatMap({
 
           {seats.map((seat) => {
             const isClickable = clickable(seat)
+            const pmr = isPmr(seat)
             const classNames = [
               styles.seat,
-              seat.status === 'occupe' ? styles.occupe : seat.status === 'bloque' ? styles.bloque : styles.libre,
+              seat.status === 'occupe'
+                ? styles.occupe
+                : pmr
+                  ? styles.pmr
+                  : seat.status === 'bloque'
+                    ? styles.bloque
+                    : styles.libre,
+              // Zébrure : un rang sur deux légèrement teinté (lecture des rangs).
+              seat.status === 'libre' && seat.rowOrder % 2 === 1 ? styles.libreAlt : '',
               seat.removable && seat.status !== 'bloque' ? styles.removable : '',
               current.has(seat.id) ? styles.current : '',
               highlighted.has(seat.id) ? styles.highlighted : '',
@@ -296,7 +312,7 @@ export default function SeatMap({
                 <circle className={classNames} cx={seat.x} cy={seat.y} r={SEAT_R}>
                   <title>{seatTitle(seat)}</title>
                 </circle>
-                {seat.status === 'bloque' ? (
+                {seat.status === 'bloque' && !pmr ? (
                   <path
                     className={styles.cross}
                     d={`M ${seat.x - 4.5} ${seat.y - 4.5} l 9 9 M ${seat.x + 4.5} ${seat.y - 4.5} l -9 9`}
@@ -357,6 +373,9 @@ export default function SeatMap({
         </span>
         <span className={styles.legendItem}>
           <span className={`${styles.dot} ${styles.dotBloque}`} /> bloqué
+        </span>
+        <span className={styles.legendItem}>
+          <span className={`${styles.dot} ${styles.dotPmr}`} /> réservé PMR
         </span>
         <span className={styles.legendItem}>
           <span className={`${styles.dot} ${styles.dotRemovable}`} /> amovible

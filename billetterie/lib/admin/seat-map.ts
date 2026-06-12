@@ -8,6 +8,10 @@ import type { PrismaClient } from '@prisma/client'
 
 import type { SeatState } from '@/lib/placement'
 
+// Motif d'override réservé aux sièges « réservé PMR » (personnes à mobilité
+// réduite) — rendu et cycle distincts d'un blocage ordinaire.
+export const PMR_REASON = 'pmr'
+
 export type SeatView = {
   id: string
   x: number

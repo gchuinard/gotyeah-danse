@@ -83,6 +83,17 @@
   stroke: #8b5e4a;
 }
 
+/* Zébrure : un rang sur deux. Défini juste après .libre (donc avant
+   .selected / .current / .highlighted, qui doivent rester prioritaires). */
+.libreAlt {
+  fill: #ece2d2;
+}
+
+.pmr {
+  fill: #cfe0f5;
+  stroke: #3f6fb0;
+}
+
 .occupe {
   fill: #5c3d2e;
   stroke: #5c3d2e;
@@ -217,6 +228,11 @@
 .dotBloque {
   background: #dcd6cd;
   border: 2px solid #9a948a;
+}
+
+.dotPmr {
+  background: #cfe0f5;
+  border: 2px solid #3f6fb0;
 }
 
 .dotRemovable {

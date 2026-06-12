@@ -146,6 +146,11 @@
   border: 2px solid #9a948a;
 }
 
+.dotPmr {
+  background: #cfe0f5;
+  border: 2px solid #3f6fb0;
+}
+
 .dotRemovable {
   background: #faf7f2;
   border: 2px dashed #8b5e4a;

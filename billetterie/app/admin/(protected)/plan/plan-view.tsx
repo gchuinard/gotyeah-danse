@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import SeatMap from '@/components/admin/seat-map'
-import type { SeatView } from '@/lib/admin/seat-map'
+import { PMR_REASON, type SeatView } from '@/lib/admin/seat-map'
 
 import { cyclerSiege, type EtatSiege } from './actions'
 import styles from './plan.module.css'
@@ -36,7 +36,7 @@ type Mode = 'consultation' | 'edition'
 // État « de cycle » d'un siège (occupé : hors cycle).
 function etatDe(seat: SeatView): EtatSiege | 'occupe' {
   if (seat.status === 'occupe') return 'occupe'
-  if (seat.status === 'bloque') return 'bloque'
+  if (seat.status === 'bloque') return seat.overrideReason === PMR_REASON ? 'pmr' : 'bloque'
   return seat.removable ? 'amovible' : 'valide'
 }
 
@@ -107,16 +107,19 @@ export default function PlanView({ representations, repId, initialSeats }: Props
     let libres = 0
     let occupes = 0
     let bloques = 0
+    let pmr = 0
     let amovibles = 0
     for (const s of seats) {
       if (s.status === 'occupe') occupes += 1
-      else if (s.status === 'bloque') bloques += 1
-      else {
+      else if (s.status === 'bloque') {
+        if (s.overrideReason === PMR_REASON) pmr += 1
+        else bloques += 1
+      } else {
         libres += 1
         if (s.removable) amovibles += 1
       }
     }
-    return { libres, occupes, bloques, amovibles, capacite: seats.length }
+    return { libres, occupes, bloques, pmr, amovibles, capacite: seats.length }
   }, [seats])
 
   const effectiveReason =
@@ -132,6 +135,7 @@ export default function PlanView({ representations, repId, initialSeats }: Props
     setSeats((prev) =>
       prev.map((s) => {
         if (s.id !== id) return s
+        if (etat === 'pmr') return { ...s, status: 'bloque', overrideReason: PMR_REASON }
         if (etat === 'bloque') return { ...s, status: 'bloque', overrideReason: reason }
         if (etat === 'amovible')
           return { ...s, status: 'libre', removable: true, overrideReason: undefined }
@@ -146,7 +150,13 @@ export default function PlanView({ representations, repId, initialSeats }: Props
     const courant = etatDe(seat)
     if (courant === 'occupe') return
     const suivant: EtatSiege =
-      courant === 'valide' ? 'bloque' : courant === 'bloque' ? 'amovible' : 'valide'
+      courant === 'valide'
+        ? 'bloque'
+        : courant === 'bloque'
+          ? 'pmr'
+          : courant === 'pmr'
+            ? 'amovible'
+            : 'valide'
 
     setError(null)
     appliquer(seat.id, suivant, effectiveReason)
@@ -194,6 +204,10 @@ export default function PlanView({ representations, repId, initialSeats }: Props
             <dd>{stats.bloques}</dd>
           </div>
           <div className={styles.stat}>
+            <dt>PMR</dt>
+            <dd>{stats.pmr}</dd>
+          </div>
+          <div className={styles.stat}>
             <dt>Amovibles</dt>
             <dd>{stats.amovibles}</dd>
           </div>
@@ -212,7 +226,7 @@ export default function PlanView({ representations, repId, initialSeats }: Props
             clickAll={enEdition}
             caption={
               enEdition
-                ? 'Mode édition — chaque clic : valide → bloqué → amovible → valide'
+                ? 'Mode édition — chaque clic : valide → bloqué → réservé PMR → amovible → valide'
                 : undefined
             }
           />
@@ -239,6 +253,11 @@ export default function PlanView({ representations, repId, initialSeats }: Props
                 <li>
                   <span className={`${styles.dot} ${styles.dotBloque}`} /> <strong>bloqué</strong>{' '}
                   — neutralisé pour CETTE représentation (raison ci-dessous)
+                </li>
+                <li>
+                  <span className={`${styles.dot} ${styles.dotPmr}`} />{' '}
+                  <strong>réservé PMR</strong> — gardé pour une personne à mobilité réduite (cette
+                  représentation)
                 </li>
                 <li>
                   <span className={`${styles.dot} ${styles.dotRemovable}`} />{' '}
