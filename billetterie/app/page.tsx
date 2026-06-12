@@ -7,30 +7,16 @@
 import { prisma } from '@/lib/db'
 import { representationsOuvertes } from '@/lib/jauge'
 
-import DemandeForm, { type RepresentationOption } from './demande/demande-form'
+import DemandeForm from './demande/demande-form'
 import styles from './page.module.css'
 
 export const dynamic = 'force-dynamic'
 
-// Dates affichées en heure de Paris, quel que soit le fuseau du serveur.
-const formatDate = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: 'Europe/Paris',
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-})
-
 export default async function Home() {
+  // Une seule représentation par an : on prend la première ouverte où il
+  // reste de la place — pas de choix proposé à la famille.
   const ouvertes = await representationsOuvertes(prisma)
-  const disponibles: RepresentationOption[] = ouvertes
-    .filter((rep) => rep.jauge > 0)
-    .map((rep) => ({
-      id: rep.id,
-      label: `${rep.title} — ${formatDate.format(rep.startsAt)}`,
-    }))
+  const representationId = ouvertes.find((rep) => rep.jauge > 0)?.id ?? null
 
   return (
     <div className={styles.page}>
@@ -44,8 +30,7 @@ export default async function Home() {
           <h2 className={styles.stepsTitle}>Comment ça marche ?</h2>
           <ol className={styles.stepsList}>
             <li>
-              <strong>Vous demandez vos places</strong> : choisissez une représentation et le
-              nombre de places souhaité.
+              <strong>Vous demandez vos places</strong> : indiquez le nombre de places souhaité.
             </li>
             <li>
               <strong>Vous réglez aux permanences</strong> de l&apos;école (chèque ou espèces)
@@ -59,10 +44,10 @@ export default async function Home() {
         </section>
 
         <section className={styles.formCard} aria-label="Demande de places">
-          {disponibles.length > 0 ? (
-            <DemandeForm representations={disponibles} />
+          {representationId ? (
+            <DemandeForm representationId={representationId} />
           ) : (
-            <p className={styles.complet}>Toutes les représentations sont complètes.</p>
+            <p className={styles.complet}>Les demandes de places ne sont pas ouvertes pour le moment.</p>
           )}
         </section>
       </main>

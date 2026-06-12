@@ -9,28 +9,17 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { representationsOuvertes } from '@/lib/jauge'
 
-import NouvelleDemandeForm, { type RepresentationOption } from './nouvelle-form'
+import NouvelleDemandeForm from './nouvelle-form'
 import styles from './nouvelle.module.css'
 
 export const metadata: Metadata = { title: 'Nouvelle demande — Billetterie admin' }
 
-const formatDate = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: 'Europe/Paris',
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  hour: '2-digit',
-  minute: '2-digit',
-})
-
 export default async function NouvelleDemandePage() {
   await requireAdmin()
 
+  // Une seule représentation par an : on prend la première ouverte.
   const ouvertes = await representationsOuvertes(prisma)
-  const representations: RepresentationOption[] = ouvertes.map((rep) => ({
-    id: rep.id,
-    label: `${rep.title} — ${formatDate.format(rep.startsAt)} (${rep.jauge} place${rep.jauge > 1 ? 's' : ''})`,
-  }))
+  const representationId = ouvertes[0]?.id ?? null
 
   return (
     <main className={styles.page}>
@@ -41,13 +30,13 @@ export default async function NouvelleDemandePage() {
         </Link>
       </div>
 
-      {representations.length === 0 ? (
+      {representationId === null ? (
         <p className={styles.vide}>
           Aucune représentation ouverte. Ouvre une représentation dans{' '}
           <Link href="/admin/representations">la gestion des représentations</Link>.
         </p>
       ) : (
-        <NouvelleDemandeForm representations={representations} />
+        <NouvelleDemandeForm representationId={representationId} />
       )}
     </main>
   )

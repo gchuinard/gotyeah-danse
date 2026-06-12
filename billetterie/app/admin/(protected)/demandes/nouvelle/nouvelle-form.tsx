@@ -11,8 +11,6 @@ import { formatFrPhone } from '@/lib/public/phone'
 import { creerDemandeAdmin, type NouvelleDemandeState } from './actions'
 import styles from './nouvelle.module.css'
 
-export type RepresentationOption = { id: string; label: string }
-
 const initialState: NouvelleDemandeState = { ok: false }
 const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -22,9 +20,10 @@ function FieldError({ messages }: { messages?: string[] }) {
 }
 
 export default function NouvelleDemandeForm({
-  representations,
+  representationId,
 }: {
-  representations: RepresentationOption[]
+  // Une seule représentation par an : transmise en champ caché, pas de choix.
+  representationId: string
 }) {
   const [state, formAction, pending] = useActionState(creerDemandeAdmin, initialState)
   const [phone, setPhone] = useState('')
@@ -32,20 +31,7 @@ export default function NouvelleDemandeForm({
 
   return (
     <form action={formAction} className={styles.form} noValidate>
-      <div className={styles.field}>
-        <label htmlFor="representationId">Représentation</label>
-        <select id="representationId" name="representationId" required defaultValue="">
-          <option value="" disabled>
-            Choisissez une représentation…
-          </option>
-          {representations.map((rep) => (
-            <option key={rep.id} value={rep.id}>
-              {rep.label}
-            </option>
-          ))}
-        </select>
-        <FieldError messages={errors?.representationId} />
-      </div>
+      <input type="hidden" name="representationId" value={representationId} />
 
       <div className={styles.row}>
         <div className={styles.field}>

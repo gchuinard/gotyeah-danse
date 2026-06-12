@@ -11,11 +11,6 @@ import { formatFrPhone } from '@/lib/public/phone'
 import { creerDemande, type DemandeState } from './actions'
 import styles from './demande-form.module.css'
 
-export type RepresentationOption = {
-  id: string
-  label: string
-}
-
 const initialState: DemandeState = { ok: false }
 
 const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -26,9 +21,10 @@ function FieldError({ messages }: { messages?: string[] }) {
 }
 
 export default function DemandeForm({
-  representations,
+  representationId,
 }: {
-  representations: RepresentationOption[]
+  // Une seule représentation par an : pas de choix, transmise en champ caché.
+  representationId: string
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
   const [phone, setPhone] = useState('')
@@ -46,26 +42,7 @@ export default function DemandeForm({
 
   return (
     <form action={formAction} className={styles.form} noValidate>
-      <div className={styles.field}>
-        <label htmlFor="representationId">Représentation</label>
-        <select
-          id="representationId"
-          name="representationId"
-          required
-          defaultValue=""
-          aria-invalid={errors?.representationId ? true : undefined}
-        >
-          <option value="" disabled>
-            Choisissez une représentation…
-          </option>
-          {representations.map((rep) => (
-            <option key={rep.id} value={rep.id}>
-              {rep.label}
-            </option>
-          ))}
-        </select>
-        <FieldError messages={errors?.representationId} />
-      </div>
+      <input type="hidden" name="representationId" value={representationId} />
 
       <div className={styles.field}>
         <label htmlFor="firstName">Prénom</label>

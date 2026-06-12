@@ -90,7 +90,6 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   await requireAdmin()
 
   const params = await searchParams
-  const rep = premier(params.rep)
   const statut = premier(params.statut)
   const q = premier(params.q).trim()
   const ok = premier(params.ok)
@@ -100,12 +99,10 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   // Filtres re-sérialisés (liste blanche) : passés aux actions pour revenir
   // sur la même vue après une mutation.
   const retour = new URLSearchParams()
-  if (rep) retour.set('rep', rep)
   if (statut) retour.set('statut', statut)
   if (q) retour.set('q', q)
 
   const where: Prisma.BookingWhereInput = {
-    ...(rep ? { representationId: rep } : {}),
     ...(statut === 'expiree'
       ? { status: 'pending', expiresAt: { lte: now } }
       : statut
@@ -114,13 +111,13 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
     ...(q ? { name: { contains: q } } : {}),
   }
 
-  const [representations, demandes] = await Promise.all([
-    prisma.representation.findMany({ orderBy: { startsAt: 'asc' } }),
+  // Une seule représentation par an : sert juste de cible à l'export CSV.
+  const [representation, demandes] = await Promise.all([
+    prisma.representation.findFirst({ orderBy: { startsAt: 'asc' }, select: { id: true } }),
     prisma.booking.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        representation: { select: { title: true } },
         tickets: {
           select: {
             seat: {
@@ -143,8 +140,8 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
           <Link className={styles.btnLien} href="/admin/demandes/nouvelle">
             + Nouvelle demande
           </Link>
-          {rep && (
-            <a className={styles.export} href={`/api/admin/export/${rep}`}>
+          {representation && (
+            <a className={styles.export} href={`/api/admin/export/${representation.id}`}>
               Exporter en CSV
             </a>
           )}
@@ -155,17 +152,6 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       {err && <p className={styles.bannerErr}>{err}</p>}
 
       <form method="GET" action="/admin/demandes" className={styles.filtres}>
-        <label>
-          Représentation
-          <select name="rep" defaultValue={rep}>
-            <option value="">Toutes</option>
-            {representations.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.title}
-              </option>
-            ))}
-          </select>
-        </label>
         <label>
           Statut
           <select name="statut" defaultValue={statut}>
@@ -182,7 +168,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
           <input type="search" name="q" defaultValue={q} placeholder="Rechercher un nom…" />
         </label>
         <button type="submit">Filtrer</button>
-        {(rep || statut || q) && <Link href="/admin/demandes">Réinitialiser</Link>}
+        {(statut || q) && <Link href="/admin/demandes">Réinitialiser</Link>}
       </form>
 
       {demandes.length === 0 ? (
@@ -194,7 +180,6 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
               <tr>
                 <th>Nom</th>
                 <th>Contact</th>
-                <th>Représentation</th>
                 <th>Places</th>
                 <th>Statut</th>
                 <th>Créée le</th>
@@ -236,7 +221,6 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                       <span className={styles.contact}>{d.email}</span>
                       <span className={styles.contact}>{d.phone}</span>
                     </td>
-                    <td>{d.representation.title}</td>
                     <td className={styles.nombre}>{d.partySize}</td>
                     <td>
                       <span className={`${styles.badge} ${styles[CLASSES_BADGE[affichage] ?? 'badgeCancelled']}`}>
