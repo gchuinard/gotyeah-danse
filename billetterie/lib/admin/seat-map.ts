@@ -25,6 +25,7 @@ export type SeatView = {
   removable: boolean
   status: 'libre' | 'occupe' | 'bloque'
   occupant?: string // nom de la famille si occupé
+  occupantPmr?: boolean // la famille occupant ce siège est-elle PMR
   overrideReason?: string // si bloqué
 }
 
@@ -38,7 +39,7 @@ export async function getSeatMap(
     }),
     db.ticket.findMany({
       where: { representationId },
-      select: { seatId: true, booking: { select: { name: true } } },
+      select: { seatId: true, booking: { select: { name: true, pmr: true } } },
     }),
     db.seatOverride.findMany({
       where: { representationId },
@@ -46,7 +47,7 @@ export async function getSeatMap(
     }),
   ])
 
-  const occupantBySeat = new Map(tickets.map((t) => [t.seatId, t.booking.name]))
+  const occupantBySeat = new Map(tickets.map((t) => [t.seatId, t.booking]))
   const reasonBySeat = new Map(overrides.map((o) => [o.seatId, o.reason]))
 
   return seats
@@ -67,7 +68,8 @@ export async function getSeatMap(
         score: seat.score,
         removable: seat.removable,
         status: occupant !== undefined ? 'occupe' : overrideReason !== undefined ? 'bloque' : 'libre',
-        ...(occupant !== undefined ? { occupant } : {}),
+        ...(occupant !== undefined ? { occupant: occupant.name } : {}),
+        ...(occupant?.pmr ? { occupantPmr: true } : {}),
         ...(overrideReason !== undefined ? { overrideReason } : {}),
       }
     })

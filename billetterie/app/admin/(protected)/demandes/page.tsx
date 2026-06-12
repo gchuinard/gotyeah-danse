@@ -114,7 +114,16 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       : statut
         ? { status: statut }
         : {}),
-    ...(q ? { name: { contains: q } } : {}),
+    // Recherche sur le nom, l'email OU le téléphone (sous-chaîne).
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q } },
+            { email: { contains: q } },
+            { phone: { contains: q } },
+          ],
+        }
+      : {}),
   }
 
   // Une seule représentation par an : sert juste de cible à l'export CSV.

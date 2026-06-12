@@ -53,6 +53,7 @@ function seatTitle(seat: SeatView): string {
   let title = `Rang ${seat.rowLabel} place ${seat.number} — ${sectionLabel(seat.section)}`
   if (seat.removable) title += ' — amovible'
   if (seat.status === 'occupe' && seat.occupant) title += ` — ${seat.occupant}`
+  if (seat.status === 'occupe' && seat.occupantPmr) title += ' (famille PMR)'
   if (isPmr(seat)) title += ' — réservé PMR'
   else if (seat.status === 'bloque')
     title += ` — bloqué${seat.overrideReason ? ` (${reasonLabel(seat.overrideReason)})` : ''}`
@@ -301,6 +302,8 @@ export default function SeatMap({
                   : seat.status === 'bloque'
                     ? styles.bloque
                     : styles.libre,
+              // Famille PMR déjà placée : intérieur marron, contour bleu.
+              seat.status === 'occupe' && seat.occupantPmr ? styles.occupePmr : '',
               // Zébrure : un rang sur deux, contour teinté (lecture des rangs).
               seat.status === 'libre' && seat.rowOrder % 2 === 1 ? styles.libreAlt : '',
               seat.removable && seat.status !== 'bloque' ? styles.removable : '',

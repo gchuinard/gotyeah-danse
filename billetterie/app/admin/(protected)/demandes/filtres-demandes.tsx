@@ -66,12 +66,12 @@ export function FiltresDemandes({ statut, q }: { statut: string; q: string }) {
         </select>
       </label>
       <label>
-        Nom
+        Recherche
         <input
           type="search"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          placeholder="Rechercher un nom…"
+          placeholder="Nom, email ou téléphone…"
         />
       </label>
 
