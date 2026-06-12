@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
+import { formatFrPhone } from '@/lib/public/phone'
 
 import {
   annoterAction,
@@ -114,13 +115,15 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       : statut
         ? { status: statut }
         : {}),
-    // Recherche sur le nom, l'email OU le téléphone (sous-chaîne).
+    // Recherche sur le nom, l'email OU le téléphone (sous-chaîne). Le numéro
+    // étant stocké formaté ("06 12 34 56 78"), on reformate la partie chiffres
+    // de la recherche au même format → insensible aux espaces ("0612" matche).
     ...(q
       ? {
           OR: [
             { name: { contains: q } },
             { email: { contains: q } },
-            { phone: { contains: q } },
+            { phone: { contains: /\d/.test(q) ? formatFrPhone(q) : q } },
           ],
         }
       : {}),
