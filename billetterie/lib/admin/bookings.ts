@@ -13,6 +13,7 @@ import { Prisma, type PrismaClient } from '@prisma/client'
 
 import { PMR_REASON } from '@/lib/admin/seat-map'
 import { computeJauge } from '@/lib/jauge'
+import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 
 export type BookingAvecBillets = {
   id: string
@@ -271,8 +272,8 @@ export async function changerNombrePlaces(
   bookingId: string,
   nouveauNombre: number,
 ): Promise<{ etaitPlace: boolean }> {
-  if (!Number.isInteger(nouveauNombre) || nouveauNombre < 1 || nouveauNombre > 8) {
-    throw new Error('Le nombre de places doit être compris entre 1 et 8.')
+  if (!Number.isInteger(nouveauNombre) || nouveauNombre < 1 || nouveauNombre > MAX_PARTY_SIZE) {
+    throw new Error(`Le nombre de places doit être compris entre 1 et ${MAX_PARTY_SIZE}.`)
   }
   return db.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } })

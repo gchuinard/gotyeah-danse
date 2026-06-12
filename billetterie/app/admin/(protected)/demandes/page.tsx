@@ -11,6 +11,7 @@ import Link from 'next/link'
 
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
+import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 
 import {
   annoterAction,
@@ -314,7 +315,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                               type="number"
                               name="places"
                               min={1}
-                              max={8}
+                              max={MAX_PARTY_SIZE}
                               defaultValue={d.partySize}
                               aria-label="Nombre de places"
                               className={styles.rectifInput}

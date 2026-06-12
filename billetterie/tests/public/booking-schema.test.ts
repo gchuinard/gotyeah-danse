@@ -137,8 +137,8 @@ describe('bookingSchema — partySize', () => {
     expect(result.success).toBe(false)
   })
 
-  it('refuse 9 places (maximum 8)', () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, partySize: '9' })
+  it('refuse 21 places (maximum 20)', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, partySize: '21' })
     expect(result.success).toBe(false)
   })
 
@@ -152,10 +152,10 @@ describe('bookingSchema — partySize', () => {
     expect(result.success).toBe(false)
   })
 
-  it('coerce les bornes valides depuis des strings (1 et 8)', () => {
+  it('coerce les bornes valides depuis des strings (1 et 20)', () => {
     for (const [brut, attendu] of [
       ['1', 1],
-      ['8', 8],
+      ['20', 20],
     ] as const) {
       const result = bookingSchema.safeParse({ ...demandeValide, partySize: brut })
       expect(result.success).toBe(true)

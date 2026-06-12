@@ -81,9 +81,9 @@ Les **5 invariants**, vérifiés par `tests/placement/invariants.test.ts` :
 2. chaque suggestion contient exactement `partySize` sièges, tous `free` ;
 3. les sièges d'une suggestion forment, par `rowId`, des `indexInRow`
    consécutifs (jamais de trou, jamais de saut de section) ;
-4. une suggestion tient sur UNE rangée, OU est scindée sur exactement
-   2 rangées adjacentes (même section, `rowOrder` ±1) dont les plages
-   d'`indexInRow` se chevauchent ;
+4. une suggestion occupe K rangées (K ≥ 1) de la MÊME section, de `rowOrder`
+   CONSÉCUTIFS, dont les plages d'`indexInRow` partagent au moins une colonne
+   commune — un bloc vertical d'un seul tenant (ex. 6 = 3+3, 15 = 5+5+5) ;
 5. déterminisme : l'ordre du tableau d'entrée ne change pas le résultat.
 
 Et deux exigences transverses : la fonction est **pure** (ne mute jamais son

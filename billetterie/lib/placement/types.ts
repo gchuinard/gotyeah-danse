@@ -31,8 +31,10 @@ export type Suggestion = {
 //  2. chaque suggestion contient exactement partySize sièges, tous free ;
 //  3. les sièges d'une suggestion forment, par rowId, des indexInRow
 //     consécutifs (jamais de trou, jamais de saut de section) ;
-//  4. une suggestion tient sur UNE rangée, OU est scindée sur exactement
-//     2 rangées adjacentes (même section, rowOrder ±1) dont les plages
-//     d'indexInRow se chevauchent (le groupe reste géographiquement groupé) ;
+//  4. une suggestion occupe K rangées (K ≥ 1) de la MÊME section, de rowOrder
+//     CONSÉCUTIFS ; les sièges de chaque rangée sont contigus (cf. 3) ; et
+//     toutes les plages d'indexInRow partagent au moins une colonne commune
+//     (intersection non vide) — le groupe forme un bloc vertical d'un seul
+//     tenant (les uns devant les autres) ;
 //  5. déterminisme : l'ordre du tableau d'entrée ne change pas le résultat.
 export type PlacementFn = (seats: SeatState[], partySize: number) => Suggestion[]

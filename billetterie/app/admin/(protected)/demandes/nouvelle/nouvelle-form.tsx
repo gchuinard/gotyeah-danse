@@ -6,13 +6,13 @@
 
 import { useActionState, useState } from 'react'
 
+import { PARTY_SIZES } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
 import { creerDemandeAdmin, type NouvelleDemandeState } from './actions'
 import styles from './nouvelle.module.css'
 
 const initialState: NouvelleDemandeState = { ok: false }
-const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
 
 function FieldError({ messages }: { messages?: string[] }) {
   if (!messages?.length) return null

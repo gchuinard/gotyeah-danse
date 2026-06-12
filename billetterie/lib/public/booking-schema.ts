@@ -6,6 +6,7 @@
 
 import { z } from 'zod'
 
+import { MAX_PARTY_SIZE } from './limits'
 import { FR_PHONE_RE, formatFrPhone, normalizeFrPhone } from './phone'
 
 export const bookingSchema = z.object({
@@ -43,7 +44,10 @@ export const bookingSchema = z.object({
     .number('Indiquez un nombre de places valide.')
     .int('Le nombre de places doit être un nombre entier.')
     .min(1, 'Demandez au moins 1 place.')
-    .max(8, 'Maximum 8 places par demande. Au-delà, contactez-nous aux permanences.'),
+    .max(
+      MAX_PARTY_SIZE,
+      `Maximum ${MAX_PARTY_SIZE} places par demande. Au-delà, contactez-nous aux permanences.`,
+    ),
 
   // Commentaire libre (demandes particulières). Chaîne vide → undefined.
   notes: z

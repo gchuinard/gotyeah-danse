@@ -53,22 +53,26 @@ function verifieInvariants(seats: SeatState[], partySize: number, suggestions: S
       }
     }
 
-    // Invariant 4 : une seule rangée, OU scission sur exactement 2 rangées
-    // adjacentes (même section, rowOrder ±1) dont les plages d'indexInRow
-    // se chevauchent.
+    // Invariant 4 : K rangées de la MÊME section, rowOrder CONSÉCUTIFS, dont
+    // les plages d'indexInRow partagent une colonne commune (bloc vertical).
     const groupes = [...parRangee.values()]
-    expect(groupes.length).toBeLessThanOrEqual(2)
-    if (groupes.length === 2) {
-      const [a, b] = groupes
-      expect(a[0].section).toBe(b[0].section)
-      expect(Math.abs(a[0].rowOrder - b[0].rowOrder)).toBe(1)
-      const plage = (g: SeatState[]) => {
-        const idx = g.map((s) => s.indexInRow)
-        return [Math.min(...idx), Math.max(...idx)] as const
+    if (groupes.length >= 2) {
+      const sections = new Set(groupes.map((g) => g[0].section))
+      expect(sections.size, 'bloc à cheval sur plusieurs sections').toBe(1)
+
+      const ordres = groupes.map((g) => g[0].rowOrder).sort((x, y) => x - y)
+      for (let i = 1; i < ordres.length; i++) {
+        expect(ordres[i], 'rangées du bloc non consécutives').toBe(ordres[i - 1] + 1)
       }
-      const [minA, maxA] = plage(a)
-      const [minB, maxB] = plage(b)
-      expect(minA <= maxB && minB <= maxA, 'plages d’indexInRow disjointes').toBe(true)
+
+      let lo = -Infinity
+      let hi = Infinity
+      for (const g of groupes) {
+        const idx = g.map((s) => s.indexInRow)
+        lo = Math.max(lo, Math.min(...idx))
+        hi = Math.min(hi, Math.max(...idx))
+      }
+      expect(lo <= hi, 'pas de colonne commune à toutes les rangées du bloc').toBe(true)
     }
   }
 }
@@ -94,7 +98,7 @@ function petiteSalle(): SeatState[] {
   ]
 }
 
-const TAILLES_DE_GROUPE = [1, 2, 3, 4, 5, 6, 7, 8]
+const TAILLES_DE_GROUPE = [1, 2, 3, 4, 5, 6, 7, 8, 12, 20]
 
 // Sanity check de la fixture réelle, indépendant des implémentations.
 describe('fixture salle réelle', () => {
@@ -174,19 +178,18 @@ for (const [nom, meta] of Object.entries(PLACEMENT_IMPLS)) {
         }
       })
 
-      it('groupe plus grand que la plus longue rangée → vide accepté, invariants respectés', () => {
-        // Plus longue rangée de la salle : 45 sièges (rang A, continu).
-        // Une scission sur 2 rangées reste possible pour 46 : on ne force pas
-        // le tableau vide, on vérifie les invariants sur ce qui est retourné.
+      it('grand groupe (46) → bloc multi-rangs ou vide, invariants respectés', () => {
+        // Plus longue rangée : 45 sièges (rang A). 46 passe en bloc multi-rangs
+        // (ex. colonnes centrales sur plusieurs rangs) : on ne force pas le
+        // vide, on vérifie les invariants sur ce qui est retourné.
         const seats = salleReelle()
         verifieInvariants(seats, 46, place(seats, 46))
       })
 
-      it('groupe impossible même en scindant (partySize=80) → aucune suggestion', () => {
-        // 80 sièges ne tiennent sur aucune paire de rangées adjacentes
-        // (maximum : 45 + 18 sur A + B centre) : toute suggestion violerait
-        // le contrat, le résultat DOIT être vide.
-        expect(place(salleReelle(), 80)).toEqual([])
+      it('groupe plus grand que la salle (partySize=755) → aucune suggestion', () => {
+        // 754 sièges au total : 755 ne peut jamais être proposé, le résultat
+        // DOIT être vide.
+        expect(place(salleReelle(), 755)).toEqual([])
       })
     })
 

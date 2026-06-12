@@ -21,9 +21,10 @@ import {
 } from '@/lib/admin/bookings'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
+import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
-const placesSchema = z.coerce.number().int().min(1).max(8)
+const placesSchema = z.coerce.number().int().min(1).max(MAX_PARTY_SIZE)
 const methodeSchema = z.enum(['especes', 'cheque', 'autre'])
 // Montant en euros saisi par le bénévole ("25", "25,50") → centimes.
 const montantSchema = z

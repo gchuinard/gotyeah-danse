@@ -6,14 +6,13 @@
 
 import { useActionState, useState } from 'react'
 
+import { MAX_PARTY_SIZE, PARTY_SIZES } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
 import { creerDemande, type DemandeState } from './actions'
 import styles from './demande-form.module.css'
 
 const initialState: DemandeState = { ok: false }
-
-const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
 
 function FieldError({ messages }: { messages?: string[] }) {
   if (!messages?.length) return null
@@ -121,7 +120,7 @@ export default function DemandeForm({
           ))}
         </select>
         <p className={styles.hint}>
-          Plus de 8 places ? Contactez-nous aux permanences de l&apos;école.
+          Plus de {MAX_PARTY_SIZE} places ? Contactez-nous aux permanences de l&apos;école.
         </p>
         <p className={styles.hint}>
           Nous plaçons chaque famille <strong>ensemble</strong> autant que possible. Selon le
