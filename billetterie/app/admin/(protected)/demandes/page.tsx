@@ -22,6 +22,7 @@ import {
   renvoyerBilletsAction,
 } from './actions'
 import { ConfirmSubmit } from './confirm-submit'
+import { FiltresDemandes } from './filtres-demandes'
 import styles from './demandes.module.css'
 
 export const metadata: Metadata = { title: 'Demandes — Billetterie admin' }
@@ -156,25 +157,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       {ok && <p className={styles.bannerOk}>{ok}</p>}
       {err && <p className={styles.bannerErr}>{err}</p>}
 
-      <form method="GET" action="/admin/demandes" className={styles.filtres}>
-        <label>
-          Statut
-          <select name="statut" defaultValue={statut}>
-            <option value="">Tous</option>
-            <option value="pending">En attente</option>
-            <option value="expiree">Expirées</option>
-            <option value="paid">Payées</option>
-            <option value="placed">Placées</option>
-            <option value="cancelled">Annulées</option>
-          </select>
-        </label>
-        <label>
-          Nom
-          <input type="search" name="q" defaultValue={q} placeholder="Rechercher un nom…" />
-        </label>
-        <button type="submit">Filtrer</button>
-        {(statut || q) && <Link href="/admin/demandes">Réinitialiser</Link>}
-      </form>
+      <FiltresDemandes statut={statut} q={q} />
 
       {demandes.length === 0 ? (
         <p className={styles.vide}>Aucune demande ne correspond à ces critères.</p>

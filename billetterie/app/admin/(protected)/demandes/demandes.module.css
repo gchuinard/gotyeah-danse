@@ -181,6 +181,30 @@
   padding-bottom: 0.45rem;
 }
 
+.filtres button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.filtreReset {
+  background: transparent !important;
+  color: var(--terre-2) !important;
+  text-decoration: underline;
+  padding: 0.4rem 0.4rem !important;
+}
+
+.filtreReset:hover {
+  background: transparent !important;
+  color: var(--terre) !important;
+}
+
+.filtreEtat {
+  align-self: center;
+  font-size: 0.8rem;
+  color: var(--terre-2);
+  font-style: italic;
+}
+
 .vide {
   padding: 2rem 1rem;
   text-align: center;
