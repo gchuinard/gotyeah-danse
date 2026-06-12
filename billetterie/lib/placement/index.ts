@@ -13,8 +13,11 @@ export const PLACEMENT_IMPLS: Record<PlacementImpl, { fn: PlacementFn; implement
   custom: { fn: custom, implemented: customImplemented },
 }
 
+// Le moteur intelligent (custom) est désormais le défaut du placement réel.
+// PLACEMENT_IMPL=baseline permet de revenir explicitement à la baseline
+// (étalon du simulateur).
 export function getPlacement(impl?: PlacementImpl): PlacementFn {
-  const choice = impl ?? (process.env.PLACEMENT_IMPL === 'custom' ? 'custom' : 'baseline')
+  const choice = impl ?? (process.env.PLACEMENT_IMPL === 'baseline' ? 'baseline' : 'custom')
   return PLACEMENT_IMPLS[choice].fn
 }
 

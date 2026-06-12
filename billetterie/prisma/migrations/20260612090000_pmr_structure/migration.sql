@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Booking" ADD COLUMN "pmr" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Booking" ADD COLUMN "pmrCompanions" INTEGER NOT NULL DEFAULT 0;

@@ -33,6 +33,8 @@ export async function creerDemandeAdmin(
     phone: formData.get('phone'),
     partySize: formData.get('partySize'),
     notes: formData.get('notes') ?? undefined,
+    pmr: formData.get('pmr') ?? undefined,
+    pmrCompanions: formData.get('pmrCompanions') ?? undefined,
   })
   if (!parsed.success) {
     return {
@@ -50,6 +52,8 @@ export async function creerDemandeAdmin(
     phone: demande.phone,
     partySize: demande.partySize,
     notes: demande.notes,
+    pmr: demande.pmr,
+    pmrCompanions: demande.pmrCompanions,
   })
   if ('error' in result) {
     return { ok: false, error: result.error }

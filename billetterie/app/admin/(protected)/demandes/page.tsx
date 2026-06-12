@@ -200,7 +200,21 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                 return (
                   <tr key={d.id}>
                     <td>
-                      <span className={styles.nom}>{d.name}</span>
+                      <span className={styles.nom}>
+                        {d.name}
+                        {d.pmr && (
+                          <span
+                            className={styles.pmrTag}
+                            title={
+                              d.pmrCompanions > 0
+                                ? `PMR — ${d.pmrCompanions} place(s) accompagnant à coller`
+                                : 'PMR — sans accompagnant à coller'
+                            }
+                          >
+                            ♿ PMR
+                          </span>
+                        )}
+                      </span>
                       {d.notes && <span className={styles.notes}>{d.notes}</span>}
                       {d.adminNotes && <span className={styles.adminNotes}>📝 {d.adminNotes}</span>}
                       <details className={styles.annoter}>

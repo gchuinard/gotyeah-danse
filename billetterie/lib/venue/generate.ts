@@ -40,16 +40,25 @@ function arcAngles(arc: ArcConfig): number[] {
   return Array.from({ length: seats }, (_, i) => angleStart + i * step)
 }
 
-// Score statique 0-100 : cloche centrée sur les rangs physiquement à ~8 rangs
-// de la scène (ni trop près de l'avant-scène, ni au fond) pondérée 60 %,
-// + centralité angulaire 40 %. Le score dépend du rowOrder PHYSIQUE (0 = scène),
-// pas du lettrage. Point de départ : l'admin peut l'ajuster siège par siège.
+// Score statique 0-100 : cloche centrée sur les rangs physiquement à ~9-10
+// rangs de la scène (ni l'avant-scène, ni le fond) + centralité angulaire.
+// Le score dépend du rowOrder PHYSIQUE (0 = scène), pas du lettrage.
+//
+// Calibrage (revu) : la zone « bons sièges » est élargie (ROW_SPREAD 4.5) pour
+// un dégradé plus doux — sinon trop de rangs tombent à ~0 et deviennent
+// indistinguables pour le moteur de placement ; la centralité pèse un peu plus
+// (les bords d'une salle en éventail restent corrects), avec un PLANCHER pour
+// que les sièges extrêmes gardent une qualité non nulle. L'admin peut toujours
+// ajuster siège par siège. ⚠️ Modifier ceci = relancer le seed / sync:plan
+// pour réécrire Seat.score en base.
 function staticScore(rowOrder: number, angle: number, maxAbsAngle: number): number {
-  const ROW_IDEAL = 7.5 // ~8e rang depuis la scène — la fosse (Y/X) occupe les ordres 0-1
-  const ROW_SPREAD = 3.5
+  const ROW_IDEAL = 9 // ~10e rang depuis la scène — la fosse (Y/X) occupe 0-1
+  const ROW_SPREAD = 4.5
   const bell = Math.exp(-0.5 * ((rowOrder - ROW_IDEAL) / ROW_SPREAD) ** 2)
-  const centrality = maxAbsAngle === 0 ? 1 : 1 - Math.abs(angle) / maxAbsAngle
-  return Math.round(100 * (0.6 * bell + 0.4 * centrality))
+  // Centralité avec plancher 0.2 : un siège de bord n'est pas « nul ».
+  const centralite = maxAbsAngle === 0 ? 1 : 1 - Math.abs(angle) / maxAbsAngle
+  const centrality = 0.2 + 0.8 * centralite
+  return Math.round(100 * (0.55 * bell + 0.45 * centrality))
 }
 
 export function generateSeats(config: VenueConfig): GeneratedSeat[] {

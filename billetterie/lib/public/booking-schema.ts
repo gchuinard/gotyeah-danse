@@ -45,13 +45,29 @@ export const bookingSchema = z.object({
     .min(1, 'Demandez au moins 1 place.')
     .max(8, 'Maximum 8 places par demande. Au-delà, contactez-nous aux permanences.'),
 
-  // Commentaire libre (PMR, demandes particulières). Chaîne vide → undefined.
+  // Commentaire libre (demandes particulières). Chaîne vide → undefined.
   notes: z
     .string()
     .trim()
     .max(500, 'Le commentaire ne peut pas dépasser 500 caractères.')
     .optional()
     .transform((v) => (v ? v : undefined)),
+
+  // Accessibilité PMR : case cochée (la case absente → false).
+  pmr: z
+    .string()
+    .optional()
+    .transform((v) => v === 'on' || v === 'true' || v === '1'),
+
+  // Places accompagnant à coller au PMR (0 = aucune). Borné, remis à 0 si
+  // la demande n'est pas PMR (cf. action).
+  pmrCompanions: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(7)
+    .optional()
+    .transform((v) => v ?? 0),
 
   // Honeypot anti-robots : doit rester vide.
   website: z.string().max(0, 'Champ invalide.').optional(),

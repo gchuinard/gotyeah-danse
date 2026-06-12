@@ -52,6 +52,36 @@
   color: var(--terre-2);
 }
 
+/* Bloc PMR (accessibilité) */
+.pmr {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #ddd2c4;
+  border-radius: 10px;
+  background: #fbf7f1;
+}
+
+.pmrToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--terre);
+  cursor: pointer;
+}
+
+.pmrToggle input {
+  margin-top: 2px;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  accent-color: var(--terre-2);
+}
+
 .fieldError {
   font-size: 0.85rem;
   color: #b3463c;

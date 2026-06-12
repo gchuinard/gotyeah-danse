@@ -26,6 +26,13 @@
   color: #5a544c;
 }
 
+.demandeInfos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
 .notes {
   font-size: 0.9rem;
   color: #5a544c;

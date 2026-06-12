@@ -21,6 +21,8 @@ export type NouvelleDemande = {
   phone: string
   partySize: number
   notes?: string
+  pmr?: boolean
+  pmrCompanions?: number
 }
 
 type Resultat =
@@ -41,6 +43,10 @@ export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<R
       return { ok: false as const, error: 'Plus assez de places disponibles' }
     }
 
+    // Accompagnant : seulement si PMR, et borné au reste du groupe.
+    const pmr = demande.pmr === true
+    const pmrCompanions = pmr ? Math.min(demande.pmrCompanions ?? 0, demande.partySize - 1) : 0
+
     const booking = await tx.booking.create({
       data: {
         representationId: representation.id,
@@ -49,6 +55,8 @@ export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<R
         phone: demande.phone,
         partySize: demande.partySize,
         notes: demande.notes ?? null,
+        pmr,
+        pmrCompanions,
         status: 'pending',
         publicToken: randomUUID(),
         expiresAt: new Date(Date.now() + QUATORZE_JOURS_MS),

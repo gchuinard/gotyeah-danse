@@ -114,7 +114,7 @@ export default async function PlacementPage({
 
   const suggestions = getPlacement()(toSeatStates(seatsForEngine), booking.partySize)
 
-  const isPMR = booking.notes !== null && /pmr|fauteuil|mobilit/i.test(booking.notes)
+  const isPMR = booking.pmr
 
   return (
     <div className={styles.page}>
@@ -128,10 +128,18 @@ export default async function PlacementPage({
             {formatDateHeure.format(booking.representation.startsAt)}
           </p>
         </div>
-        {booking.notes && (
-          <p className={isPMR ? styles.notesPmr : styles.notes}>
-            {isPMR && <strong className={styles.pmrBadge}>PMR</strong>} {booking.notes}
-          </p>
+        {(isPMR || booking.notes) && (
+          <div className={styles.demandeInfos}>
+            {isPMR && (
+              <p className={styles.notesPmr}>
+                <strong className={styles.pmrBadge}>PMR</strong>{' '}
+                {booking.pmrCompanions > 0
+                  ? `${booking.pmrCompanions} place${booking.pmrCompanions > 1 ? 's' : ''} accompagnant à coller juste à côté de l’emplacement PMR.`
+                  : 'Pas de place accompagnant à coller.'}
+              </p>
+            )}
+            {booking.notes && <p className={styles.notes}>{booking.notes}</p>}
+          </div>
         )}
       </header>
 

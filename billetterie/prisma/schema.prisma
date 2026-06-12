@@ -87,7 +87,11 @@ model Booking {
   email     String
   phone     String
   partySize Int
-  notes     String? // PMR, demandes particulières (saisi par la famille)
+  notes     String? // demandes particulières libres (saisi par la famille)
+  // Accessibilité PMR (personne à mobilité réduite) — champ STRUCTURÉ, coché
+  // explicitement par la famille (≠ ancien repérage par mots-clés dans notes).
+  pmr           Boolean @default(false)
+  pmrCompanions Int     @default(0) // places accompagnant à coller au PMR (0 = aucune)
   adminNotes String? // annotations internes bénévoles (n° de chèque, contexte…)
 
   status      String // pending | paid | placed | cancelled | expired

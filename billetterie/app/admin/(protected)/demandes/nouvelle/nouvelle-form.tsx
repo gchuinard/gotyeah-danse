@@ -27,6 +27,7 @@ export default function NouvelleDemandeForm({
 }) {
   const [state, formAction, pending] = useActionState(creerDemandeAdmin, initialState)
   const [phone, setPhone] = useState('')
+  const [pmr, setPmr] = useState(false)
   const errors = state.fieldErrors
 
   return (
@@ -80,9 +81,27 @@ export default function NouvelleDemandeForm({
         <FieldError messages={errors?.partySize} />
       </div>
 
+      <fieldset className={styles.pmr}>
+        <label className={styles.pmrToggle}>
+          <input type="checkbox" name="pmr" checked={pmr} onChange={(e) => setPmr(e.target.checked)} />
+          Personne à mobilité réduite (PMR) dans le groupe
+        </label>
+        {pmr && (
+          <div className={styles.field}>
+            <label htmlFor="pmrCompanions">Places accompagnant à coller à côté</label>
+            <select id="pmrCompanions" name="pmrCompanions" defaultValue="0">
+              <option value="0">Non, pas besoin</option>
+              <option value="1">Oui, 1 place</option>
+              <option value="2">Oui, 2 places</option>
+              <option value="3">Oui, 3 places</option>
+            </select>
+          </div>
+        )}
+      </fieldset>
+
       <div className={styles.field}>
         <label htmlFor="notes">Commentaire (facultatif)</label>
-        <textarea id="notes" name="notes" rows={2} maxLength={500} placeholder="Place PMR, demande particulière…" />
+        <textarea id="notes" name="notes" rows={2} maxLength={500} placeholder="Demande particulière…" />
         <FieldError messages={errors?.notes} />
       </div>
 

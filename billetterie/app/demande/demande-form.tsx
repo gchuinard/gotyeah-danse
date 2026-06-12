@@ -28,6 +28,7 @@ export default function DemandeForm({
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
   const [phone, setPhone] = useState('')
+  const [pmr, setPmr] = useState(false)
 
   // Succès « générique » (cas honeypot) : confirmation sobre, rien de plus.
   if (state.ok) {
@@ -122,8 +123,41 @@ export default function DemandeForm({
         <p className={styles.hint}>
           Plus de 8 places ? Contactez-nous aux permanences de l&apos;école.
         </p>
+        <p className={styles.hint}>
+          Nous plaçons chaque famille <strong>ensemble</strong> autant que possible. Selon le
+          remplissage, il arrive qu&apos;un groupe soit réparti sur deux rangs voisins (les uns
+          devant les autres).
+        </p>
         <FieldError messages={errors?.partySize} />
       </div>
+
+      <fieldset className={styles.pmr}>
+        <label className={styles.pmrToggle}>
+          <input
+            type="checkbox"
+            name="pmr"
+            checked={pmr}
+            onChange={(e) => setPmr(e.target.checked)}
+          />
+          Une personne à mobilité réduite (PMR / fauteuil roulant) fait partie du groupe
+        </label>
+
+        {pmr && (
+          <div className={styles.field}>
+            <label htmlFor="pmrCompanions">Places accompagnant juste à côté de la personne PMR</label>
+            <select id="pmrCompanions" name="pmrCompanions" defaultValue="0">
+              <option value="0">Non, pas besoin</option>
+              <option value="1">Oui, 1 place</option>
+              <option value="2">Oui, 2 places</option>
+              <option value="3">Oui, 3 places</option>
+            </select>
+            <p className={styles.hint}>
+              Ces places seront placées <strong>immédiatement à côté</strong> de l&apos;emplacement
+              PMR. Le reste du groupe est installé au plus près.
+            </p>
+          </div>
+        )}
+      </fieldset>
 
       <div className={styles.field}>
         <label htmlFor="notes">Commentaire (facultatif)</label>
@@ -132,7 +166,7 @@ export default function DemandeForm({
           name="notes"
           rows={3}
           maxLength={500}
-          placeholder="Place PMR, fauteuil roulant, demande particulière…"
+          placeholder="Une demande particulière ? (siège proche d'une sortie, etc.)"
           aria-invalid={errors?.notes ? true : undefined}
         />
         <FieldError messages={errors?.notes} />
