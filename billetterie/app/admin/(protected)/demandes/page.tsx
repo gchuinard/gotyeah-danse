@@ -109,24 +109,30 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   const avecRetour = (base: string) =>
     retourQs ? `${base}${base.includes('?') ? '&' : '?'}retour=${encodeURIComponent(retourQs)}` : base
 
+  // Recherche sur nom / email / téléphone. Les numéros sont stockés tantôt
+  // formatés ("06 14 48 28 90"), tantôt en chiffres bruts : on teste les DEUX
+  // formes de la partie chiffres de la recherche → insensible aux espaces.
+  const phoneDigits = q.replace(/\D/g, '')
+  const rechercheOR: Prisma.BookingWhereInput[] = q
+    ? [
+        { name: { contains: q } },
+        { email: { contains: q } },
+        ...(phoneDigits
+          ? [
+              { phone: { contains: phoneDigits } },
+              { phone: { contains: formatFrPhone(phoneDigits) } },
+            ]
+          : [{ phone: { contains: q } }]),
+      ]
+    : []
+
   const where: Prisma.BookingWhereInput = {
     ...(statut === 'expiree'
       ? { status: 'pending', expiresAt: { lte: now } }
       : statut
         ? { status: statut }
         : {}),
-    // Recherche sur le nom, l'email OU le téléphone (sous-chaîne). Le numéro
-    // étant stocké formaté ("06 12 34 56 78"), on reformate la partie chiffres
-    // de la recherche au même format → insensible aux espaces ("0612" matche).
-    ...(q
-      ? {
-          OR: [
-            { name: { contains: q } },
-            { email: { contains: q } },
-            { phone: { contains: /\d/.test(q) ? formatFrPhone(q) : q } },
-          ],
-        }
-      : {}),
+    ...(rechercheOR.length ? { OR: rechercheOR } : {}),
   }
 
   // Une seule représentation par an : sert juste de cible à l'export CSV.
