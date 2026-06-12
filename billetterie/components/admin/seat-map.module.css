@@ -140,12 +140,18 @@
   filter: drop-shadow(0 0 4px rgba(179, 84, 63, 0.7));
 }
 
-/* Sélection courante : rose poudré rempli, contour épais. */
+/* Sélection courante (placement) : vert vif rempli, contour épais — tranche
+   nettement sur la palette chaude et ne se confond pas avec la suggestion. */
 .selected {
-  fill: #d4a090;
-  stroke: #5c3d2e;
+  fill: #1f9d4f;
+  stroke: #0f5128;
   stroke-width: 4;
   stroke-dasharray: none;
+}
+
+/* Numéro lisible sur le vert de la sélection. */
+.selected + .seatNumber {
+  fill: #ffffff;
 }
 
 /* Places actuelles du booking en mode déplacement : contour bleu-gris. */
@@ -156,9 +162,9 @@
   stroke-dasharray: none;
 }
 
-/* Un siège à la fois actuel ET sélectionné reste lisible : rose + bleu-gris. */
+/* Un siège à la fois actuel ET sélectionné : vert de sélection + contour bleu-gris. */
 .current.selected {
-  fill: #d4a090;
+  fill: #1f9d4f;
   stroke: #5e718a;
 }
 
@@ -242,8 +248,8 @@
 }
 
 .dotSelected {
-  background: #d4a090;
-  border: 2px solid #5c3d2e;
+  background: #1f9d4f;
+  border: 2px solid #0f5128;
 }
 
 .dotHighlighted {
