@@ -130,6 +130,15 @@ export default function PlacementView({
             sélectionné{selection.length > 1 ? 's' : ''}
           </p>
 
+          <button
+            type="button"
+            className={styles.cancel}
+            onClick={() => setSelection([])}
+            disabled={pending || selection.length === 0}
+          >
+            Tout désélectionner
+          </button>
+
           {error && (
             <p className={styles.error} role="alert">
               {error}

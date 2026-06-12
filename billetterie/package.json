@@ -10,6 +10,7 @@
     "test": "vitest run",
     "simulate": "tsx scripts/simulate.ts",
     "cron": "tsx scripts/cron.ts",
+    "demo:demandes": "tsx scripts/demo-demandes.ts",
     "db:seed": "prisma db seed"
   },
   "prisma": {
