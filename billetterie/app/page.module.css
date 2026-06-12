@@ -16,6 +16,13 @@
   gap: 4px;
 }
 
+.logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
 .title {
   font-size: 1.5rem;
   font-weight: 700;

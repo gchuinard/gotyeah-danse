@@ -2,10 +2,12 @@
 
 // Édition d'une demande EN ATTENTE par le demandeur (places, PMR, commentaire,
 // coordonnées) + annulation. Le token de la page fait office de clé d'accès.
+// Après enregistrement : récapitulatif de CE qui a changé (avant → après).
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
@@ -23,6 +25,15 @@ type Props = {
   maxPlaces: number // jauge restante + places actuelles
 }
 
+type Snapshot = {
+  name: string
+  phone: string
+  partySize: number
+  pmr: boolean
+  pmrCompanions: number
+  notes: string
+}
+
 export default function ModifierForm(props: Props) {
   const router = useRouter()
   const [name, setName] = useState(props.name)
@@ -33,9 +44,19 @@ export default function ModifierForm(props: Props) {
   const [notes, setNotes] = useState(props.notes)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [ok, setOk] = useState(false)
+  const [changements, setChangements] = useState<string[] | null>(null)
+  const [confirmAnnulation, setConfirmAnnulation] = useState(false)
 
-  // Plafond de places = jauge restante (places actuelles comprises), borné.
+  // Valeurs de référence pour le « avant → après » (mises à jour à chaque save).
+  const reference = useRef<Snapshot>({
+    name: props.name,
+    phone: props.phone,
+    partySize: props.partySize,
+    pmr: props.pmr,
+    pmrCompanions: props.pmrCompanions,
+    notes: props.notes,
+  })
+
   const plafond = Math.min(MAX_PARTY_SIZE, Math.max(1, props.maxPlaces))
   const places = Array.from({ length: plafond }, (_, i) => i + 1)
   const maxAccompagnants = Math.min(3, partySize - 1)
@@ -43,27 +64,50 @@ export default function ModifierForm(props: Props) {
   const enregistrer = async () => {
     setPending(true)
     setError(null)
-    setOk(false)
-    const res = await modifierDemande({
-      token: props.token,
-      name,
+    setChangements(null)
+    const apres: Snapshot = {
+      name: name.trim(),
       phone,
       partySize,
-      notes: notes.trim() || undefined,
       pmr,
-      pmrCompanions: accompagnants,
+      pmrCompanions: pmr ? Math.min(accompagnants, partySize - 1) : 0,
+      notes: notes.trim(),
+    }
+    const res = await modifierDemande({
+      token: props.token,
+      name: apres.name,
+      phone: apres.phone,
+      partySize: apres.partySize,
+      notes: apres.notes || undefined,
+      pmr: apres.pmr,
+      pmrCompanions: apres.pmrCompanions,
     })
     setPending(false)
     if (!res.ok) {
       setError(res.error)
       return
     }
-    setOk(true)
+
+    // Diff lisible avant → après.
+    const av = reference.current
+    const lignes: string[] = []
+    if (av.name !== apres.name) lignes.push(`Nom : « ${av.name} » → « ${apres.name} »`)
+    if (av.phone !== apres.phone) lignes.push(`Téléphone : « ${av.phone} » → « ${apres.phone} »`)
+    if (av.partySize !== apres.partySize)
+      lignes.push(`Nombre de places : ${av.partySize} → ${apres.partySize}`)
+    if (av.pmr !== apres.pmr) lignes.push(`PMR : ${av.pmr ? 'oui' : 'non'} → ${apres.pmr ? 'oui' : 'non'}`)
+    if (av.pmrCompanions !== apres.pmrCompanions)
+      lignes.push(`Accompagnant : ${av.pmrCompanions} → ${apres.pmrCompanions} place(s)`)
+    if (av.notes !== apres.notes)
+      lignes.push(`Commentaire : « ${av.notes || '—'} » → « ${apres.notes || '—'} »`)
+
+    reference.current = apres
+    setChangements(lignes)
     router.refresh()
   }
 
   const annuler = async () => {
-    if (!window.confirm('Annuler définitivement votre demande de places ?')) return
+    setConfirmAnnulation(false)
     setPending(true)
     setError(null)
     const res = await annulerDemande(props.token)
@@ -139,10 +183,21 @@ export default function ModifierForm(props: Props) {
         <textarea id="m-notes" rows={3} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
-      {ok && (
-        <p className={styles.confirmation} role="status">
-          Demande mise à jour ✓
-        </p>
+      {changements !== null && (
+        <div className={styles.confirmation} role="status">
+          {changements.length === 0 ? (
+            <span>Aucune modification à enregistrer.</span>
+          ) : (
+            <>
+              <strong>Demande mise à jour ✓</strong>
+              <ul className={styles.diff}>
+                {changements.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
       {error && (
         <p className={styles.formError} role="alert">
@@ -153,9 +208,25 @@ export default function ModifierForm(props: Props) {
       <button type="button" className={styles.submit} onClick={enregistrer} disabled={pending}>
         {pending ? 'Enregistrement…' : 'Enregistrer les modifications'}
       </button>
-      <button type="button" className={styles.annuler} onClick={annuler} disabled={pending}>
+      <button
+        type="button"
+        className={styles.annuler}
+        onClick={() => setConfirmAnnulation(true)}
+        disabled={pending}
+      >
         Annuler ma demande
       </button>
+
+      <ConfirmDialog
+        open={confirmAnnulation}
+        title="Annuler la demande"
+        message="Annuler définitivement votre demande de places ? Cette action est irréversible."
+        confirmLabel="Oui, annuler"
+        cancelLabel="Revenir"
+        danger
+        onCancel={() => setConfirmAnnulation(false)}
+        onConfirm={annuler}
+      />
     </div>
   )
 }

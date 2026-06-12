@@ -52,6 +52,18 @@
   color: var(--terre-2);
 }
 
+/* Récap « avant → après » d'une modification. */
+.diff {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.diff li {
+  margin-bottom: 0.15rem;
+}
+
 /* Lien-bouton discret (« identifiant oublié ? »). */
 .lien {
   font: inherit;

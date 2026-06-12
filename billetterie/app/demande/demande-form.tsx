@@ -26,6 +26,11 @@ export default function DemandeForm({
   representationId: string
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
+  // Champs CONTRÔLÉS : une erreur de validation ne vide pas la saisie.
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [notes, setNotes] = useState('')
   const [phone, setPhone] = useState('')
   const [partySize, setPartySize] = useState(1)
   const [pmr, setPmr] = useState(false)
@@ -59,6 +64,8 @@ export default function DemandeForm({
           autoComplete="given-name"
           maxLength={60}
           required
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
           aria-invalid={errors?.firstName ? true : undefined}
         />
         <FieldError messages={errors?.firstName} />
@@ -73,6 +80,8 @@ export default function DemandeForm({
           autoComplete="family-name"
           maxLength={60}
           required
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
           aria-invalid={errors?.lastName ? true : undefined}
         />
         <FieldError messages={errors?.lastName} />
@@ -87,6 +96,8 @@ export default function DemandeForm({
           autoComplete="email"
           maxLength={200}
           required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           aria-invalid={errors?.email ? true : undefined}
         />
         <FieldError messages={errors?.email} />
@@ -189,6 +200,8 @@ export default function DemandeForm({
           rows={3}
           maxLength={500}
           placeholder="Une demande particulière ? (siège proche d'une sortie, etc.)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
           aria-invalid={errors?.notes ? true : undefined}
         />
         <FieldError messages={errors?.notes} />

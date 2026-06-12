@@ -17,6 +17,7 @@ export function codeDemande(publicToken: string): string {
 }
 
 // Normalise une saisie utilisateur (majuscules, sans espaces/séparateurs).
+// PAS de troncature : un code trop long ne doit PAS matcher (égalité stricte).
 export function normaliserCode(saisie: string): string {
-  return saisie.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  return saisie.toUpperCase().replace(/[^A-Z0-9]/g, '')
 }

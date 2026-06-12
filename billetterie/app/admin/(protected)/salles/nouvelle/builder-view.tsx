@@ -10,6 +10,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import SeatMap from '@/components/admin/seat-map'
 import type { SeatView } from '@/lib/admin/seat-map'
 import { BUILDER_DEFAULTS, buildVenueConfig, type RowGeometry } from '@/lib/venue/build'
@@ -245,6 +246,7 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
   const [showGuides, setShowGuides] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, startSaving] = useTransition()
+  const [confirmBergerac, setConfirmBergerac] = useState(false)
 
   const lignes = useMemo(() => analysePlaceNotation(notation), [notation])
   const valides = useMemo(
@@ -453,16 +455,18 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
     URL.revokeObjectURL(url)
   }
 
-  const chargerBergerac = () => {
-    if (
-      notation.trim() !== EXEMPLE.trim() &&
-      notation.trim() !== '' &&
-      !window.confirm('Remplacer le relevé actuel par celui du Centre Culturel de Bergerac ?')
-    ) {
-      return
-    }
+  const appliquerBergerac = () => {
     setNotation(EXEMPLE_BERGERAC)
     if (nom === 'Ma salle') setNom('Centre Culturel (variante)')
+  }
+
+  const chargerBergerac = () => {
+    // Relevé non vide et différent de l'exemple → on confirme avant d'écraser.
+    if (notation.trim() !== EXEMPLE.trim() && notation.trim() !== '') {
+      setConfirmBergerac(true)
+      return
+    }
+    appliquerBergerac()
   }
 
   return (
@@ -733,6 +737,19 @@ export default function BuilderView({ initial }: { initial?: BuilderInitial }) {
           )}
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirmBergerac}
+        title="Remplacer le relevé"
+        message="Remplacer le relevé actuel par celui du Centre Culturel de Bergerac ? Votre saisie sera écrasée."
+        confirmLabel="Remplacer"
+        danger
+        onCancel={() => setConfirmBergerac(false)}
+        onConfirm={() => {
+          setConfirmBergerac(false)
+          appliquerBergerac()
+        }}
+      />
     </main>
   )
 }

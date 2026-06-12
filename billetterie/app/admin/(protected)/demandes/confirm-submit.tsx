@@ -1,8 +1,11 @@
 'use client'
 
-// Bouton de soumission avec confirmation JS native — composant client
-// minimal. Sans JS, le formulaire se soumet sans confirmation (acceptable :
-// l'admin est derrière login + proxy).
+// Bouton de soumission avec confirmation aux couleurs du site (ConfirmDialog).
+// Au clic : ouvre la boîte ; à la confirmation : soumet le formulaire parent.
+
+import { useRef, useState } from 'react'
+
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 export function ConfirmSubmit({
   message,
@@ -13,15 +16,26 @@ export function ConfirmSubmit({
   className?: string
   children: React.ReactNode
 }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLButtonElement>(null)
+
   return (
-    <button
-      type="submit"
-      className={className}
-      onClick={(event) => {
-        if (!window.confirm(message)) event.preventDefault()
-      }}
-    >
-      {children}
-    </button>
+    <>
+      <button ref={ref} type="button" className={className} onClick={() => setOpen(true)}>
+        {children}
+      </button>
+      <ConfirmDialog
+        open={open}
+        title="Confirmer"
+        message={message}
+        confirmLabel="Confirmer"
+        danger
+        onCancel={() => setOpen(false)}
+        onConfirm={() => {
+          setOpen(false)
+          ref.current?.form?.requestSubmit()
+        }}
+      />
+    </>
   )
 }

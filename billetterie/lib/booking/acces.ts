@@ -19,7 +19,8 @@ export async function trouverDemandeParCode(
 ): Promise<AccesResultat> {
   const email = emailRaw.trim().toLowerCase()
   const code = normaliserCode(codeRaw)
-  if (!email || code.length < 6) return { type: 'introuvable' }
+  // Égalité STRICTE ensuite : un code trop court/long ne matchera pas.
+  if (!email || !code) return { type: 'introuvable' }
 
   const bookings = await prisma.booking.findMany({
     where: { email, status: { in: ['pending', 'paid', 'placed'] } },

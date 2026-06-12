@@ -15,6 +15,10 @@ export default function AccesForm() {
   const [state, formAction, pending] = useActionState(accederDemande, initialState)
   const [oubli, setOubli] = useState(false)
   const [renvoi, renvoiAction, renvoiPending] = useActionState(renvoyerIdentifiant, initialState)
+  // Champs CONTRÔLÉS : une erreur (mauvais code/email) ne vide pas la saisie.
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [renvoiEmail, setRenvoiEmail] = useState('')
 
   return (
     <div>
@@ -27,7 +31,16 @@ export default function AccesForm() {
 
         <div className={styles.field}>
           <label htmlFor="acces-email">Email</label>
-          <input id="acces-email" name="email" type="email" autoComplete="email" maxLength={200} required />
+          <input
+            id="acces-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            maxLength={200}
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
 
         <div className={styles.field}>
@@ -39,8 +52,10 @@ export default function AccesForm() {
             inputMode="text"
             autoCapitalize="characters"
             placeholder="ex. AB3CDE"
-            maxLength={8}
+            maxLength={6}
             required
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
             style={{ textTransform: 'uppercase', letterSpacing: '2px' }}
           />
         </div>
@@ -67,7 +82,16 @@ export default function AccesForm() {
           </p>
           <div className={styles.field}>
             <label htmlFor="renvoi-email">Email</label>
-            <input id="renvoi-email" name="email" type="email" autoComplete="email" maxLength={200} required />
+            <input
+              id="renvoi-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              maxLength={200}
+              required
+              value={renvoiEmail}
+              onChange={(e) => setRenvoiEmail(e.target.value)}
+            />
           </div>
           {renvoi.renvoye && (
             <p className={styles.confirmation} role="status">

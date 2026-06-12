@@ -23,6 +23,8 @@ export default async function Home() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.logo} src="/logo-desha-moulin.png" alt="École de danse Desha-Moulin" width={88} height={88} />
         <h1 className={styles.title}>Billetterie — Spectacle de fin d&apos;année</h1>
         <p className={styles.subtitle}>École de danse Desha-Moulin</p>
       </header>
