@@ -44,8 +44,10 @@ export default function ModifierForm(props: Props) {
   const [notes, setNotes] = useState(props.notes)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [changements, setChangements] = useState<string[] | null>(null)
-  const [recapOuvert, setRecapOuvert] = useState(false)
+  const [changements, setChangements] = useState<string[]>([])
+  const [apresEnAttente, setApresEnAttente] = useState<Snapshot | null>(null)
+  const [confirmModif, setConfirmModif] = useState(false)
+  const [enregistre, setEnregistre] = useState(false)
   const [confirmAnnulation, setConfirmAnnulation] = useState(false)
 
   // Valeurs de référence pour le « avant → après » (mises à jour à chaque save).
@@ -62,10 +64,11 @@ export default function ModifierForm(props: Props) {
   const places = Array.from({ length: plafond }, (_, i) => i + 1)
   const maxAccompagnants = Math.min(3, partySize - 1)
 
-  const enregistrer = async () => {
-    setPending(true)
+  // Clic « Enregistrer » → calcule le avant → après et OUVRE la popup de
+  // CONFIRMATION (rien n'est encore enregistré).
+  const preparer = () => {
     setError(null)
-    setChangements(null)
+    setEnregistre(false)
     const apres: Snapshot = {
       name: name.trim(),
       phone,
@@ -74,6 +77,30 @@ export default function ModifierForm(props: Props) {
       pmrCompanions: pmr ? Math.min(accompagnants, partySize - 1) : 0,
       notes: notes.trim(),
     }
+    const av = reference.current
+    const lignes: string[] = []
+    if (av.name !== apres.name) lignes.push(`Nom : « ${av.name} » → « ${apres.name} »`)
+    if (av.phone !== apres.phone) lignes.push(`Téléphone : « ${av.phone} » → « ${apres.phone} »`)
+    if (av.partySize !== apres.partySize)
+      lignes.push(`Nombre de places : ${av.partySize} → ${apres.partySize}`)
+    if (av.pmr !== apres.pmr) lignes.push(`PMR : ${av.pmr ? 'oui' : 'non'} → ${apres.pmr ? 'oui' : 'non'}`)
+    if (av.pmrCompanions !== apres.pmrCompanions)
+      lignes.push(`Accompagnant : ${av.pmrCompanions} → ${apres.pmrCompanions} place(s)`)
+    if (av.notes !== apres.notes)
+      lignes.push(`Commentaire : « ${av.notes || '—'} » → « ${apres.notes || '—'} »`)
+
+    setChangements(lignes)
+    setApresEnAttente(apres)
+    setConfirmModif(true)
+  }
+
+  // Confirmation → applique réellement la modification.
+  const appliquer = async () => {
+    if (!apresEnAttente) return
+    const apres = apresEnAttente
+    setConfirmModif(false)
+    setPending(true)
+    setError(null)
     const res = await modifierDemande({
       token: props.token,
       name: apres.name,
@@ -88,23 +115,8 @@ export default function ModifierForm(props: Props) {
       setError(res.error)
       return
     }
-
-    // Diff lisible avant → après.
-    const av = reference.current
-    const lignes: string[] = []
-    if (av.name !== apres.name) lignes.push(`Nom : « ${av.name} » → « ${apres.name} »`)
-    if (av.phone !== apres.phone) lignes.push(`Téléphone : « ${av.phone} » → « ${apres.phone} »`)
-    if (av.partySize !== apres.partySize)
-      lignes.push(`Nombre de places : ${av.partySize} → ${apres.partySize}`)
-    if (av.pmr !== apres.pmr) lignes.push(`PMR : ${av.pmr ? 'oui' : 'non'} → ${apres.pmr ? 'oui' : 'non'}`)
-    if (av.pmrCompanions !== apres.pmrCompanions)
-      lignes.push(`Accompagnant : ${av.pmrCompanions} → ${apres.pmrCompanions} place(s)`)
-    if (av.notes !== apres.notes)
-      lignes.push(`Commentaire : « ${av.notes || '—'} » → « ${apres.notes || '—'} »`)
-
     reference.current = apres
-    setChangements(lignes)
-    setRecapOuvert(true)
+    setEnregistre(true)
     router.refresh()
   }
 
@@ -185,13 +197,18 @@ export default function ModifierForm(props: Props) {
         <textarea id="m-notes" rows={3} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
+      {enregistre && (
+        <p className={styles.confirmation} role="status">
+          Modifications enregistrées ✓
+        </p>
+      )}
       {error && (
         <p className={styles.formError} role="alert">
           {error}
         </p>
       )}
 
-      <button type="button" className={styles.submit} onClick={enregistrer} disabled={pending}>
+      <button type="button" className={styles.submit} onClick={preparer} disabled={pending}>
         {pending ? 'Enregistrement…' : 'Enregistrer les modifications'}
       </button>
       <button
@@ -214,16 +231,14 @@ export default function ModifierForm(props: Props) {
         onConfirm={annuler}
       />
 
-      {/* Récap des modifications, en popup. */}
+      {/* Popup de CONFIRMATION : montre le avant → après avant d'enregistrer. */}
       <ConfirmDialog
-        open={recapOuvert}
-        hideCancel
-        confirmLabel="Fermer"
-        title={changements && changements.length > 0 ? 'Demande mise à jour ✓' : 'Aucune modification'}
+        open={confirmModif}
+        title={changements.length > 0 ? 'Confirmer les modifications' : 'Aucune modification'}
         message={
-          changements && changements.length > 0 ? (
+          changements.length > 0 ? (
             <>
-              <p style={{ margin: '0 0 0.5rem' }}>Voici ce qui a changé :</p>
+              <p style={{ margin: '0 0 0.5rem' }}>Vous allez modifier :</p>
               <ul className={styles.diff}>
                 {changements.map((c, i) => (
                   <li key={i}>{c}</li>
@@ -234,8 +249,11 @@ export default function ModifierForm(props: Props) {
             'Aucun champ n’a été modifié.'
           )
         }
-        onCancel={() => setRecapOuvert(false)}
-        onConfirm={() => setRecapOuvert(false)}
+        confirmLabel={changements.length > 0 ? 'Confirmer' : 'Fermer'}
+        cancelLabel="Annuler"
+        hideCancel={changements.length === 0}
+        onCancel={() => setConfirmModif(false)}
+        onConfirm={changements.length > 0 ? appliquer : () => setConfirmModif(false)}
       />
     </div>
   )
