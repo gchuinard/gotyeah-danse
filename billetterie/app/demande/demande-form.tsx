@@ -27,7 +27,13 @@ export default function DemandeForm({
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
   const [phone, setPhone] = useState('')
+  const [partySize, setPartySize] = useState(1)
   const [pmr, setPmr] = useState(false)
+  const [accompagnants, setAccompagnants] = useState(0)
+
+  // Un accompagnant occupe une place du groupe (en plus de la personne PMR) :
+  // le nb d'accompagnants ne peut pas dépasser partySize − 1.
+  const maxAccompagnants = Math.min(3, partySize - 1)
 
   // Succès « générique » (cas honeypot) : confirmation sobre, rien de plus.
   if (state.ok) {
@@ -109,9 +115,15 @@ export default function DemandeForm({
         <select
           id="partySize"
           name="partySize"
-          defaultValue="1"
+          value={partySize}
           required
           aria-invalid={errors?.partySize ? true : undefined}
+          onChange={(e) => {
+            const n = Number(e.target.value)
+            setPartySize(n)
+            // Si on réduit les places, on ramène les accompagnants dans la limite.
+            setAccompagnants((a) => Math.min(a, Math.max(0, n - 1)))
+          }}
         >
           {PARTY_SIZES.map((n) => (
             <option key={n} value={n}>
@@ -144,12 +156,23 @@ export default function DemandeForm({
         {pmr && (
           <div className={styles.field}>
             <label htmlFor="pmrCompanions">Places accompagnant juste à côté de la personne PMR</label>
-            <select id="pmrCompanions" name="pmrCompanions" defaultValue="0">
-              <option value="0">Non, pas besoin</option>
-              <option value="1">Oui, 1 place</option>
-              <option value="2">Oui, 2 places</option>
-              <option value="3">Oui, 3 places</option>
+            <select
+              id="pmrCompanions"
+              name="pmrCompanions"
+              value={accompagnants}
+              onChange={(e) => setAccompagnants(Number(e.target.value))}
+            >
+              {[0, 1, 2, 3].map((n) => (
+                <option key={n} value={n} disabled={n > maxAccompagnants}>
+                  {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
+                  {n > maxAccompagnants ? ` — il faut au moins ${n + 1} places` : ''}
+                </option>
+              ))}
             </select>
+            <p className={styles.hint}>
+              Chaque accompagnant occupe une de vos places (en plus de la personne PMR). Pour en
+              ajouter, augmentez d&apos;abord le <strong>nombre de places</strong> ci-dessus.
+            </p>
             <p className={styles.hint}>
               Ces places seront placées <strong>immédiatement à côté</strong> de l&apos;emplacement
               PMR. Le reste du groupe est installé au plus près.

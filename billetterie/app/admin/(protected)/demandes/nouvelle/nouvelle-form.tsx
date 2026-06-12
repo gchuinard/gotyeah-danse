@@ -27,7 +27,10 @@ export default function NouvelleDemandeForm({
 }) {
   const [state, formAction, pending] = useActionState(creerDemandeAdmin, initialState)
   const [phone, setPhone] = useState('')
+  const [partySize, setPartySize] = useState(1)
   const [pmr, setPmr] = useState(false)
+  const [accompagnants, setAccompagnants] = useState(0)
+  const maxAccompagnants = Math.min(3, partySize - 1)
   const errors = state.fieldErrors
 
   return (
@@ -71,7 +74,17 @@ export default function NouvelleDemandeForm({
 
       <div className={styles.field}>
         <label htmlFor="partySize">Nombre de places</label>
-        <select id="partySize" name="partySize" defaultValue="1" required>
+        <select
+          id="partySize"
+          name="partySize"
+          value={partySize}
+          required
+          onChange={(e) => {
+            const n = Number(e.target.value)
+            setPartySize(n)
+            setAccompagnants((a) => Math.min(a, Math.max(0, n - 1)))
+          }}
+        >
           {PARTY_SIZES.map((n) => (
             <option key={n} value={n}>
               {n} {n > 1 ? 'places' : 'place'}
@@ -89,11 +102,18 @@ export default function NouvelleDemandeForm({
         {pmr && (
           <div className={styles.field}>
             <label htmlFor="pmrCompanions">Places accompagnant à coller à côté</label>
-            <select id="pmrCompanions" name="pmrCompanions" defaultValue="0">
-              <option value="0">Non, pas besoin</option>
-              <option value="1">Oui, 1 place</option>
-              <option value="2">Oui, 2 places</option>
-              <option value="3">Oui, 3 places</option>
+            <select
+              id="pmrCompanions"
+              name="pmrCompanions"
+              value={accompagnants}
+              onChange={(e) => setAccompagnants(Number(e.target.value))}
+            >
+              {[0, 1, 2, 3].map((n) => (
+                <option key={n} value={n} disabled={n > maxAccompagnants}>
+                  {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
+                  {n > maxAccompagnants ? ` — min. ${n + 1} places` : ''}
+                </option>
+              ))}
             </select>
           </div>
         )}
