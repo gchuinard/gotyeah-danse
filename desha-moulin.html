@@ -73,16 +73,13 @@
 </script>
 
 <link rel="preload" href="/style.css?v=9" as="style">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
 <!-- ANNONCE_START -->
-<div class="annonce annonce-large">
-  <div class="annonce-titre">✨ Le spectacle de fin d'année aura lieu le samedi 27 juin 2026 ✨</div>
-  <div class="annonce-dates">
-    <!-- <span class="annonce-sep">·</span> -->
-  </div>
+<div class="annonce">
+  ✦ &nbsp; Spectacle de danse — samedi 27 juin 2026 à 20h30 au Centre Culturel de Bergerac &nbsp; ✦
 </div>
 <!-- ANNONCE_END -->
 
@@ -95,6 +92,7 @@
     </picture>
   </a>
   <ul class="nav-links">
+    <li><a href="#spectacle">Spectacle</a></li>
     <li><a href="#ecole">L'école</a></li>
     <li><a href="#cours">Cours</a></li>
     <li><a href="#planning">Planning</a></li>
@@ -109,6 +107,7 @@
 </nav>
 
 <div class="mobile-menu" id="mobile-menu">
+  <a href="#spectacle" data-action="close-menu">Spectacle</a>
   <a href="#ecole" data-action="close-menu">L'école</a>
   <a href="#cours" data-action="close-menu">Cours</a>
   <a href="#planning" data-action="close-menu">Planning</a>
@@ -183,6 +182,43 @@
     <div><div class="stat-text-label">Professeures diplômées</div><div class="stat-text-sub">ESEC — Pascale Moulin &amp; DE — Aurore Esteve Largeau</div></div>
   </div>
 </div>
+
+<!-- ── SPECTACLE ── -->
+<section class="spectacle s" id="spectacle">
+  <div class="spectacle-inner">
+    <div class="spectacle-text reveal">
+      <div class="eyebrow">Événement</div>
+      <h2 class="titre">Spectacle<br><em>de danse</em></h2>
+      <p class="spectacle-lead">Les élèves de l'école montent sur scène pour leur grand spectacle annuel, présenté par l'association Attitude.</p>
+      <ul class="spectacle-infos">
+        <li><span class="spectacle-info-label">Quand</span><span class="spectacle-info-val">Samedi 27 juin 2026 — 20h30</span></li>
+        <li><span class="spectacle-info-label">Où</span><span class="spectacle-info-val">Centre Culturel de Bergerac</span></li>
+        <li><span class="spectacle-info-label">Réservations</span><span class="spectacle-info-val">06 69 35 39 25</span></li>
+      </ul>
+      <a href="images/optimized/affiche-spectacle-2026-1400w.jpg" target="_blank" rel="noopener" class="hero-cta spectacle-cta">
+        Voir l'affiche
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+    <div class="spectacle-affiche reveal d1">
+      <a href="images/optimized/affiche-spectacle-2026-1400w.jpg" target="_blank" rel="noopener" aria-label="Voir l'affiche du spectacle en grand">
+        <picture>
+          <source type="image/avif"
+                  srcset="images/optimized/affiche-spectacle-2026-600w.avif 600w,
+                          images/optimized/affiche-spectacle-2026-900w.avif 900w"
+                  sizes="(max-width: 1100px) min(80vw, 380px), 420px">
+          <source type="image/webp"
+                  srcset="images/optimized/affiche-spectacle-2026-600w.webp 600w,
+                          images/optimized/affiche-spectacle-2026-900w.webp 900w"
+                  sizes="(max-width: 1100px) min(80vw, 380px), 420px">
+          <img src="images/optimized/affiche-spectacle-2026-600w.jpg"
+               alt="Affiche du spectacle de danse Desha-Moulin — samedi 27 juin 2026 à 20h30 au Centre Culturel de Bergerac"
+               width="600" height="842" loading="lazy" decoding="async">
+        </picture>
+      </a>
+    </div>
+  </div>
+</section>
 
 <section class="about s" id="ecole">
   <div class="about-text reveal">

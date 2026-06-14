@@ -181,6 +181,25 @@ h2.titre em { font-style: italic; color: var(--gris-chd); }
 .sch-niv .sch-prof { display: block; font-size: 0.65rem; font-weight: 300; font-style: italic; color: var(--rose-poudre); margin-top: 0.15rem; letter-spacing: 0.02em; }
 .sch-h { font-size: 0.75rem; font-weight: 300; color: var(--gris-chd); white-space: nowrap; padding-top: 0.1rem; }
 
+/* ── SPECTACLE ── */
+.spectacle { background: var(--terre); color: var(--sable-2); }
+.spectacle .eyebrow { color: var(--rose-poudre); }
+.spectacle .eyebrow::before { background: var(--rose-poudre); }
+.spectacle h2.titre { color: var(--sable-3); }
+.spectacle h2.titre em { color: var(--rose-poudre); }
+.spectacle-inner { display: grid; grid-template-columns: 1fr 0.78fr; gap: 5rem; align-items: center; }
+.spectacle-lead { font-size: 1rem; font-weight: 300; line-height: 1.8; color: rgba(250,247,242,0.7); margin-bottom: 2.2rem; max-width: 38ch; }
+.spectacle-infos { list-style: none; margin-bottom: 2.2rem; }
+.spectacle-infos li { display: flex; gap: 1.5rem; padding: 0.9rem 0; border-top: 1px solid rgba(250,247,242,0.12); }
+.spectacle-infos li:last-child { border-bottom: 1px solid rgba(250,247,242,0.12); }
+.spectacle-info-label { flex: 0 0 110px; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--rose-poudre); padding-top: 0.2rem; }
+.spectacle-info-val { font-size: 0.95rem; font-weight: 400; color: var(--sable-3); }
+.spectacle-cta.hero-cta { background: var(--rose-poudre); color: white; }
+.spectacle-cta.hero-cta:hover { background: var(--sable-3); color: var(--terre); }
+.spectacle-affiche a { display: block; border-radius: 6px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.35); transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease); }
+.spectacle-affiche a:hover { transform: translateY(-4px); box-shadow: 0 40px 80px rgba(0,0,0,0.45); }
+.spectacle-affiche img { display: block; width: 100%; height: auto; }
+
 /* ── TARIFS ── */
 .tarifs { background: var(--terre); color: var(--sable-2); }
 .tarifs .eyebrow { color: var(--rose-poudre); }
@@ -510,6 +529,8 @@ nav.scrolled .nav-burger span { background: var(--encre); }
   .s { padding: 5rem 2rem; }
   .about { grid-template-columns: 1fr; gap: 3rem; }
   .about-visual { display: none; }
+  .spectacle-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+  .spectacle-affiche { order: -1; max-width: 340px; margin: 0 auto; }
   .tarifs-intro { grid-template-columns: 1fr; gap: 2rem; }
   .contact-layout { grid-template-columns: 1fr; gap: 3rem; }
   .contact-map { height: 280px; }

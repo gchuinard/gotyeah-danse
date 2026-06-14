@@ -21,6 +21,7 @@ const IMAGE_CONFIGS = [
   { input: 'Logo Desha Moulin_803px.png',              widths: [250, 500],        fallback: 'png' },
   { input: 'rentree-819x1024.jpg',                     widths: [711, 1422],       fallback: 'jpg' },
   { input: 'IMG_98021.jpg',                            widths: [1280, 1920],      fallback: 'jpg' },
+  { input: 'affiche-spectacle-2026.jpg',               widths: [600, 900, 1400],  fallback: 'jpg' },
 ];
 
 function baseName(filename) {
