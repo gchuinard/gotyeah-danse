@@ -67,6 +67,10 @@ nav.scrolled .nav-links a { color: var(--terre); }
 .nav-btn { padding: 0.55rem 1.4rem; border: 1px solid rgba(250,247,242,0.55); border-radius: 100px; font-size: 0.78rem; font-weight: 400; color: rgba(250,247,242,0.97) !important; letter-spacing: 0.08em; transition: all 0.3s !important; }
 nav.scrolled .nav-btn { border-color: rgba(92,61,46,0.25); color: var(--terre) !important; }
 .nav-btn:hover, .nav-links a.nav-btn:hover { background: var(--rose-poudre) !important; border-color: var(--rose-poudre) !important; color: white !important; }
+/* Mise en valeur du lien Spectacle */
+.nav-links a.nav-spectacle { padding: 0.4rem 1rem; border-radius: 100px; background: #181b7a; color: #fff !important; font-weight: 500; transition: background 0.25s, transform 0.25s; }
+nav.scrolled .nav-links a.nav-spectacle { color: #fff !important; }
+.nav-links a.nav-spectacle:hover { background: #2a2ea6 !important; color: #fff !important; transform: translateY(-1px); }
 
 /* ── HERO ── */
 .hero { min-height: 75vh; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
@@ -506,6 +510,8 @@ nav.scrolled .nav-burger span { background: var(--encre); }
 .mobile-menu.open { transform: translateX(0); }
 .mobile-menu a { font-family: 'Lora', serif; font-size: 1.8rem; font-weight: 400; color: rgba(250,247,242,0.7); text-decoration: none; padding: 0.6rem 2rem; transition: color 0.2s; }
 .mobile-menu a:hover { color: var(--rose-poudre); }
+.mobile-menu a.mobile-spectacle { color: #fff; background: #181b7a; border-radius: 100px; padding: 0.5rem 1.6rem; margin-bottom: 0.4rem; }
+.mobile-menu a.mobile-spectacle:hover { color: #fff; background: #2a2ea6; }
 .mobile-menu .mobile-cta { margin-top: 1.5rem; padding: 0.9rem 2.5rem; border: 1px solid rgba(250,247,242,0.2); border-radius: 100px; font-size: 1rem; color: rgba(250,247,242,0.85) !important; }
 
 /* ── RESPONSIVE PLANNING PAR JOUR ── */
