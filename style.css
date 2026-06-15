@@ -67,10 +67,19 @@ nav.scrolled .nav-links a { color: var(--terre); }
 .nav-btn { padding: 0.55rem 1.4rem; border: 1px solid rgba(250,247,242,0.55); border-radius: 100px; font-size: 0.78rem; font-weight: 400; color: rgba(250,247,242,0.97) !important; letter-spacing: 0.08em; transition: all 0.3s !important; }
 nav.scrolled .nav-btn { border-color: rgba(92,61,46,0.25); color: var(--terre) !important; }
 .nav-btn:hover, .nav-links a.nav-btn:hover { background: var(--rose-poudre) !important; border-color: var(--rose-poudre) !important; color: white !important; }
-/* Mise en valeur du lien Spectacle */
-.nav-links a.nav-spectacle { padding: 0.4rem 1rem; border-radius: 100px; background: #181b7a; color: #fff !important; font-weight: 500; transition: background 0.25s, transform 0.25s; }
+/* Mise en valeur du lien Spectacle — badge "nuit étoilée" */
+.nav-links a.nav-spectacle { position: relative; overflow: hidden; padding: 0.42rem 1.05rem 0.42rem 1.75rem; border-radius: 100px; color: #fff !important; font-weight: 500; letter-spacing: 0.1em; background: linear-gradient(120deg, #181b7a 0%, #3a2e8c 52%, #6a3f8f 100%); box-shadow: 0 2px 12px rgba(24,27,122,0.42), inset 0 1px 0 rgba(255,255,255,0.18); transition: transform 0.3s, box-shadow 0.3s; animation: spectacleGlow 4.5s ease-in-out infinite; }
 nav.scrolled .nav-links a.nav-spectacle { color: #fff !important; }
-.nav-links a.nav-spectacle:hover { background: #2a2ea6 !important; color: #fff !important; transform: translateY(-1px); }
+.nav-links a.nav-spectacle::before { content: "✦"; position: absolute; left: 0.72rem; top: 50%; font-size: 0.68rem; color: #ffe6a3; transform: translateY(-50%); animation: spectacleTwinkle 2.4s ease-in-out infinite; }
+.nav-links a.nav-spectacle::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%); transform: translateX(-130%); animation: spectacleShimmer 5.5s ease-in-out infinite; }
+.nav-links a.nav-spectacle:hover { color: #fff !important; transform: translateY(-1px) scale(1.04); box-shadow: 0 5px 22px rgba(106,63,143,0.6), inset 0 1px 0 rgba(255,255,255,0.26); }
+@keyframes spectacleGlow { 0%,100% { box-shadow: 0 2px 12px rgba(24,27,122,0.4), inset 0 1px 0 rgba(255,255,255,0.18); } 50% { box-shadow: 0 3px 20px rgba(106,63,143,0.6), inset 0 1px 0 rgba(255,255,255,0.24); } }
+@keyframes spectacleTwinkle { 0%,100% { opacity: 0.35; transform: translateY(-50%) scale(0.8) rotate(0deg); } 50% { opacity: 1; transform: translateY(-50%) scale(1.2) rotate(90deg); } }
+@keyframes spectacleShimmer { 0% { transform: translateX(-130%); } 30%,100% { transform: translateX(130%); } }
+@media (prefers-reduced-motion: reduce) {
+  .nav-links a.nav-spectacle, .nav-links a.nav-spectacle::before, .nav-links a.nav-spectacle::after, .mobile-menu a.mobile-spectacle::after { animation: none !important; }
+  .nav-links a.nav-spectacle::after { display: none; }
+}
 
 /* ── HERO ── */
 .hero { min-height: 75vh; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
@@ -510,8 +519,9 @@ nav.scrolled .nav-burger span { background: var(--encre); }
 .mobile-menu.open { transform: translateX(0); }
 .mobile-menu a { font-family: 'Lora', serif; font-size: 1.8rem; font-weight: 400; color: rgba(250,247,242,0.7); text-decoration: none; padding: 0.6rem 2rem; transition: color 0.2s; }
 .mobile-menu a:hover { color: var(--rose-poudre); }
-.mobile-menu a.mobile-spectacle { color: #fff; background: #181b7a; border-radius: 100px; padding: 0.5rem 1.6rem; margin-bottom: 0.4rem; }
-.mobile-menu a.mobile-spectacle:hover { color: #fff; background: #2a2ea6; }
+.mobile-menu a.mobile-spectacle { position: relative; color: #fff; background: linear-gradient(120deg, #181b7a 0%, #3a2e8c 52%, #6a3f8f 100%); border-radius: 100px; padding: 0.5rem 1.8rem; margin-bottom: 0.5rem; box-shadow: 0 3px 16px rgba(24,27,122,0.45); }
+.mobile-menu a.mobile-spectacle::after { content: "✦"; margin-left: 0.5rem; color: #ffe6a3; font-size: 0.7em; animation: spectacleTwinkle 2.4s ease-in-out infinite; display: inline-block; }
+.mobile-menu a.mobile-spectacle:hover { color: #fff; }
 .mobile-menu .mobile-cta { margin-top: 1.5rem; padding: 0.9rem 2.5rem; border: 1px solid rgba(250,247,242,0.2); border-radius: 100px; font-size: 1rem; color: rgba(250,247,242,0.85) !important; }
 
 /* ── RESPONSIVE PLANNING PAR JOUR ── */
