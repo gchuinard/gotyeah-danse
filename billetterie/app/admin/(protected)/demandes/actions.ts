@@ -233,3 +233,27 @@ export async function renvoyerBilletsAction(formData: FormData): Promise<void> {
       : urlListe(formData.get('retour'), 'err', "L'email n'a pas pu être envoyé, réessaie plus tard."),
   )
 }
+
+// Bascule la remise des billets entre e-billet (email + QR) et papier (l'admin
+// imprime, aucun envoi auto). Choix purement admin, modifiable à tout moment.
+export async function basculerRemiseAction(formData: FormData): Promise<void> {
+  await requireAdmin()
+  const id = lireId(formData)
+  let nouveauMode: 'email' | 'papier' = 'email'
+  try {
+    const b = await prisma.booking.findUnique({ where: { id }, select: { ticketMode: true } })
+    if (!b) throw new Error('Demande introuvable.')
+    nouveauMode = b.ticketMode === 'papier' ? 'email' : 'papier'
+    await prisma.booking.update({ where: { id }, data: { ticketMode: nouveauMode } })
+  } catch (error) {
+    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+  }
+  revalidatePath('/admin/demandes')
+  redirect(
+    urlListe(
+      formData.get('retour'),
+      'ok',
+      nouveauMode === 'papier' ? 'Remise en papier (à imprimer).' : 'Remise en e-billet (par email).',
+    ),
+  )
+}

@@ -163,6 +163,33 @@ async function seedDemoBookings() {
     data: { pmrCount: 2, pmrCompanions: 2 },
   })
 
+  // Démo remise papier : la famille Dupuis (placée) prend ses billets en papier
+  // → montre le chip « 🖨️ Papier » et le bouton « Imprimer les billets ».
+  await prisma.booking.update({
+    where: { publicToken: PLACED_DEMO.publicToken },
+    data: { ticketMode: 'papier' },
+  })
+
+  // Démo bilan d'organisation : météo + buvette sur la représentation du samedi.
+  await prisma.representation.update({
+    where: { id: 'rep-samedi' },
+    data: {
+      weather: 'Chaud (27 °C), averse vers 22h',
+      orgNotes:
+        'Le coca et la bière partent très bien, l’eau et le café beaucoup moins. ' +
+        'Idée : moins d’eau, plus de bière l’an prochain ; café à baisser ou retirer.',
+    },
+  })
+  await prisma.buvetteItem.deleteMany({ where: { representationId: 'rep-samedi' } })
+  await prisma.buvetteItem.createMany({
+    data: [
+      { representationId: 'rep-samedi', label: 'Eau', qtyStock: 60, qtySold: 28, unitPriceCents: 100 },
+      { representationId: 'rep-samedi', label: 'Coca', qtyStock: 48, qtySold: 45, unitPriceCents: 200 },
+      { representationId: 'rep-samedi', label: 'Bière', qtyStock: 36, qtySold: 36, unitPriceCents: 300 },
+      { representationId: 'rep-samedi', label: 'Café', qtyStock: 50, qtySold: 11, unitPriceCents: 150 },
+    ],
+  })
+
   const ticketCount = await seedDemoTickets()
   return { bookings: bookings.length, tickets: ticketCount }
 }

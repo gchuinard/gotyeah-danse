@@ -17,6 +17,7 @@ import { formatFrPhone } from '@/lib/public/phone'
 import {
   annoterAction,
   annulerAction,
+  basculerRemiseAction,
   marquerPayeeAction,
   prolongerAction,
   rectifierPlacesAction,
@@ -217,6 +218,14 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                             ♿ PMR{d.pmrCount > 1 ? ` ×${d.pmrCount}` : ''}
                           </span>
                         )}
+                        {d.ticketMode === 'papier' && (
+                          <span
+                            className={styles.remiseTag}
+                            title="Billets remis en papier (à imprimer) — pas d'email"
+                          >
+                            🖨️ Papier
+                          </span>
+                        )}
                       </span>
                       {d.notes && <span className={styles.notes}>{d.notes}</span>}
                       {d.adminNotes && <span className={styles.adminNotes}>📝 {d.adminNotes}</span>}
@@ -338,23 +347,48 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                             >
                               Déplacer
                             </Link>
-                            <form action={renvoyerBilletsAction}>
-                              <input type="hidden" name="id" value={d.id} />
-                              <input type="hidden" name="retour" value={retour.toString()} />
-                              {d.paidAt ? (
-                                <button type="submit" className={styles.btn}>
-                                  Renvoyer les billets
-                                </button>
-                              ) : (
-                                <ConfirmSubmit
-                                  className={styles.btn}
-                                  message={`Aucun paiement n'est enregistré pour la demande de ${d.name}. Envoyer quand même les billets et le QR à la famille ?`}
-                                >
-                                  Envoyer les billets
-                                </ConfirmSubmit>
-                              )}
-                            </form>
+                            {d.ticketMode === 'papier' ? (
+                              <Link
+                                className={styles.btnLien}
+                                href={`/billets/${d.publicToken}`}
+                                target="_blank"
+                                rel="noopener"
+                                title="Ouvre la page imprimable des billets (avec QR)"
+                              >
+                                Imprimer les billets ↗
+                              </Link>
+                            ) : (
+                              <form action={renvoyerBilletsAction}>
+                                <input type="hidden" name="id" value={d.id} />
+                                <input type="hidden" name="retour" value={retour.toString()} />
+                                {d.paidAt ? (
+                                  <button type="submit" className={styles.btn}>
+                                    Renvoyer les billets
+                                  </button>
+                                ) : (
+                                  <ConfirmSubmit
+                                    className={styles.btn}
+                                    message={`Aucun paiement n'est enregistré pour la demande de ${d.name}. Envoyer quand même les billets et le QR à la famille ?`}
+                                  >
+                                    Envoyer les billets
+                                  </ConfirmSubmit>
+                                )}
+                              </form>
+                            )}
                           </>
+                        )}
+                        {['pending', 'paid', 'placed'].includes(d.status) && (
+                          <form action={basculerRemiseAction}>
+                            <input type="hidden" name="id" value={d.id} />
+                            <input type="hidden" name="retour" value={retour.toString()} />
+                            <button
+                              type="submit"
+                              className={styles.btn}
+                              title="Choisir comment remettre les billets : e-billet (email) ou papier (impression)"
+                            >
+                              {d.ticketMode === 'papier' ? '📧 Passer en e-billet' : '🖨️ Passer en papier'}
+                            </button>
+                          </form>
                         )}
                         {['pending', 'paid', 'placed'].includes(d.status) && (
                           <form action={rectifierPlacesAction} className={styles.rectif}>

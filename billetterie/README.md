@@ -80,11 +80,11 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes : marquer payée, **placer** (même non payée), prolonger, annuler, envoyer/renvoyer les billets |
+| `/admin/demandes` | File des demandes : marquer payée, **placer** (même non payée), prolonger, annuler, **remise e-billet ⇄ papier**, envoyer/imprimer les billets |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
-| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (espèces/chèques) |
+| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 | `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
 
@@ -104,7 +104,11 @@ le paiement** (bouton « Placer » sur une demande en attente) : la demande devi
 *placée non réglée* (chip ⚠ dans la liste), ses billets ne partent pas tout
 seuls, et le règlement s'enregistre plus tard via « Marquer payée ». L'admin
 envoie alors les billets à la main (« Envoyer les billets », avec avertissement
-si rien n'est encore réglé). Chaque demande peut porter une **note interne**
+si rien n'est encore réglé). La **remise** se choisit par demande : **e-billet**
+(email + QR) ou **papier** (le QR reste le même, scanné pareil à l'entrée, mais
+aucun email n'est envoyé — l'admin imprime via « Imprimer les billets », qui
+ouvre la page imprimable des billets). Chaque demande peut porter une **note
+interne**
 bénévole (n° de chèque, contexte) visible uniquement dans l'admin et dans
 l'export CSV.
 

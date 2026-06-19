@@ -279,6 +279,21 @@
   white-space: nowrap;
 }
 
+/* Chip « remise papier » — gris neutre (l'e-billet est le défaut, non affiché). */
+.remiseTag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #5c5249;
+  background: #efe9e0;
+  border: 1px solid #d8cdbd;
+  border-radius: 6px;
+  padding: 0.02rem 0.35rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .notes {
   display: block;
   font-size: 0.78rem;

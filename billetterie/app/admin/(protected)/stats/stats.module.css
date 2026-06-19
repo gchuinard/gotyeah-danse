@@ -91,3 +91,162 @@
   font-weight: 700;
   color: var(--terre);
 }
+
+/* ---- Bilan d'organisation (saisie manuelle : météo + buvette + notes) ---- */
+.bilan {
+  margin-top: 1rem;
+  background: #fbf7f1;
+  border: 1px solid #e8ddd0;
+  border-radius: 10px;
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.bilan h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--terre-2);
+  margin-bottom: 0.7rem;
+}
+
+.bilanForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.bilanChamp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--terre);
+}
+
+.bilanChamp input,
+.bilanChamp textarea {
+  font: inherit;
+  font-weight: 400;
+  color: var(--encre);
+  background: #fff;
+  border: 1px solid #ddd2c4;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  width: 100%;
+  resize: vertical;
+}
+
+.bilanBtn {
+  font: inherit;
+  font-weight: 600;
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--terre);
+  border-radius: 8px;
+  background: var(--terre);
+  color: var(--sable, #faf7f2);
+  cursor: pointer;
+}
+
+.bilanBtn:hover {
+  background: var(--terre-2);
+}
+
+.buvetteTitre {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--terre-2);
+  margin-bottom: 0.5rem;
+}
+
+.buvette {
+  overflow-x: auto;
+}
+
+.buvetteLigne {
+  display: grid;
+  grid-template-columns: minmax(120px, 2fr) 72px 72px 84px 84px 72px auto;
+  gap: 0.4rem;
+  align-items: center;
+  min-width: 620px;
+  padding: 0.25rem 0;
+}
+
+.buvetteEntete {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gris-chd);
+  border-bottom: 1px solid #e8ddd0;
+  padding-bottom: 0.3rem;
+}
+
+.buvetteLigne input {
+  font: inherit;
+  color: var(--encre);
+  background: #fff;
+  border: 1px solid #ddd2c4;
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  width: 100%;
+}
+
+.buvetteCalc {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--terre);
+}
+
+.buvetteActions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.btnMini {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--terre);
+  border-radius: 6px;
+  background: var(--terre);
+  color: var(--sable, #faf7f2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnMini:hover {
+  background: var(--terre-2);
+}
+
+.btnMiniDanger {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid #e0c4bd;
+  border-radius: 6px;
+  background: transparent;
+  color: #b3463c;
+  cursor: pointer;
+}
+
+.btnMiniDanger:hover {
+  background: #fbeae8;
+}
+
+.buvetteAjout {
+  border-top: 1px solid #e8ddd0;
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+}
+
+.buvetteTotal {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e8ddd0;
+  font-size: 0.9rem;
+  color: var(--terre);
+}

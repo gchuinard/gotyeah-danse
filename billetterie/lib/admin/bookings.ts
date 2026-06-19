@@ -22,6 +22,7 @@ export type BookingAvecBillets = {
   partySize: number
   publicToken: string
   paidAt: Date | null
+  ticketMode: string
   representation: { title: string; startsAt: Date }
   tickets: Array<{
     qrToken: string
@@ -41,6 +42,7 @@ const selectionBookingAvecBillets = {
   partySize: true,
   publicToken: true,
   paidAt: true, // gate l'envoi auto des billets : non réglé → pas d'email auto
+  ticketMode: true, // "email" → envoi auto ; "papier" → jamais d'email (impression)
   representation: { select: { title: true, startsAt: true } },
   tickets: {
     orderBy: [{ seat: { rowId: 'asc' } }, { seat: { number: 'asc' } }],

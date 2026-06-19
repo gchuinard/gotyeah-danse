@@ -6,9 +6,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { invendusLigne, recetteLigneCents, totauxBuvette } from '@/lib/admin/buvette'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
+import {
+  ajouterBuvetteAction,
+  enregistrerBilanAction,
+  modifierBuvetteAction,
+  supprimerBuvetteAction,
+} from './actions'
 import styles from './stats.module.css'
 
 export const metadata: Metadata = { title: 'Statistiques — Billetterie admin' }
@@ -44,13 +51,17 @@ export default async function StatsPage() {
 
   const stats = await Promise.all(
     representations.map(async (rep) => {
-      const [overrides, billets, scannes, bookings] = await Promise.all([
+      const [overrides, billets, scannes, bookings, buvette] = await Promise.all([
         prisma.seatOverride.count({ where: { representationId: rep.id } }),
         prisma.ticket.count({ where: { representationId: rep.id } }),
         prisma.ticket.count({ where: { representationId: rep.id, scannedAt: { not: null } } }),
         prisma.booking.findMany({
           where: { representationId: rep.id },
           select: { status: true, partySize: true, paymentMethod: true, amountCents: true },
+        }),
+        prisma.buvetteItem.findMany({
+          where: { representationId: rep.id },
+          orderBy: { createdAt: 'asc' },
         }),
       ])
 
@@ -89,6 +100,8 @@ export default async function StatsPage() {
         parTaille,
         caisse,
         totalCaisse,
+        buvette,
+        buvetteTotaux: totauxBuvette(buvette),
       }
     }),
   )
@@ -181,6 +194,118 @@ export default async function StatsPage() {
                 <Link href={`/admin/demandes?rep=${rep.id}`}>les demandes</Link>.
               </p>
             </div>
+          </div>
+
+          <div className={styles.bilan} id={`rep-${rep.id}`}>
+            <h3>Bilan d’organisation</h3>
+
+            <form action={enregistrerBilanAction} className={styles.bilanForm}>
+              <input type="hidden" name="repId" value={rep.id} />
+              <label className={styles.bilanChamp}>
+                <span>Météo du soir</span>
+                <input
+                  name="weather"
+                  defaultValue={rep.weather ?? ''}
+                  maxLength={200}
+                  placeholder="Chaud, 28 °C, averse en fin de soirée…"
+                />
+              </label>
+              <label className={styles.bilanChamp}>
+                <span>Notes / à retenir pour l’an prochain</span>
+                <textarea
+                  name="orgNotes"
+                  rows={3}
+                  maxLength={2000}
+                  defaultValue={rep.orgNotes ?? ''}
+                  placeholder="Ce qui s’est bien / mal vendu, prix à ajuster, idées…"
+                />
+              </label>
+              <button type="submit" className={styles.bilanBtn}>
+                Enregistrer météo &amp; notes
+              </button>
+            </form>
+
+            <h4 className={styles.buvetteTitre}>Buvette</h4>
+            <div className={styles.buvette}>
+              <div className={`${styles.buvetteLigne} ${styles.buvetteEntete}`}>
+                <span>Article</span>
+                <span>Proposé</span>
+                <span>Vendu</span>
+                <span>Prix</span>
+                <span>Recette</span>
+                <span>Invendus</span>
+                <span aria-hidden="true" />
+              </div>
+
+              {s.buvette.map((it) => (
+                <form key={it.id} action={modifierBuvetteAction} className={styles.buvetteLigne}>
+                  <input type="hidden" name="id" value={it.id} />
+                  <input type="hidden" name="repId" value={rep.id} />
+                  <input name="label" defaultValue={it.label} maxLength={60} aria-label="Article" />
+                  <input
+                    name="qtyStock"
+                    type="number"
+                    min={0}
+                    defaultValue={it.qtyStock}
+                    aria-label="Proposé"
+                  />
+                  <input
+                    name="qtySold"
+                    type="number"
+                    min={0}
+                    defaultValue={it.qtySold}
+                    aria-label="Vendu"
+                  />
+                  <input
+                    name="prix"
+                    inputMode="decimal"
+                    defaultValue={(it.unitPriceCents / 100).toString()}
+                    aria-label="Prix en euros"
+                  />
+                  <span className={styles.buvetteCalc}>{euros(recetteLigneCents(it))}</span>
+                  <span className={styles.buvetteCalc}>{invendusLigne(it)}</span>
+                  <span className={styles.buvetteActions}>
+                    <button type="submit" className={styles.btnMini} title="Enregistrer">
+                      OK
+                    </button>
+                    <button
+                      type="submit"
+                      formAction={supprimerBuvetteAction}
+                      className={styles.btnMiniDanger}
+                      title="Supprimer cet article"
+                      aria-label="Supprimer"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </form>
+              ))}
+
+              <form
+                action={ajouterBuvetteAction}
+                className={`${styles.buvetteLigne} ${styles.buvetteAjout}`}
+              >
+                <input type="hidden" name="repId" value={rep.id} />
+                <input name="label" placeholder="Article (ex. Coca)" maxLength={60} required aria-label="Nouvel article" />
+                <input name="qtyStock" type="number" min={0} placeholder="Proposé" aria-label="Proposé" />
+                <input name="qtySold" type="number" min={0} placeholder="Vendu" aria-label="Vendu" />
+                <input name="prix" inputMode="decimal" placeholder="Prix €" aria-label="Prix en euros" />
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span className={styles.buvetteActions}>
+                  <button type="submit" className={styles.btnMini}>
+                    + Ajouter
+                  </button>
+                </span>
+              </form>
+            </div>
+
+            {s.buvette.length > 0 && (
+              <p className={styles.buvetteTotal}>
+                Recette buvette : <strong>{euros(s.buvetteTotaux.recetteCents)}</strong> ·{' '}
+                {s.buvetteTotaux.venduTotal} vendus · {s.buvetteTotaux.invendusTotal} invendus
+              </p>
+            )}
           </div>
         </section>
       ))}

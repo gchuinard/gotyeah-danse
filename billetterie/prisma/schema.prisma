@@ -59,9 +59,30 @@ model Representation {
   startsAt DateTime
   isOpen   Boolean  @default(false)
 
-  overrides SeatOverride[]
-  bookings  Booking[]
-  tickets   Ticket[]
+  // Bilan d'organisation (saisi à la main après la soirée, pour l'an prochain).
+  weather  String? // météo du soir
+  orgNotes String? // notes libres : ce qui se vend / pas, prix à ajuster…
+
+  overrides    SeatOverride[]
+  bookings     Booking[]
+  tickets      Ticket[]
+  buvetteItems BuvetteItem[]
+}
+
+// Buvette du soir J — saisie manuelle pour le bilan d'organisation : articles
+// proposés vs vendus, et à quel prix. Aide à décider l'an prochain (ce qui ne
+// se vend pas, prix à ajuster).
+model BuvetteItem {
+  id               String         @id @default(cuid())
+  representation   Representation @relation(fields: [representationId], references: [id], onDelete: Cascade)
+  representationId String
+  label            String // "Coca", "Eau", "Café"…
+  qtyStock         Int            @default(0) // proposé / approvisionné
+  qtySold          Int            @default(0) // vendu
+  unitPriceCents   Int            @default(0) // prix unitaire de vente
+  createdAt        DateTime       @default(now())
+
+  @@index([representationId])
 }
 
 // Indisponibilités par représentation (console son, fosse, amovibles non posés…)
@@ -95,6 +116,11 @@ model Booking {
   pmrCount      Int     @default(0)
   pmrCompanions Int     @default(0) // places accompagnant à coller aux emplacements PMR (0 = aucune)
   adminNotes String? // annotations internes bénévoles (n° de chèque, contexte…)
+
+  // Remise des billets, choisie par l'admin : "email" (e-billet envoyé par
+  // email avec QR) ou "papier" (remis en main — l'admin imprime, aucun envoi
+  // auto). Le QR reste le même : scanné pareil à l'entrée.
+  ticketMode String @default("email")
 
   status      String // pending | paid | placed | cancelled | expired
   publicToken String  @unique // UUID — accès page « mes billets »
