@@ -63,17 +63,52 @@
 .pmrToggle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--terre);
   cursor: pointer;
 }
 
-.pmrToggle input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--terre-2);
+/* Interrupteur (toggle) — voir demande-form.module.css. */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+  margin: 0;
+  border-radius: 999px;
+  background: #ddd2c4;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(30, 26, 22, 0.35);
+  transition: transform 0.18s ease;
+}
+
+.switch:checked {
+  background: var(--terre-2);
+}
+
+.switch:checked::after {
+  transform: translateX(18px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--terre-2);
+  outline-offset: 2px;
 }
 
 .field label {

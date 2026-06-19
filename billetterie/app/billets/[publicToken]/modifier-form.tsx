@@ -20,7 +20,7 @@ type Props = {
   phone: string
   partySize: number
   notes: string
-  pmr: boolean
+  pmrCount: number
   pmrCompanions: number
   maxPlaces: number // jauge restante + places actuelles
 }
@@ -29,7 +29,7 @@ type Snapshot = {
   name: string
   phone: string
   partySize: number
-  pmr: boolean
+  pmrCount: number
   pmrCompanions: number
   notes: string
 }
@@ -39,7 +39,8 @@ export default function ModifierForm(props: Props) {
   const [name, setName] = useState(props.name)
   const [phone, setPhone] = useState(props.phone)
   const [partySize, setPartySize] = useState(props.partySize)
-  const [pmr, setPmr] = useState(props.pmr)
+  const [pmr, setPmr] = useState(props.pmrCount > 0)
+  const [pmrCount, setPmrCount] = useState(props.pmrCount || 1)
   const [accompagnants, setAccompagnants] = useState(props.pmrCompanions)
   const [notes, setNotes] = useState(props.notes)
   const [pending, setPending] = useState(false)
@@ -55,26 +56,28 @@ export default function ModifierForm(props: Props) {
     name: props.name,
     phone: props.phone,
     partySize: props.partySize,
-    pmr: props.pmr,
+    pmrCount: props.pmrCount,
     pmrCompanions: props.pmrCompanions,
     notes: props.notes,
   })
 
   const plafond = Math.min(MAX_PARTY_SIZE, Math.max(1, props.maxPlaces))
   const places = Array.from({ length: plafond }, (_, i) => i + 1)
-  const maxAccompagnants = Math.min(3, partySize - 1)
+  const maxPmr = partySize
+  const maxAccompagnants = Math.min(3, partySize - pmrCount)
 
   // Clic « Enregistrer » → calcule le avant → après et OUVRE la popup de
   // CONFIRMATION (rien n'est encore enregistré).
   const preparer = () => {
     setError(null)
     setEnregistre(false)
+    const pmrCountFinal = pmr ? Math.min(pmrCount, partySize) : 0
     const apres: Snapshot = {
       name: name.trim(),
       phone,
       partySize,
-      pmr,
-      pmrCompanions: pmr ? Math.min(accompagnants, partySize - 1) : 0,
+      pmrCount: pmrCountFinal,
+      pmrCompanions: pmrCountFinal > 0 ? Math.min(accompagnants, partySize - pmrCountFinal) : 0,
       notes: notes.trim(),
     }
     const av = reference.current
@@ -83,7 +86,8 @@ export default function ModifierForm(props: Props) {
     if (av.phone !== apres.phone) lignes.push(`Téléphone : « ${av.phone} » → « ${apres.phone} »`)
     if (av.partySize !== apres.partySize)
       lignes.push(`Nombre de places : ${av.partySize} → ${apres.partySize}`)
-    if (av.pmr !== apres.pmr) lignes.push(`PMR : ${av.pmr ? 'oui' : 'non'} → ${apres.pmr ? 'oui' : 'non'}`)
+    if (av.pmrCount !== apres.pmrCount)
+      lignes.push(`Personnes PMR : ${av.pmrCount} → ${apres.pmrCount}`)
     if (av.pmrCompanions !== apres.pmrCompanions)
       lignes.push(`Accompagnant : ${av.pmrCompanions} → ${apres.pmrCompanions} place(s)`)
     if (av.notes !== apres.notes)
@@ -107,7 +111,7 @@ export default function ModifierForm(props: Props) {
       phone: apres.phone,
       partySize: apres.partySize,
       notes: apres.notes || undefined,
-      pmr: apres.pmr,
+      pmrCount: apres.pmrCount,
       pmrCompanions: apres.pmrCompanions,
     })
     setPending(false)
@@ -159,8 +163,10 @@ export default function ModifierForm(props: Props) {
           value={partySize}
           onChange={(e) => {
             const n = Number(e.target.value)
+            const newPmr = Math.min(Math.max(1, pmrCount), n)
             setPartySize(n)
-            setAccompagnants((a) => Math.min(a, Math.max(0, n - 1)))
+            setPmrCount(newPmr)
+            setAccompagnants((a) => Math.min(a, Math.max(0, n - newPmr)))
           }}
         >
           {places.map((n) => (
@@ -174,21 +180,54 @@ export default function ModifierForm(props: Props) {
 
       <fieldset className={styles.pmr}>
         <label className={styles.pmrToggle}>
-          <input type="checkbox" checked={pmr} onChange={(e) => setPmr(e.target.checked)} />
-          Une personne à mobilité réduite (PMR) fait partie du groupe
+          <input
+            type="checkbox"
+            role="switch"
+            className={styles.switch}
+            checked={pmr}
+            onChange={(e) => {
+              const on = e.target.checked
+              setPmr(on)
+              if (on) {
+                setPmrCount(1)
+                setAccompagnants(0)
+              }
+            }}
+          />
+          <span>Une personne à mobilité réduite (PMR) fait partie du groupe</span>
         </label>
         {pmr && (
-          <div className={styles.field}>
-            <label htmlFor="m-acc">Places accompagnant juste à côté</label>
-            <select id="m-acc" value={accompagnants} onChange={(e) => setAccompagnants(Number(e.target.value))}>
-              {[0, 1, 2, 3].map((n) => (
-                <option key={n} value={n} disabled={n > maxAccompagnants}>
-                  {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
-                  {n > maxAccompagnants ? ` — il faut au moins ${n + 1} places` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div className={styles.field}>
+              <label htmlFor="m-pmr">Combien de personnes en fauteuil / PMR&nbsp;?</label>
+              <select
+                id="m-pmr"
+                value={pmrCount}
+                onChange={(e) => {
+                  const c = Number(e.target.value)
+                  setPmrCount(c)
+                  setAccompagnants((a) => Math.min(a, Math.max(0, partySize - c)))
+                }}
+              >
+                {Array.from({ length: maxPmr }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} personne{n > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="m-acc">Places accompagnant juste à côté</label>
+              <select id="m-acc" value={accompagnants} onChange={(e) => setAccompagnants(Number(e.target.value))}>
+                {[0, 1, 2, 3].map((n) => (
+                  <option key={n} value={n} disabled={n > maxAccompagnants}>
+                    {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
+                    {n > maxAccompagnants ? ` — il faut au moins ${pmrCount + n} places` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
         )}
       </fieldset>
 

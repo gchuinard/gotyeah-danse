@@ -39,7 +39,7 @@ export async function getSeatMap(
     }),
     db.ticket.findMany({
       where: { representationId },
-      select: { seatId: true, booking: { select: { name: true, pmr: true } } },
+      select: { seatId: true, booking: { select: { name: true, pmrCount: true } } },
     }),
     db.seatOverride.findMany({
       where: { representationId },
@@ -69,7 +69,7 @@ export async function getSeatMap(
         removable: seat.removable,
         status: occupant !== undefined ? 'occupe' : overrideReason !== undefined ? 'bloque' : 'libre',
         ...(occupant !== undefined ? { occupant: occupant.name } : {}),
-        ...(occupant?.pmr ? { occupantPmr: true } : {}),
+        ...((occupant?.pmrCount ?? 0) > 0 ? { occupantPmr: true } : {}),
         ...(overrideReason !== undefined ? { overrideReason } : {}),
       }
     })

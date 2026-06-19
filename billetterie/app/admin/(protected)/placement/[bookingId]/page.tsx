@@ -114,7 +114,7 @@ export default async function PlacementPage({
 
   const suggestions = getPlacement()(toSeatStates(seatsForEngine), booking.partySize)
 
-  const isPMR = booking.pmr
+  const isPMR = booking.pmrCount > 0
 
   return (
     <div className={styles.page}>
@@ -133,8 +133,11 @@ export default async function PlacementPage({
             {isPMR && (
               <p className={styles.notesPmr}>
                 <strong className={styles.pmrBadge}>PMR</strong>{' '}
+                {booking.pmrCount > 1
+                  ? `${booking.pmrCount} emplacements PMR à prévoir. `
+                  : '1 emplacement PMR à prévoir. '}
                 {booking.pmrCompanions > 0
-                  ? `${booking.pmrCompanions} place${booking.pmrCompanions > 1 ? 's' : ''} accompagnant à coller juste à côté de l’emplacement PMR.`
+                  ? `${booking.pmrCompanions} place${booking.pmrCompanions > 1 ? 's' : ''} accompagnant à coller juste à côté.`
                   : 'Pas de place accompagnant à coller.'}
               </p>
             )}

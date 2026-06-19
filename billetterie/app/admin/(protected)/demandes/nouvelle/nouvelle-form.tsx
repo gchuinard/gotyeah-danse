@@ -29,8 +29,10 @@ export default function NouvelleDemandeForm({
   const [phone, setPhone] = useState('')
   const [partySize, setPartySize] = useState(1)
   const [pmr, setPmr] = useState(false)
+  const [pmrCount, setPmrCount] = useState(1)
   const [accompagnants, setAccompagnants] = useState(0)
-  const maxAccompagnants = Math.min(3, partySize - 1)
+  const maxPmr = partySize
+  const maxAccompagnants = Math.min(3, partySize - pmrCount)
   const errors = state.fieldErrors
 
   return (
@@ -81,8 +83,10 @@ export default function NouvelleDemandeForm({
           required
           onChange={(e) => {
             const n = Number(e.target.value)
+            const newPmr = Math.min(Math.max(1, pmrCount), n)
             setPartySize(n)
-            setAccompagnants((a) => Math.min(a, Math.max(0, n - 1)))
+            setPmrCount(newPmr)
+            setAccompagnants((a) => Math.min(a, Math.max(0, n - newPmr)))
           }}
         >
           {PARTY_SIZES.map((n) => (
@@ -96,26 +100,60 @@ export default function NouvelleDemandeForm({
 
       <fieldset className={styles.pmr}>
         <label className={styles.pmrToggle}>
-          <input type="checkbox" name="pmr" checked={pmr} onChange={(e) => setPmr(e.target.checked)} />
-          Personne à mobilité réduite (PMR) dans le groupe
+          <input
+            type="checkbox"
+            role="switch"
+            className={styles.switch}
+            checked={pmr}
+            onChange={(e) => {
+              const on = e.target.checked
+              setPmr(on)
+              if (on) {
+                setPmrCount(1)
+                setAccompagnants(0)
+              }
+            }}
+          />
+          <span>Personne(s) à mobilité réduite (PMR) dans le groupe</span>
         </label>
         {pmr && (
-          <div className={styles.field}>
-            <label htmlFor="pmrCompanions">Places accompagnant à coller à côté</label>
-            <select
-              id="pmrCompanions"
-              name="pmrCompanions"
-              value={accompagnants}
-              onChange={(e) => setAccompagnants(Number(e.target.value))}
-            >
-              {[0, 1, 2, 3].map((n) => (
-                <option key={n} value={n} disabled={n > maxAccompagnants}>
-                  {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
-                  {n > maxAccompagnants ? ` — min. ${n + 1} places` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div className={styles.field}>
+              <label htmlFor="pmrCount">Combien de personnes PMR&nbsp;?</label>
+              <select
+                id="pmrCount"
+                name="pmrCount"
+                value={pmrCount}
+                onChange={(e) => {
+                  const c = Number(e.target.value)
+                  setPmrCount(c)
+                  setAccompagnants((a) => Math.min(a, Math.max(0, partySize - c)))
+                }}
+              >
+                {Array.from({ length: maxPmr }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} personne{n > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="pmrCompanions">Places accompagnant à coller à côté</label>
+              <select
+                id="pmrCompanions"
+                name="pmrCompanions"
+                value={accompagnants}
+                onChange={(e) => setAccompagnants(Number(e.target.value))}
+              >
+                {[0, 1, 2, 3].map((n) => (
+                  <option key={n} value={n} disabled={n > maxAccompagnants}>
+                    {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
+                    {n > maxAccompagnants ? ` — min. ${pmrCount + n} places` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
         )}
       </fieldset>
 

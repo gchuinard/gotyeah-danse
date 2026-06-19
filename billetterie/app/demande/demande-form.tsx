@@ -34,11 +34,14 @@ export default function DemandeForm({
   const [phone, setPhone] = useState('')
   const [partySize, setPartySize] = useState(1)
   const [pmr, setPmr] = useState(false)
+  const [pmrCount, setPmrCount] = useState(1)
   const [accompagnants, setAccompagnants] = useState(0)
 
-  // Un accompagnant occupe une place du groupe (en plus de la personne PMR) :
-  // le nb d'accompagnants ne peut pas dépasser partySize − 1.
-  const maxAccompagnants = Math.min(3, partySize - 1)
+  // Le groupe = personnes PMR + accompagnants à coller + reste. On ne peut pas
+  // avoir plus de PMR que de places, ni plus d'accompagnants que de places
+  // non-PMR restantes.
+  const maxPmr = partySize
+  const maxAccompagnants = Math.min(3, partySize - pmrCount)
 
   // Succès « générique » (cas honeypot) : confirmation sobre, rien de plus.
   if (state.ok) {
@@ -131,9 +134,11 @@ export default function DemandeForm({
           aria-invalid={errors?.partySize ? true : undefined}
           onChange={(e) => {
             const n = Number(e.target.value)
+            // Si on réduit les places, on ramène PMR puis accompagnants dans la limite.
+            const newPmr = Math.min(Math.max(1, pmrCount), n)
             setPartySize(n)
-            // Si on réduit les places, on ramène les accompagnants dans la limite.
-            setAccompagnants((a) => Math.min(a, Math.max(0, n - 1)))
+            setPmrCount(newPmr)
+            setAccompagnants((a) => Math.min(a, Math.max(0, n - newPmr)))
           }}
         >
           {PARTY_SIZES.map((n) => (
@@ -157,38 +162,71 @@ export default function DemandeForm({
         <label className={styles.pmrToggle}>
           <input
             type="checkbox"
-            name="pmr"
+            role="switch"
+            className={styles.switch}
             checked={pmr}
-            onChange={(e) => setPmr(e.target.checked)}
+            onChange={(e) => {
+              const on = e.target.checked
+              setPmr(on)
+              if (on) {
+                setPmrCount(1)
+                setAccompagnants(0)
+              }
+            }}
           />
-          Une personne à mobilité réduite (PMR / fauteuil roulant) fait partie du groupe
+          <span>Une personne à mobilité réduite (PMR / fauteuil roulant) fait partie du groupe</span>
         </label>
 
         {pmr && (
-          <div className={styles.field}>
-            <label htmlFor="pmrCompanions">Places accompagnant juste à côté de la personne PMR</label>
-            <select
-              id="pmrCompanions"
-              name="pmrCompanions"
-              value={accompagnants}
-              onChange={(e) => setAccompagnants(Number(e.target.value))}
-            >
-              {[0, 1, 2, 3].map((n) => (
-                <option key={n} value={n} disabled={n > maxAccompagnants}>
-                  {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
-                  {n > maxAccompagnants ? ` — il faut au moins ${n + 1} places` : ''}
-                </option>
-              ))}
-            </select>
-            <p className={styles.hint}>
-              Chaque accompagnant occupe une de vos places (en plus de la personne PMR). Pour en
-              ajouter, augmentez d&apos;abord le <strong>nombre de places</strong> ci-dessus.
-            </p>
-            <p className={styles.hint}>
-              Ces places seront placées <strong>immédiatement à côté</strong> de l&apos;emplacement
-              PMR. Le reste du groupe est installé au plus près.
-            </p>
-          </div>
+          <>
+            <div className={styles.field}>
+              <label htmlFor="pmrCount">Combien de personnes en fauteuil / PMR&nbsp;?</label>
+              <select
+                id="pmrCount"
+                name="pmrCount"
+                value={pmrCount}
+                onChange={(e) => {
+                  const c = Number(e.target.value)
+                  setPmrCount(c)
+                  setAccompagnants((a) => Math.min(a, Math.max(0, partySize - c)))
+                }}
+              >
+                {Array.from({ length: maxPmr }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} personne{n > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className={styles.hint}>
+                Un <strong>emplacement PMR</strong> est réservé pour chacune de ces personnes.
+              </p>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="pmrCompanions">Places accompagnant juste à côté</label>
+              <select
+                id="pmrCompanions"
+                name="pmrCompanions"
+                value={accompagnants}
+                onChange={(e) => setAccompagnants(Number(e.target.value))}
+              >
+                {[0, 1, 2, 3].map((n) => (
+                  <option key={n} value={n} disabled={n > maxAccompagnants}>
+                    {n === 0 ? 'Non, pas besoin' : `Oui, ${n} place${n > 1 ? 's' : ''}`}
+                    {n > maxAccompagnants ? ` — il faut au moins ${pmrCount + n} places` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className={styles.hint}>
+                Chaque accompagnant occupe une de vos places (en plus des personnes PMR). Pour en
+                ajouter, augmentez d&apos;abord le <strong>nombre de places</strong> ci-dessus.
+              </p>
+              <p className={styles.hint}>
+                Ces places seront installées <strong>immédiatement à côté</strong> des emplacements
+                PMR. Le reste du groupe est placé au plus près.
+              </p>
+            </div>
+          </>
         )}
       </fieldset>
 

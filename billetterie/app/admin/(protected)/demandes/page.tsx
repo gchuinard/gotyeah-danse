@@ -204,16 +204,17 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     <td>
                       <span className={styles.nom}>
                         {d.name}
-                        {d.pmr && (
+                        {d.pmrCount > 0 && (
                           <span
                             className={styles.pmrTag}
                             title={
-                              d.pmrCompanions > 0
-                                ? `PMR — ${d.pmrCompanions} place(s) accompagnant à coller`
-                                : 'PMR — sans accompagnant à coller'
+                              `${d.pmrCount} personne(s) PMR` +
+                              (d.pmrCompanions > 0
+                                ? ` — ${d.pmrCompanions} place(s) accompagnant à coller`
+                                : ' — sans accompagnant à coller')
                             }
                           >
-                            ♿ PMR
+                            ♿ PMR{d.pmrCount > 1 ? ` ×${d.pmrCount}` : ''}
                           </span>
                         )}
                       </span>

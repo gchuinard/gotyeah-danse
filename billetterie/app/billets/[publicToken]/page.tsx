@@ -105,7 +105,7 @@ export default async function BilletsPage({
                 phone={booking.phone}
                 partySize={booking.partySize}
                 notes={booking.notes ?? ''}
-                pmr={booking.pmr}
+                pmrCount={booking.pmrCount}
                 pmrCompanions={booking.pmrCompanions}
                 maxPlaces={maxPlaces}
               />

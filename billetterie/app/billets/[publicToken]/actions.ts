@@ -31,8 +31,8 @@ const modifSchema = z.object({
     .max(500, 'Le commentaire ne peut pas dépasser 500 caractères.')
     .optional()
     .transform((v) => (v ? v : null)),
-  pmr: z.boolean().optional().default(false),
-  pmrCompanions: z.coerce.number().int().min(0).max(7).optional().default(0),
+  pmrCount: z.coerce.number().int().min(0).max(MAX_PARTY_SIZE).optional().default(0),
+  pmrCompanions: z.coerce.number().int().min(0).max(MAX_PARTY_SIZE).optional().default(0),
 })
 
 export async function modifierDemande(input: {
@@ -41,7 +41,7 @@ export async function modifierDemande(input: {
   phone: string
   partySize: number
   notes?: string
-  pmr: boolean
+  pmrCount: number
   pmrCompanions: number
 }): Promise<ModifResult> {
   const parsed = modifSchema.safeParse(input)
@@ -66,7 +66,9 @@ export async function modifierDemande(input: {
         throw new Error(`Plus assez de places : ${maxPourCetteDemande} au maximum pour cette demande.`)
       }
 
-      const pmrCompanions = d.pmr ? Math.min(d.pmrCompanions, d.partySize - 1) : 0
+      const pmrCount = Math.min(Math.max(0, d.pmrCount), d.partySize)
+      const pmrCompanions =
+        pmrCount > 0 ? Math.min(Math.max(0, d.pmrCompanions), d.partySize - pmrCount) : 0
       await tx.booking.update({
         where: { id: booking.id },
         data: {
@@ -74,7 +76,7 @@ export async function modifierDemande(input: {
           phone: d.phone,
           partySize: d.partySize,
           notes: d.notes,
-          pmr: d.pmr,
+          pmrCount,
           pmrCompanions,
         },
       })

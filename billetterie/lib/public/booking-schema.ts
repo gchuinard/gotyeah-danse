@@ -59,19 +59,23 @@ export const bookingSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined)),
 
-  // Accessibilité PMR : case cochée (la case absente → false).
-  pmr: z
-    .string()
+  // Accessibilité PMR : nombre de personnes à mobilité réduite dans le groupe
+  // (champ absent → 0 = demande non PMR). Borné à partySize côté création.
+  pmrCount: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_PARTY_SIZE)
     .optional()
-    .transform((v) => v === 'on' || v === 'true' || v === '1'),
+    .transform((v) => v ?? 0),
 
-  // Places accompagnant à coller au PMR (0 = aucune). Borné, remis à 0 si
-  // la demande n'est pas PMR (cf. action).
+  // Places accompagnant à coller aux emplacements PMR (0 = aucune). Borné, remis
+  // à 0 si la demande n'est pas PMR (cf. action).
   pmrCompanions: z.coerce
     .number()
     .int()
     .min(0)
-    .max(7)
+    .max(MAX_PARTY_SIZE)
     .optional()
     .transform((v) => v ?? 0),
 

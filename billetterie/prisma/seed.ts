@@ -93,7 +93,7 @@ async function seedDemoBookings() {
       phone: '0634567890',
       partySize: 6,
       status: 'paid',
-      notes: 'Une personne en fauteuil roulant (PMR)',
+      notes: 'Deux personnes en fauteuil roulant (PMR)',
       createdAt: parisSummer('2026-06-03T09:05'),
     },
     {
@@ -154,6 +154,14 @@ async function seedDemoBookings() {
       create: { publicToken: b.publicToken, ...data },
     })
   }
+
+  // Démo PMR structuré : la famille Garnier vient avec DEUX personnes en
+  // fauteuil + 2 accompagnants à coller — montre le repérage ♿ et la gestion
+  // de plusieurs PMR sur une même commande.
+  await prisma.booking.update({
+    where: { publicToken: '3d5f7a9b-2c4e-4a6b-8d0f-1e3a5c7b9d2f' },
+    data: { pmrCount: 2, pmrCompanions: 2 },
+  })
 
   const ticketCount = await seedDemoTickets()
   return { bookings: bookings.length, tickets: ticketCount }
