@@ -36,7 +36,7 @@ function capitaliser(texte: string): string {
 
 const STATUTS: Record<string, string> = {
   pending: 'En attente',
-  paid: 'Payée',
+  paid: 'À placer',
   placed: 'Placée',
   cancelled: 'Annulée',
   expired: 'Expirée',

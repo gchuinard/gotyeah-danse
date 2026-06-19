@@ -34,22 +34,29 @@ export default async function DashboardPage() {
 
   const cartes = await Promise.all(
     representations.map(async (rep) => {
-      const [overrides, billets, scannes, pending, paid, jauge] = await Promise.all([
-        prisma.seatOverride.count({ where: { representationId: rep.id } }),
-        prisma.ticket.count({ where: { representationId: rep.id } }),
-        prisma.ticket.count({ where: { representationId: rep.id, scannedAt: { not: null } } }),
-        prisma.booking.aggregate({
-          _count: true,
-          _sum: { partySize: true },
-          where: { representationId: rep.id, status: 'pending' },
-        }),
-        prisma.booking.aggregate({
-          _count: true,
-          _sum: { partySize: true },
-          where: { representationId: rep.id, status: 'paid' },
-        }),
-        computeJauge(prisma, rep.id, now),
-      ])
+      const [overrides, billets, scannes, pending, paid, placesNonRegles, jauge] =
+        await Promise.all([
+          prisma.seatOverride.count({ where: { representationId: rep.id } }),
+          prisma.ticket.count({ where: { representationId: rep.id } }),
+          prisma.ticket.count({ where: { representationId: rep.id, scannedAt: { not: null } } }),
+          prisma.booking.aggregate({
+            _count: true,
+            _sum: { partySize: true },
+            where: { representationId: rep.id, status: 'pending' },
+          }),
+          prisma.booking.aggregate({
+            _count: true,
+            _sum: { partySize: true },
+            where: { representationId: rep.id, status: 'paid' },
+          }),
+          // Placés mais pas encore réglés (paiement après coup) — à relancer le soir J.
+          prisma.booking.aggregate({
+            _count: true,
+            _sum: { partySize: true },
+            where: { representationId: rep.id, status: 'placed', paidAt: null },
+          }),
+          computeJauge(prisma, rep.id, now),
+        ])
       const capacite = totalSieges - overrides
       return {
         rep,
@@ -61,6 +68,8 @@ export default async function DashboardPage() {
         pendingPlaces: pending._sum.partySize ?? 0,
         paidNb: paid._count,
         paidPlaces: paid._sum.partySize ?? 0,
+        placesNonReglesNb: placesNonRegles._count,
+        placesNonReglesPlaces: placesNonRegles._sum.partySize ?? 0,
         jauge,
       }
     }),
@@ -106,9 +115,16 @@ export default async function DashboardPage() {
                 </dd>
               </div>
               <div>
-                <dt>Payées non placées</dt>
+                <dt>À placer</dt>
                 <dd>
                   {c.paidNb} demande{c.paidNb > 1 ? 's' : ''} · {c.paidPlaces} place{c.paidPlaces > 1 ? 's' : ''}
+                </dd>
+              </div>
+              <div>
+                <dt>Placés non réglés</dt>
+                <dd className={c.placesNonReglesNb > 0 ? styles.alerte : undefined}>
+                  {c.placesNonReglesNb} demande{c.placesNonReglesNb > 1 ? 's' : ''} ·{' '}
+                  {c.placesNonReglesPlaces} place{c.placesNonReglesPlaces > 1 ? 's' : ''}
                 </dd>
               </div>
               <div>

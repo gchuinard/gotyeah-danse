@@ -106,11 +106,20 @@ describe('marquerPayee', () => {
     expect(apres.amountCents).toBe(2550)
   })
 
-  it('refuse une demande non pending', async () => {
+  it('refuse une demande déjà réglée', async () => {
     const booking = await creerBooking('paid')
-    await expect(marquerPayee(db, booking.id)).rejects.toThrow(
-      "Cette demande n'est pas en attente de paiement.",
-    )
+    await expect(marquerPayee(db, booking.id)).rejects.toThrow('Cette demande est déjà réglée.')
+  })
+
+  it('enregistre le règlement après placement (paiement plus tard) sans déplacer', async () => {
+    const booking = await creerBooking('pending', 1)
+    await emettreBillets(db, booking.id, ['s1']) // placée, non réglée (paidAt null)
+    const res = await marquerPayee(db, booking.id, { paymentMethod: 'especes', amountCents: 1600 })
+    expect(res.etaitPlace).toBe(true)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('placed') // reste placée
+    expect(apres.paidAt).toBeInstanceOf(Date)
+    expect(apres.amountCents).toBe(1600)
   })
 
   it('refuse une pending expirée', async () => {
@@ -147,11 +156,18 @@ describe('emettreBillets', () => {
     expect(await db.ticket.count()).toBe(0)
   })
 
-  it('refuse une demande non payée', async () => {
+  it('place une demande en attente (paiement plus tard) : placed, paidAt reste null', async () => {
     const booking = await creerBooking('pending', 1)
-    await expect(emettreBillets(db, booking.id, ['s1'])).rejects.toThrow(
-      "Cette demande n'est pas marquée payée.",
-    )
+    const resultat = await emettreBillets(db, booking.id, ['s1'])
+    expect(resultat.tickets).toHaveLength(1)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('placed')
+    expect(apres.paidAt).toBeNull()
+  })
+
+  it('refuse de placer une demande annulée', async () => {
+    const booking = await creerBooking('cancelled', 1)
+    await expect(emettreBillets(db, booking.id, ['s1'])).rejects.toThrow(/en attente ou payée/)
   })
 
   it('refuse un siège bloqué par un override', async () => {

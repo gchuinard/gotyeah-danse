@@ -264,6 +264,21 @@
   white-space: nowrap;
 }
 
+/* Chip « placé mais pas encore réglé » — ambre, calqué sur .pmrTag. */
+.nonRegle {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #9a6406;
+  background: #fbf0da;
+  border: 1px solid #ecd29a;
+  border-radius: 6px;
+  padding: 0.02rem 0.35rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .notes {
   display: block;
   font-size: 0.78rem;

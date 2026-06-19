@@ -15,9 +15,10 @@ H→W, allée transversale, bloc « haute » A→G au fond — tout vient de
 `config/venue.ts`).
 
 Les familles réservent **N places** (2 à 6 typiquement) et ne choisissent
-**jamais** leur siège. Quand une réservation passe « payée », l'admin demande
-des suggestions : ton algo propose **jusqu'à 3 options de placement**, et c'est
-un humain qui valide. Toujours.
+**jamais** leur siège. Quand l'admin place une réservation (payée ou non — le
+placement et le paiement sont indépendants), il demande des suggestions : ton
+algo propose **jusqu'à 3 options de placement**, et c'est un humain qui valide.
+Toujours.
 
 Ce que fait l'algo :
 

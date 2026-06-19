@@ -94,8 +94,9 @@ export async function marquerPayeeAction(formData: FormData): Promise<void> {
       ? montantSchema.safeParse(montantBrut)
       : null
 
+  let res: Awaited<ReturnType<typeof marquerPayee>>
   try {
-    await marquerPayee(prisma, id, {
+    res = await marquerPayee(prisma, id, {
       ...(methode.success ? { paymentMethod: methode.data } : {}),
       ...(montant?.success ? { amountCents: montant.data } : {}),
     })
@@ -104,6 +105,11 @@ export async function marquerPayeeAction(formData: FormData): Promise<void> {
   }
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
+  // Demande déjà placée (paiement après coup) → retour à la liste ; une demande
+  // en attente qu'on vient de marquer payée → on enchaîne sur le placement.
+  if (res.etaitPlace) {
+    redirect(urlListe(formData.get('retour'), 'ok', 'Règlement enregistré.'))
+  }
   redirect(`/admin/placement/${id}`)
 }
 

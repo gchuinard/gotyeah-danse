@@ -16,7 +16,7 @@ const STATUTS = [
   { value: '', label: 'Tous' },
   { value: 'pending', label: 'En attente' },
   { value: 'expiree', label: 'Expirées' },
-  { value: 'paid', label: 'Payées' },
+  { value: 'paid', label: 'À placer' },
   { value: 'placed', label: 'Placées' },
   { value: 'cancelled', label: 'Annulées' },
 ] as const

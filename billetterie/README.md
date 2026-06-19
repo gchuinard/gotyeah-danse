@@ -12,9 +12,14 @@ une base SQLite, et c'est tout.
 - Les familles demandent **N places** et **ne choisissent jamais leur siège**.
 - Une demande `pending` **consomme la jauge** (un compteur, jamais des sièges
   précis) — la salle ne peut pas être survendue.
-- L'attribution des sièges se fait **à la main** au moment du « payé » :
-  l'algo propose jusqu'à 3 suggestions, un humain valide toujours.
-- **Premier payé, premier placé.**
+- L'attribution des sièges se fait **à la main** : l'algo propose jusqu'à
+  3 suggestions, un humain valide toujours.
+- **Placement et paiement sont indépendants.** On peut placer une demande
+  avant qu'elle soit payée (« placer maintenant, payer plus tard ») et
+  enregistrer le règlement après coup. Une demande placée **non réglée**
+  n'envoie PAS ses billets automatiquement : l'admin le déclenche à la main
+  (avec avertissement). Pratique recommandée : premier payé, premier placé —
+  mais ce n'est plus imposé.
 
 Stack : Next.js 16 (App Router) · Prisma 6 / SQLite · TypeScript · Docker sur Pi 5 ARM64.
 
@@ -75,7 +80,7 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes : marquer payée, prolonger, annuler |
+| `/admin/demandes` | File des demandes : marquer payée, **placer** (même non payée), prolonger, annuler, envoyer/renvoyer les billets |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
@@ -89,13 +94,19 @@ Deux tokens de démo pratiques (seed dev) :
 - `/billets/5f1e7c1a-9b3d-4e6f-8a2c-0d4b6e8f1a3c` — demande **pending** (page d'attente).
 
 Le flux complet : une famille fait une **demande** sur `/` (email de confirmation
-avec lien de suivi) → elle paie au studio, l'admin la marque **payée** (avec mode
-de règlement + montant, facultatifs — alimentent la caisse de `/admin/stats`) →
+avec lien de suivi) → elle paie au studio, l'admin la marque **payée** (mode de
+règlement + montant facultatifs — alimentent la caisse de `/admin/stats`) →
 l'admin ouvre le **placement** (3 suggestions de l'algo, ajustables siège par
 siège), valide → les **billets + QR** partent par email (sur téléphone, un tap
 sur le QR l'affiche **plein écran** pour le scan) → le soir, **scan** à l'entrée.
-Chaque demande peut porter une **note interne** bénévole (n° de chèque,
-contexte) visible uniquement dans l'admin et dans l'export CSV.
+Paiement et placement étant **indépendants**, l'admin peut aussi **placer avant
+le paiement** (bouton « Placer » sur une demande en attente) : la demande devient
+*placée non réglée* (chip ⚠ dans la liste), ses billets ne partent pas tout
+seuls, et le règlement s'enregistre plus tard via « Marquer payée ». L'admin
+envoie alors les billets à la main (« Envoyer les billets », avec avertissement
+si rien n'est encore réglé). Chaque demande peut porter une **note interne**
+bénévole (n° de chèque, contexte) visible uniquement dans l'admin et dans
+l'export CSV.
 
 ## L'algorithme de placement
 

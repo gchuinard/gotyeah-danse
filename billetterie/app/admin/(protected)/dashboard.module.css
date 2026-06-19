@@ -108,6 +108,11 @@
   color: var(--encre);
 }
 
+/* Compteur en alerte (ex. « placés non réglés » > 0) — ambre. */
+.stats dd.alerte {
+  color: #9a6406;
+}
+
 .liens {
   display: flex;
   align-items: center;

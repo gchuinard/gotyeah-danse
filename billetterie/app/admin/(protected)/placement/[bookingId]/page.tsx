@@ -78,8 +78,10 @@ export default async function PlacementPage({
     )
   }
 
+  // pending = placement « payer plus tard » (billets non envoyés auto) ;
+  // paid = placement classique. Les deux ouvrent l'émission.
   const mode: 'emission' | 'deplacement' | null =
-    booking.status === 'paid'
+    booking.status === 'paid' || booking.status === 'pending'
       ? 'emission'
       : booking.status === 'placed' && wantsDeplacement
         ? 'deplacement'

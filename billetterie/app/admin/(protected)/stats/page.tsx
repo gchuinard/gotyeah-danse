@@ -127,7 +127,7 @@ export default async function StatsPage() {
                 {(
                   [
                     ['pending', 'En attente'],
-                    ['paid', 'Payées'],
+                    ['paid', 'À placer'],
                     ['placed', 'Placées'],
                     ['cancelled', 'Annulées'],
                     ['expired', 'Expirées'],

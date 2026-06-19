@@ -73,9 +73,15 @@ export async function validerPlacement(input: {
   }
 
   // Email best-effort : un échec d'envoi n'annule pas le placement.
+  // ⚠️ Placement d'une demande NON réglée (paidAt vide) : on N'ENVOIE PAS les
+  // billets automatiquement — l'admin le déclenchera à la main depuis la liste
+  // (bouton « Envoyer les billets » + avertissement « pas de paiement »).
   try {
-    if (mode === 'emission') await sendTicketsEmail(booking)
-    else await sendMovedEmail(booking)
+    if (mode === 'emission') {
+      if (booking.paidAt) await sendTicketsEmail(booking)
+    } else {
+      await sendMovedEmail(booking)
+    }
   } catch {
     // Tolérée : les billets restent accessibles via la page publique.
   }

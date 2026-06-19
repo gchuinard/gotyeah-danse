@@ -21,6 +21,7 @@ export type BookingAvecBillets = {
   email: string
   partySize: number
   publicToken: string
+  paidAt: Date | null
   representation: { title: string; startsAt: Date }
   tickets: Array<{
     qrToken: string
@@ -39,6 +40,7 @@ const selectionBookingAvecBillets = {
   email: true,
   partySize: true,
   publicToken: true,
+  paidAt: true, // gate l'envoi auto des billets : non réglé → pas d'email auto
   representation: { select: { title: true, startsAt: true } },
   tickets: {
     orderBy: [{ seat: { rowId: 'asc' } }, { seat: { number: 'asc' } }],
@@ -61,32 +63,45 @@ export type Reglement = {
   amountCents?: number
 }
 
-// pending (non expirée) → paid + paidAt. Erreur française sinon.
-// Le règlement (méthode + montant) est facultatif — saisi pour la
-// réconciliation de caisse, jamais bloquant.
+// Enregistre le règlement d'une demande. Paiement et placement sont
+// INDÉPENDANTS : on peut payer une demande en attente (→ paid, « à placer »)
+// OU une demande déjà placée mais non réglée (paiement après coup → reste
+// placed). Le règlement (méthode + montant) est facultatif — saisi pour la
+// réconciliation de caisse, jamais bloquant. Renvoie `etaitPlace` pour que
+// l'action sache où rediriger (liste si déjà placée, écran de placement sinon).
 export async function marquerPayee(
   db: PrismaClient,
   bookingId: string,
   reglement: Reglement = {},
-): Promise<void> {
-  await db.$transaction(async (tx) => {
+): Promise<{ etaitPlace: boolean }> {
+  return db.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } })
     if (!booking) throw new Error('Demande introuvable.')
-    if (booking.status !== 'pending') {
-      throw new Error("Cette demande n'est pas en attente de paiement.")
+
+    // Déjà réglée : statut payé, ou placée avec un paidAt déjà posé.
+    if (booking.status === 'paid' || (booking.status === 'placed' && booking.paidAt)) {
+      throw new Error('Cette demande est déjà réglée.')
     }
-    if (booking.expiresAt && booking.expiresAt <= new Date()) {
+    // Payable : en attente (non expirée) ou déjà placée mais non réglée.
+    if (booking.status !== 'pending' && booking.status !== 'placed') {
+      throw new Error('Cette demande ne peut pas être marquée payée.')
+    }
+    if (booking.status === 'pending' && booking.expiresAt && booking.expiresAt <= new Date()) {
       throw new Error('Cette demande est expirée — prolonge-la avant de la marquer payée.')
     }
+
+    const etaitPlace = booking.status === 'placed'
     await tx.booking.update({
       where: { id: bookingId },
       data: {
-        status: 'paid',
+        // Une demande en attente passe « à placer » ; une placée le reste.
+        status: etaitPlace ? 'placed' : 'paid',
         paidAt: new Date(),
         paymentMethod: reglement.paymentMethod ?? null,
         amountCents: reglement.amountCents ?? null,
       },
     })
+    return { etaitPlace }
   })
 }
 
@@ -151,8 +166,14 @@ export async function emettreBillets(
     .$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({ where: { id: bookingId } })
       if (!booking) throw new Error('Demande introuvable.')
-      if (booking.status !== 'paid') {
-        throw new Error("Cette demande n'est pas marquée payée.")
+      // On place une demande payée OU en attente (paiement plus tard) : le
+      // placement et le paiement sont indépendants. Une pending placée reste
+      // non réglée (paidAt inchangé) jusqu'à un « marquer payée » ultérieur.
+      if (booking.status !== 'paid' && booking.status !== 'pending') {
+        throw new Error('Seule une demande en attente ou payée peut être placée.')
+      }
+      if (booking.status === 'pending' && booking.expiresAt && booking.expiresAt <= new Date()) {
+        throw new Error('Cette demande est expirée — prolonge-la avant de la placer.')
       }
       if (seatIds.length !== booking.partySize) {
         throw new Error(

@@ -75,7 +75,7 @@ function placesAttribuees(
 
 const LIBELLES: Record<string, string> = {
   pending: 'En attente',
-  paid: 'Payée',
+  paid: 'À placer',
   placed: 'Placée',
   cancelled: 'Annulée',
   expired: 'Expirée',
@@ -247,6 +247,11 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                       <span className={`${styles.badge} ${styles[CLASSES_BADGE[affichage] ?? 'badgeCancelled']}`}>
                         {LIBELLES[affichage] ?? d.status}
                       </span>
+                      {d.status === 'placed' && !d.paidAt && (
+                        <span className={styles.nonRegle} title="Placé mais pas encore réglé">
+                          ⚠ non réglé
+                        </span>
+                      )}
                     </td>
                     <td>{dateCourte.format(d.createdAt)}</td>
                     <td>{d.paidAt ? dateCourte.format(d.paidAt) : '—'}</td>
@@ -285,6 +290,15 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                                 Prolonger (+14 j)
                               </button>
                             </form>
+                            {!expiree && (
+                              <Link
+                                className={styles.btnLien}
+                                href={avecRetour(`/admin/placement/${d.id}`)}
+                                title="Placer maintenant, sans attendre le paiement"
+                              >
+                                Placer
+                              </Link>
+                            )}
                           </>
                         )}
                         {d.status === 'paid' && (
@@ -294,6 +308,30 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                         )}
                         {d.status === 'placed' && (
                           <>
+                            {!d.paidAt && (
+                              <form action={marquerPayeeAction} className={styles.payerForm}>
+                                <input type="hidden" name="id" value={d.id} />
+                                <input type="hidden" name="retour" value={retour.toString()} />
+                                <div className={styles.payerChamps}>
+                                  <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
+                                    <option value="cheque">Chèque</option>
+                                    <option value="especes">Espèces</option>
+                                    <option value="autre">Autre</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    name="montant"
+                                    inputMode="decimal"
+                                    placeholder="€"
+                                    aria-label="Montant encaissé en euros"
+                                    className={styles.montantInput}
+                                  />
+                                </div>
+                                <button type="submit" className={styles.btn}>
+                                  Marquer payée
+                                </button>
+                              </form>
+                            )}
                             <Link
                               className={styles.btnLien}
                               href={avecRetour(`/admin/placement/${d.id}?mode=deplacer`)}
@@ -303,9 +341,18 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                             <form action={renvoyerBilletsAction}>
                               <input type="hidden" name="id" value={d.id} />
                               <input type="hidden" name="retour" value={retour.toString()} />
-                              <button type="submit" className={styles.btn}>
-                                Renvoyer les billets
-                              </button>
+                              {d.paidAt ? (
+                                <button type="submit" className={styles.btn}>
+                                  Renvoyer les billets
+                                </button>
+                              ) : (
+                                <ConfirmSubmit
+                                  className={styles.btn}
+                                  message={`Aucun paiement n'est enregistré pour la demande de ${d.name}. Envoyer quand même les billets et le QR à la famille ?`}
+                                >
+                                  Envoyer les billets
+                                </ConfirmSubmit>
+                              )}
                             </form>
                           </>
                         )}
