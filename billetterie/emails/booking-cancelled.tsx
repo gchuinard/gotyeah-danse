@@ -14,6 +14,7 @@ import {
   Section,
   Text,
 } from 'react-email'
+import EmailHeader from './components/email-header'
 
 export interface BookingCancelledProps {
   name: string
@@ -21,6 +22,7 @@ export interface BookingCancelledProps {
   representationTitle: string
   representationDateText: string
   formulaireUrl: string
+  logoUrl: string
 }
 
 // Palette de l'école : sable / encre / terre.
@@ -82,6 +84,7 @@ export default function BookingCancelledEmail({
   representationTitle,
   representationDateText,
   formulaireUrl,
+  logoUrl,
 }: BookingCancelledProps) {
   const places = partySize > 1 ? `${partySize} places` : '1 place'
   return (
@@ -90,6 +93,7 @@ export default function BookingCancelledEmail({
       <Preview>Votre demande de {places} pour {representationTitle} a été annulée.</Preview>
       <Body style={body}>
         <Container style={container}>
+          <EmailHeader logoUrl={logoUrl} />
           <Heading style={h1}>Votre demande a été annulée</Heading>
           <Text style={paragraphe}>Bonjour {name},</Text>
           <Text style={paragraphe}>
@@ -129,4 +133,5 @@ BookingCancelledEmail.PreviewProps = {
   representationTitle: 'Samedi 20h30',
   representationDateText: 'samedi 27 juin 2026 à 20h30',
   formulaireUrl: 'http://localhost:3000',
+  logoUrl: 'http://localhost:3000/logo-desha-moulin.png',
 } satisfies BookingCancelledProps

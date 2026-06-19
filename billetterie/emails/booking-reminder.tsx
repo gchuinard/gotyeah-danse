@@ -14,6 +14,7 @@ import {
   Section,
   Text,
 } from 'react-email'
+import EmailHeader from './components/email-header'
 
 export interface BookingReminderProps {
   name: string
@@ -22,6 +23,7 @@ export interface BookingReminderProps {
   representationDateText: string
   dateLimiteText: string
   billetsUrl: string
+  logoUrl: string
 }
 
 // Palette de l'école : sable / encre / terre.
@@ -92,6 +94,7 @@ export default function BookingReminderEmail({
   representationDateText,
   dateLimiteText,
   billetsUrl,
+  logoUrl,
 }: BookingReminderProps) {
   const places = partySize > 1 ? `${partySize} places` : '1 place'
   return (
@@ -100,6 +103,7 @@ export default function BookingReminderEmail({
       <Preview>Petit rappel : votre demande de {places} attend toujours son règlement.</Preview>
       <Body style={body}>
         <Container style={container}>
+          <EmailHeader logoUrl={logoUrl} />
           <Heading style={h1}>Petit rappel pour vos places</Heading>
           <Text style={paragraphe}>Bonjour {name},</Text>
           <Text style={paragraphe}>
@@ -146,4 +150,5 @@ BookingReminderEmail.PreviewProps = {
   representationDateText: 'samedi 27 juin 2026 à 20h30',
   dateLimiteText: 'jeudi 25 juin 2026',
   billetsUrl: 'http://localhost:3000/billets/exemple-token',
+  logoUrl: 'http://localhost:3000/logo-desha-moulin.png',
 } satisfies BookingReminderProps

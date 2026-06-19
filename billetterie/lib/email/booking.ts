@@ -86,6 +86,7 @@ export async function sendBookingPendingEmail(booking: {
         : 'la fin du délai de 14 jours',
       billetsUrl,
       codeDemande: codeDemande(booking.publicToken),
+      logoUrl: `${baseUrl()}/logo-desha-moulin.png`,
     }),
   )
 
@@ -118,6 +119,7 @@ export async function sendReminderEmail(booking: {
         ? formatDate.format(booking.expiresAt)
         : 'la fin du délai de 14 jours',
       billetsUrl: `${baseUrl()}/billets/${booking.publicToken}`,
+      logoUrl: `${baseUrl()}/logo-desha-moulin.png`,
     }),
   )
 
@@ -138,6 +140,7 @@ export async function sendTicketsEmail(booking: BookingBillets): Promise<boolean
       representationDateText: dateHeureFr(booking.representation.startsAt),
       tickets: blocsBillets(booking),
       billetsUrl: `${baseUrl()}/billets/${booking.publicToken}`,
+      logoUrl: `${baseUrl()}/logo-desha-moulin.png`,
     }),
   )
 
@@ -159,6 +162,7 @@ export async function sendMovedEmail(booking: BookingBillets): Promise<boolean> 
       representationDateText: dateHeureFr(booking.representation.startsAt),
       tickets: blocsBillets(booking),
       billetsUrl: `${baseUrl()}/billets/${booking.publicToken}`,
+      logoUrl: `${baseUrl()}/logo-desha-moulin.png`,
     }),
   )
 
@@ -184,6 +188,7 @@ export async function sendCancelledEmail(booking: {
       representationTitle: booking.representation.title,
       representationDateText: dateHeureFr(booking.representation.startsAt),
       formulaireUrl: baseUrl(),
+      logoUrl: `${baseUrl()}/logo-desha-moulin.png`,
     }),
   )
 

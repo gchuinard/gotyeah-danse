@@ -213,6 +213,28 @@
   }
 }
 
+/* En-tête de marque sur chaque billet (logo + nom de l'école). */
+.ticketBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.ticketLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.ticketBrandName {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #5c3d2e;
+  line-height: 1.2;
+}
+
 /* ---- Vue print : LE substitut au PDF. Un billet par bloc, bordures
    nettes, QR ~4 cm, lisible en noir et blanc. ---- */
 
@@ -244,8 +266,14 @@
 
   .ticketKicker,
   .ticketTitle,
-  .ticketName {
+  .ticketName,
+  .ticketBrandName {
     color: #000000;
+  }
+
+  .ticketLogo {
+    width: 1.4cm;
+    height: 1.4cm;
   }
 
   .qr {

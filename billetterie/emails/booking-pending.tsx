@@ -14,6 +14,7 @@ import {
   Section,
   Text,
 } from 'react-email'
+import EmailHeader from './components/email-header'
 
 export interface BookingPendingProps {
   name: string
@@ -23,6 +24,7 @@ export interface BookingPendingProps {
   dateLimiteText: string
   billetsUrl: string
   codeDemande: string
+  logoUrl: string
 }
 
 // Palette de l'école : sable / encre / terre.
@@ -103,6 +105,7 @@ export default function BookingPendingEmail({
   dateLimiteText,
   billetsUrl,
   codeDemande,
+  logoUrl,
 }: BookingPendingProps) {
   const places = partySize > 1 ? `${partySize} places` : '1 place'
   return (
@@ -111,6 +114,7 @@ export default function BookingPendingEmail({
       <Preview>Votre demande de {places} est bien enregistrée — règlement sous 14 jours.</Preview>
       <Body style={body}>
         <Container style={container}>
+          <EmailHeader logoUrl={logoUrl} />
           <Heading style={h1}>Votre demande est bien enregistrée</Heading>
           <Text style={paragraphe}>Bonjour {name},</Text>
           <Text style={paragraphe}>
@@ -169,4 +173,5 @@ BookingPendingEmail.PreviewProps = {
   dateLimiteText: 'jeudi 25 juin 2026',
   billetsUrl: 'http://localhost:3000/billets/exemple-token',
   codeDemande: 'AB3CDE',
+  logoUrl: 'http://localhost:3000/logo-desha-moulin.png',
 } satisfies BookingPendingProps

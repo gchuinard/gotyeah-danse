@@ -14,6 +14,7 @@ import {
   Section,
   Text,
 } from 'react-email'
+import EmailHeader from './components/email-header'
 import TicketBlock, { type TicketBlockData } from './components/ticket-block'
 
 export interface BookingMovedProps {
@@ -22,6 +23,7 @@ export interface BookingMovedProps {
   representationDateText: string
   tickets: TicketBlockData[]
   billetsUrl: string
+  logoUrl: string
 }
 
 // Palette de l'école : sable / encre / terre.
@@ -91,6 +93,7 @@ export default function BookingMovedEmail({
   representationDateText,
   tickets,
   billetsUrl,
+  logoUrl,
 }: BookingMovedProps) {
   const places = tickets.length > 1 ? 'vos places' : 'votre place'
   return (
@@ -99,6 +102,7 @@ export default function BookingMovedEmail({
       <Preview>Vos places pour {representationTitle} ont changé — nouveaux billets ci-dessous.</Preview>
       <Body style={body}>
         <Container style={container}>
+          <EmailHeader logoUrl={logoUrl} />
           <Heading style={h1}>Vos places ont été modifiées</Heading>
           <Text style={paragraphe}>Bonjour {name},</Text>
           <Text style={paragraphe}>
@@ -160,4 +164,5 @@ BookingMovedEmail.PreviewProps = {
     },
   ],
   billetsUrl: 'http://localhost:3000/billets/exemple-token',
+  logoUrl: 'http://localhost:3000/logo-desha-moulin.png',
 } satisfies BookingMovedProps

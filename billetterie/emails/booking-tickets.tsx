@@ -13,6 +13,7 @@ import {
   Section,
   Text,
 } from 'react-email'
+import EmailHeader from './components/email-header'
 import TicketBlock, { type TicketBlockData } from './components/ticket-block'
 
 export interface BookingTicketsProps {
@@ -21,6 +22,7 @@ export interface BookingTicketsProps {
   representationDateText: string
   tickets: TicketBlockData[]
   billetsUrl: string
+  logoUrl: string
 }
 
 // Palette de l'école : sable / encre / terre.
@@ -82,6 +84,7 @@ export default function BookingTicketsEmail({
   representationDateText,
   tickets,
   billetsUrl,
+  logoUrl,
 }: BookingTicketsProps) {
   const places = tickets.length > 1 ? `${tickets.length} places` : '1 place'
   return (
@@ -90,6 +93,7 @@ export default function BookingTicketsEmail({
       <Preview>Vos billets pour {representationTitle} sont prêts.</Preview>
       <Body style={body}>
         <Container style={container}>
+          <EmailHeader logoUrl={logoUrl} />
           <Heading style={h1}>Vos billets</Heading>
           <Text style={paragraphe}>Bonjour {name},</Text>
           <Text style={paragraphe}>
@@ -143,4 +147,5 @@ BookingTicketsEmail.PreviewProps = {
     },
   ],
   billetsUrl: 'http://localhost:3000/billets/exemple-token',
+  logoUrl: 'http://localhost:3000/logo-desha-moulin.png',
 } satisfies BookingTicketsProps

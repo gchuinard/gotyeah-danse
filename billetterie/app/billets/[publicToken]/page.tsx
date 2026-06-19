@@ -160,6 +160,17 @@ export default async function BilletsPage({
               {booking.tickets.map((t) => (
                 <article key={t.id} className={styles.ticket}>
                   <div className={styles.ticketInfo}>
+                    <div className={styles.ticketBrand}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        className={styles.ticketLogo}
+                        src="/logo-desha-moulin.png"
+                        alt=""
+                        width={44}
+                        height={44}
+                      />
+                      <span className={styles.ticketBrandName}>École de danse Desha-Moulin</span>
+                    </div>
                     <p className={styles.ticketKicker}>Spectacle de fin d&apos;année</p>
                     <h2 className={styles.ticketTitle}>{rep.title}</h2>
                     <p className={styles.ticketDate}>{repDate}</p>
