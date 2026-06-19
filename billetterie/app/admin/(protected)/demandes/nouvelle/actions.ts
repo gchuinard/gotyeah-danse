@@ -23,7 +23,7 @@ export async function creerDemandeAdmin(
   _prevState: NouvelleDemandeState,
   formData: FormData,
 ): Promise<NouvelleDemandeState> {
-  await requireAdmin()
+  const { email: adminEmail } = await requireAdmin()
 
   const parsed = bookingSchema.safeParse({
     representationId: formData.get('representationId'),
@@ -54,7 +54,7 @@ export async function creerDemandeAdmin(
     notes: demande.notes,
     pmrCount: demande.pmrCount,
     pmrCompanions: demande.pmrCompanions,
-  })
+  }, adminEmail)
   if ('error' in result) {
     return { ok: false, error: result.error }
   }

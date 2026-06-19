@@ -12,6 +12,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { deplacerBillets, emettreBillets } from '@/lib/admin/bookings'
+import { logBookingEvent } from '@/lib/admin/events'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { sendMovedEmail, sendTicketsEmail } from '@/lib/email/booking'
@@ -46,7 +47,7 @@ export async function validerPlacement(input: {
   mode: 'emission' | 'deplacement'
   retour?: string
 }): Promise<PlacementActionResult> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
 
   const parsed = schema.safeParse(input)
   if (!parsed.success) {
@@ -71,6 +72,13 @@ export async function validerPlacement(input: {
           : 'Le placement a échoué — rechargez le plan et réessayez.',
     }
   }
+
+  await logBookingEvent(
+    bookingId,
+    mode === 'emission' ? 'placed' : 'moved',
+    email,
+    `${booking.tickets.length} place${booking.tickets.length > 1 ? 's' : ''}`,
+  )
 
   // Email best-effort : un échec d'envoi n'annule pas le placement.
   // ⚠️ Remise « papier » → JAMAIS d'email (l'admin imprime). En « e-billet » :

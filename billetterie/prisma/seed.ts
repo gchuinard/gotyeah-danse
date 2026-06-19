@@ -190,6 +190,19 @@ async function seedDemoBookings() {
     ],
   })
 
+  // Démo historique d'audit : la timeline de la famille Dupuis (placée).
+  const dupuis = await prisma.booking.findUniqueOrThrow({
+    where: { publicToken: PLACED_DEMO.publicToken },
+  })
+  await prisma.bookingEvent.deleteMany({ where: { bookingId: dupuis.id } })
+  await prisma.bookingEvent.createMany({
+    data: [
+      { bookingId: dupuis.id, action: 'created', adminEmail: 'demande en ligne', detail: '4 places', createdAt: parisSummer('2026-06-06T16:40') },
+      { bookingId: dupuis.id, action: 'paid', adminEmail: 'pascale@example.com', detail: 'chèque · 64,00 €', createdAt: parisSummer('2026-06-07T18:10') },
+      { bookingId: dupuis.id, action: 'placed', adminEmail: 'pascale@example.com', detail: '4 places', createdAt: parisSummer('2026-06-09T20:30') },
+    ],
+  })
+
   const ticketCount = await seedDemoTickets()
   return { bookings: bookings.length, tickets: ticketCount }
 }

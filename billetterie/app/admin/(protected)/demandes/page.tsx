@@ -9,6 +9,7 @@ import type { Prisma } from '@prisma/client'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { ACTION_LABELS } from '@/lib/admin/events'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -17,6 +18,7 @@ import { formatFrPhone } from '@/lib/public/phone'
 import {
   annoterAction,
   annulerAction,
+  annulerPaiementAction,
   basculerRemiseAction,
   marquerPayeeAction,
   prolongerAction,
@@ -36,6 +38,15 @@ const dateCourte = new Intl.DateTimeFormat('fr-FR', {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
+})
+
+// Pour l'historique : date + heure (Paris).
+const dateHeureCourte = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
 })
 
 function premier(valeur: string | string[] | undefined): string {
@@ -153,6 +164,10 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
             },
           },
         },
+        events: {
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, action: true, detail: true, adminEmail: true, createdAt: true },
+        },
       },
     }),
   ])
@@ -246,6 +261,25 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                           </button>
                         </form>
                       </details>
+                      <details className={styles.historique}>
+                        <summary>Historique ({d.events.length})</summary>
+                        {d.events.length === 0 ? (
+                          <p className={styles.histoVide}>Aucune action enregistrée.</p>
+                        ) : (
+                          <ul className={styles.histoListe}>
+                            {d.events.map((e) => (
+                              <li key={e.id}>
+                                <span className={styles.histoDate}>
+                                  {dateHeureCourte.format(e.createdAt)}
+                                </span>{' '}
+                                — {ACTION_LABELS[e.action] ?? e.action}
+                                {e.detail ? ` (${e.detail})` : ''} —{' '}
+                                <span className={styles.histoAuteur}>{e.adminEmail}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </details>
                     </td>
                     <td>
                       <span className={styles.contact}>{d.email}</span>
@@ -311,9 +345,21 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                           </>
                         )}
                         {d.status === 'paid' && (
-                          <Link className={styles.btnLien} href={avecRetour(`/admin/placement/${d.id}`)}>
-                            Placer
-                          </Link>
+                          <>
+                            <Link className={styles.btnLien} href={avecRetour(`/admin/placement/${d.id}`)}>
+                              Placer
+                            </Link>
+                            <form action={annulerPaiementAction}>
+                              <input type="hidden" name="id" value={d.id} />
+                              <input type="hidden" name="retour" value={retour.toString()} />
+                              <ConfirmSubmit
+                                className={styles.btn}
+                                message={`Annuler le règlement de ${d.name} ? La demande repassera en attente de paiement.`}
+                              >
+                                Annuler le règlement
+                              </ConfirmSubmit>
+                            </form>
+                          </>
                         )}
                         {d.status === 'placed' && (
                           <>
@@ -339,6 +385,18 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                                 <button type="submit" className={styles.btn}>
                                   Marquer payée
                                 </button>
+                              </form>
+                            )}
+                            {d.paidAt && (
+                              <form action={annulerPaiementAction}>
+                                <input type="hidden" name="id" value={d.id} />
+                                <input type="hidden" name="retour" value={retour.toString()} />
+                                <ConfirmSubmit
+                                  className={styles.btn}
+                                  message={`Annuler le règlement de ${d.name} ? La demande restera placée mais non réglée.`}
+                                >
+                                  Annuler le règlement
+                                </ConfirmSubmit>
                               </form>
                             )}
                             <Link

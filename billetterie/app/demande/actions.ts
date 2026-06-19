@@ -16,6 +16,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { demandeEnAttentePourEmail, trouverDemandeParCode } from '@/lib/booking/acces'
+import { ACTOR_PUBLIC } from '@/lib/admin/events'
 import { creerBookingEnAttente } from '@/lib/booking/creer'
 import { sendBookingPendingEmail } from '@/lib/email/booking'
 import { bookingSchema, type BookingInput } from '@/lib/public/booking-schema'
@@ -140,7 +141,7 @@ export async function creerDemande(
     notes: demande.notes,
     pmrCount: demande.pmrCount,
     pmrCompanions: demande.pmrCompanions,
-  })
+  }, ACTOR_PUBLIC)
 
   if ('error' in result) {
     return { ok: false, error: result.error, ...(result.dejaEnCours ? { dejaEnCours: true } : {}) }

@@ -94,6 +94,48 @@
   cursor: pointer;
 }
 
+/* Historique d'audit d'une demande (dépliable). */
+.historique {
+  font-size: 0.75rem;
+  color: var(--gris-chd);
+  margin-top: 0.2rem;
+}
+
+.historique summary {
+  cursor: pointer;
+}
+
+.histoListe {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0 0 0 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-width: 360px;
+}
+
+.histoListe li {
+  line-height: 1.35;
+  color: var(--encre, #1e1a16);
+}
+
+.histoVide {
+  margin: 0.3rem 0 0;
+  color: var(--gris-chd);
+}
+
+.histoDate {
+  color: var(--gris-chd);
+  white-space: nowrap;
+}
+
+.histoAuteur {
+  color: var(--terre-2);
+  font-style: italic;
+  word-break: break-word;
+}
+
 .annoterForm {
   display: flex;
   gap: 0.25rem;

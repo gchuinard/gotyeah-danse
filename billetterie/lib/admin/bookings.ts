@@ -107,6 +107,37 @@ export async function marquerPayee(
   })
 }
 
+// Annule un règlement posé par erreur. Une demande « à placer » (paid) repasse
+// EN ATTENTE (échéance ré-armée pour ne pas expirer aussitôt) ; une demande
+// déjà placée GARDE ses sièges et redevient simplement « placé non réglé ».
+export async function annulerPaiement(
+  db: PrismaClient,
+  bookingId: string,
+): Promise<{ statut: string }> {
+  return db.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new Error('Demande introuvable.')
+    if (!booking.paidAt) throw new Error("Cette demande n'est pas marquée payée.")
+    const reglementVide = { paidAt: null, paymentMethod: null, amountCents: null }
+    if (booking.status === 'paid') {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          ...reglementVide,
+          status: 'pending',
+          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        },
+      })
+      return { statut: 'pending' }
+    }
+    if (booking.status === 'placed') {
+      await tx.booking.update({ where: { id: bookingId }, data: reglementVide })
+      return { statut: 'placed' }
+    }
+    throw new Error('Le règlement de cette demande ne peut pas être annulé.')
+  })
+}
+
 // Vérifications communes émission / déplacement : sièges existants, sans
 // doublon, sans override ni ticket pour la représentation. Les tickets du
 // booking lui-même doivent avoir été supprimés AVANT (cas du déplacement).

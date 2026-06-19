@@ -136,8 +136,23 @@ model Booking {
   remindedAt DateTime? // relance J+7 envoyée (cron) — garantit l'idempotence
 
   tickets Ticket[]
+  events  BookingEvent[]
 
   @@index([representationId, status])
+}
+
+// Journal d'audit d'une demande : une ligne par action admin (ou création),
+// avec l'email de l'auteur. Best-effort (un échec de log ne casse pas l'action).
+model BookingEvent {
+  id         String   @id @default(cuid())
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String
+  action     String // code d'action (cf. lib/admin/events.ts : paid, unpaid, placed…)
+  detail     String? // contexte court (ex. "espèces · 25 €", "4 → 6 places")
+  adminEmail String // qui a agi (email de session) ; "demande en ligne" côté public
+  createdAt  DateTime @default(now())
+
+  @@index([bookingId])
 }
 
 model Ticket {

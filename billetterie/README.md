@@ -80,7 +80,7 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes : marquer payée, **placer** (même non payée), prolonger, annuler, **remise e-billet ⇄ papier**, envoyer/imprimer les billets |
+| `/admin/demandes` | File des demandes : marquer payée / **annuler le règlement**, **placer** (même non payée), prolonger, annuler, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, **historique** (audit : qui a fait quoi, avec l'email de l'admin) |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |

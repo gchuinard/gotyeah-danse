@@ -8,6 +8,7 @@
 
 import { randomUUID } from 'node:crypto'
 
+import { logBookingEvent } from '@/lib/admin/events'
 import { prisma } from '@/lib/db'
 import { sendBookingPendingEmail } from '@/lib/email/booking'
 import { computeJauge } from '@/lib/jauge'
@@ -29,7 +30,12 @@ type Resultat =
   | { error: string; dejaEnCours?: boolean }
   | { booking: { publicToken: string }; representationTitle: string }
 
-export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<Resultat> {
+// `actor` = auteur pour le journal d'audit : email admin (création back-office)
+// ou ACTOR_PUBLIC (formulaire public).
+export async function creerBookingEnAttente(
+  demande: NouvelleDemande,
+  actor: string,
+): Promise<Resultat> {
   const now = new Date()
   // Email normalisé en minuscules : clé d'identification d'une demande
   // (détection de doublon + accès « j'ai déjà une demande »).
@@ -97,6 +103,13 @@ export async function creerBookingEnAttente(demande: NouvelleDemande): Promise<R
   if (!result.ok) {
     return { error: result.error, ...('dejaEnCours' in result ? { dejaEnCours: true } : {}) }
   }
+
+  await logBookingEvent(
+    result.booking.id,
+    'created',
+    actor,
+    `${result.booking.partySize} place${result.booking.partySize > 1 ? 's' : ''}`,
+  )
 
   // Email « demande enregistrée » : best effort, on ne logge rien de personnel.
   try {

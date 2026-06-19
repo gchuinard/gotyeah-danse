@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   annulerDemande,
+  annulerPaiement,
   deplacerBillets,
   emettreBillets,
   marquerPayee,
@@ -125,6 +126,34 @@ describe('marquerPayee', () => {
   it('refuse une pending expirée', async () => {
     const booking = await creerBooking('pending', 2, new Date(Date.now() - DAY_MS))
     await expect(marquerPayee(db, booking.id)).rejects.toThrow(/expirée/)
+  })
+})
+
+describe('annulerPaiement', () => {
+  it('une demande « à placer » (paid) repasse en attente, sans paiement', async () => {
+    const booking = await creerBooking('paid')
+    await annulerPaiement(db, booking.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('pending')
+    expect(apres.paidAt).toBeNull()
+    expect(apres.expiresAt).toBeInstanceOf(Date) // échéance ré-armée
+  })
+
+  it('une demande placée GARDE ses sièges et redevient non réglée', async () => {
+    const booking = await creerBooking('pending', 1)
+    await emettreBillets(db, booking.id, ['s1'])
+    await marquerPayee(db, booking.id, { paymentMethod: 'cheque', amountCents: 1600 })
+    await annulerPaiement(db, booking.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('placed') // toujours placée
+    expect(apres.paidAt).toBeNull()
+    expect(apres.amountCents).toBeNull()
+    expect(await db.ticket.count({ where: { bookingId: booking.id } })).toBe(1) // sièges gardés
+  })
+
+  it('refuse une demande non réglée', async () => {
+    const booking = await creerBooking('pending', 1)
+    await expect(annulerPaiement(db, booking.id)).rejects.toThrow(/pas marquée payée/)
   })
 })
 

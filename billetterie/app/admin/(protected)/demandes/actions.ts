@@ -13,12 +13,14 @@ import { z } from 'zod'
 
 import {
   annulerDemande,
+  annulerPaiement,
   changerNombrePlaces,
   chargerBookingAvecBillets,
   marquerPayee,
   prolongerExpiration,
   type BookingAvecBillets,
 } from '@/lib/admin/bookings'
+import { logBookingEvent } from '@/lib/admin/events'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -82,7 +84,7 @@ function lireId(formData: FormData): string {
 // pending → paid (avec règlement facultatif pour la caisse), puis direction
 // l'écran de placement.
 export async function marquerPayeeAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
 
   // Méthode/montant : facultatifs, jamais bloquants — une saisie invalide est
@@ -103,6 +105,14 @@ export async function marquerPayeeAction(formData: FormData): Promise<void> {
   } catch (error) {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
+  const detailReglement =
+    [
+      methode.success ? { especes: 'espèces', cheque: 'chèque', autre: 'autre' }[methode.data] : null,
+      montant?.success ? `${(montant.data / 100).toFixed(2).replace('.', ',')} €` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || null
+  await logBookingEvent(id, 'paid', email, detailReglement)
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   // Demande déjà placée (paiement après coup) → retour à la liste ; une demande
@@ -113,10 +123,35 @@ export async function marquerPayeeAction(formData: FormData): Promise<void> {
   redirect(`/admin/placement/${id}`)
 }
 
+// Annule un règlement posé par erreur (cf. lib/admin/bookings.annulerPaiement).
+// « À placer » → repasse en attente ; déjà placée → garde ses sièges (non réglée).
+export async function annulerPaiementAction(formData: FormData): Promise<void> {
+  const { email } = await requireAdmin()
+  const id = lireId(formData)
+  let res: Awaited<ReturnType<typeof annulerPaiement>>
+  try {
+    res = await annulerPaiement(prisma, id)
+  } catch (error) {
+    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+  }
+  await logBookingEvent(id, 'unpaid', email)
+  revalidatePath('/admin/demandes')
+  revalidatePath('/admin')
+  redirect(
+    urlListe(
+      formData.get('retour'),
+      'ok',
+      res.statut === 'placed'
+        ? 'Règlement annulé (la demande reste placée, non réglée).'
+        : 'Règlement annulé (demande repassée en attente).',
+    ),
+  )
+}
+
 // Annotation interne (n° de chèque, contexte famille…) — visible uniquement
 // dans le back-office, jamais côté famille. Chaîne vide = effacer.
 export async function annoterAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
   const parsed = annotationSchema.safeParse(formData.get('annotation'))
   if (!parsed.success) {
@@ -130,6 +165,7 @@ export async function annoterAction(formData: FormData): Promise<void> {
   } catch {
     redirect(urlListe(formData.get('retour'), 'err', 'Demande introuvable.'))
   }
+  await logBookingEvent(id, 'note', email, parsed.data === '' ? 'effacée' : null)
   revalidatePath('/admin/demandes')
   redirect(urlListe(formData.get('retour'), 'ok', 'Annotation enregistrée.'))
 }
@@ -137,7 +173,7 @@ export async function annoterAction(formData: FormData): Promise<void> {
 // Rectifier le nombre de places. Si la demande était placée, le placement est
 // invalidé et on redirige vers l'écran de placement pour ré-attribuer.
 export async function rectifierPlacesAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
   const parsed = placesSchema.safeParse(formData.get('places'))
   if (!parsed.success) {
@@ -151,6 +187,7 @@ export async function rectifierPlacesAction(formData: FormData): Promise<void> {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
 
+  await logBookingEvent(id, 'party_changed', email, `${parsed.data} place${parsed.data > 1 ? 's' : ''}`)
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   if (res.etaitPlace) {
@@ -161,20 +198,21 @@ export async function rectifierPlacesAction(formData: FormData): Promise<void> {
 }
 
 export async function prolongerAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
   try {
     await prolongerExpiration(prisma, id)
   } catch (error) {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
+  await logBookingEvent(id, 'extended', email)
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   redirect(urlListe(formData.get('retour'), 'ok', 'Échéance prolongée de 14 jours.'))
 }
 
 export async function annulerAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
 
   let infos: Awaited<ReturnType<typeof annulerDemande>>
@@ -192,6 +230,7 @@ export async function annulerAction(formData: FormData): Promise<void> {
     // Ignoré volontairement.
   }
 
+  await logBookingEvent(id, 'cancelled', email)
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   // Pas de nom dans l'URL : elle finit dans les access logs (NPM/Cloudflare).
@@ -199,7 +238,7 @@ export async function annulerAction(formData: FormData): Promise<void> {
 }
 
 export async function renvoyerBilletsAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
 
   let booking: BookingAvecBillets
@@ -227,6 +266,7 @@ export async function renvoyerBilletsAction(formData: FormData): Promise<void> {
     envoye = false
   }
 
+  if (envoye) await logBookingEvent(id, 'tickets_sent', email)
   redirect(
     envoye
       ? urlListe(formData.get('retour'), 'ok', `Billets renvoyés à ${booking.email}.`)
@@ -237,7 +277,7 @@ export async function renvoyerBilletsAction(formData: FormData): Promise<void> {
 // Bascule la remise des billets entre e-billet (email + QR) et papier (l'admin
 // imprime, aucun envoi auto). Choix purement admin, modifiable à tout moment.
 export async function basculerRemiseAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  const { email } = await requireAdmin()
   const id = lireId(formData)
   let nouveauMode: 'email' | 'papier' = 'email'
   try {
@@ -248,6 +288,7 @@ export async function basculerRemiseAction(formData: FormData): Promise<void> {
   } catch (error) {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
+  await logBookingEvent(id, 'ticket_mode', email, `→ ${nouveauMode === 'papier' ? 'papier' : 'e-billet'}`)
   revalidatePath('/admin/demandes')
   redirect(
     urlListe(
