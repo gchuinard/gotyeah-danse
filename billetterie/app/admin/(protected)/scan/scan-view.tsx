@@ -29,6 +29,8 @@ type TicketInfo = {
   rowLabel: string
   number: number
   name: string
+  phone: string
+  email: string
   scannedAt: string | null // ISO — vérité locale (peut précéder la base)
 }
 
@@ -44,7 +46,7 @@ type Props = {
   repId: string
 }
 
-const PANEL_MS = 3200 // le panneau reste ~3 s (ou jusqu'au scan suivant)
+const PANEL_MS = 6500 // le panneau reste ~6,5 s (ou jusqu'au scan suivant)
 const DEBOUNCE_MS = 3000 // anti-rebond : la caméra décode le même QR en rafale
 const RETRY_BASE_MS = 2000
 const RETRY_MAX_MS = 30_000
@@ -390,7 +392,7 @@ export default function ScanView({ representations, repId }: Props) {
     }
   }, [])
 
-  // --- Saisie manuelle de secours : nom partiel ou place « G12 » / « G 12 ».
+  // --- Saisie manuelle de secours : nom, téléphone, email, ou place « G12 ».
   const [query, setQuery] = useState('')
   const results = useMemo(() => {
     if (!tickets) return []
@@ -398,12 +400,17 @@ export default function ScanView({ representations, repId }: Props) {
     if (q.length < 2) return []
     const seatMatch = /^([a-z])\s*(\d{1,3})$/i.exec(q)
     const nq = normalize(q)
+    // Suite de chiffres saisie → recherche par téléphone (≥ 4 chiffres, sinon
+    // « 06 » matcherait tout le monde). Les séparateurs sont ignorés des 2 côtés.
+    const qDigits = q.replace(/\D/g, '')
     const found: TicketInfo[] = []
     for (const t of tickets.values()) {
       const match = seatMatch
         ? t.rowLabel.toLowerCase() === seatMatch[1].toLowerCase() &&
           t.number === Number(seatMatch[2])
-        : normalize(t.name).includes(nq)
+        : normalize(t.name).includes(nq) ||
+          normalize(t.email).includes(nq) ||
+          (qDigits.length >= 4 && t.phone.replace(/\D/g, '').includes(qDigits))
       if (match) {
         found.push(t)
         if (found.length >= 30) break
@@ -539,7 +546,7 @@ export default function ScanView({ representations, repId }: Props) {
           className={styles.search}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nom, ou place (ex. G12)"
+          placeholder="Nom, tél., email ou place (ex. G12)"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"

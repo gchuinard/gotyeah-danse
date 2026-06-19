@@ -14,6 +14,16 @@ import styles from './nouvelle.module.css'
 
 const initialState: NouvelleDemandeState = { ok: false }
 
+// Libellés FR pour nommer les champs en erreur dans le message global.
+const FIELD_LABELS: Record<string, string> = {
+  firstName: 'Prénom',
+  lastName: 'Nom',
+  email: 'Email',
+  phone: 'Téléphone',
+  partySize: 'Nombre de places',
+  notes: 'Commentaire',
+}
+
 function FieldError({ messages }: { messages?: string[] }) {
   if (!messages?.length) return null
   return <p className={styles.fieldError}>{messages[0]}</p>
@@ -26,7 +36,13 @@ export default function NouvelleDemandeForm({
   representationId: string
 }) {
   const [state, formAction, pending] = useActionState(creerDemandeAdmin, initialState)
+  // Champs CONTRÔLÉS : une erreur de validation ne vide pas la saisie (React 19
+  // réinitialise les champs NON contrôlés après une action de formulaire).
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [notes, setNotes] = useState('')
   const [partySize, setPartySize] = useState(1)
   const [pmr, setPmr] = useState(false)
   const [pmrCount, setPmrCount] = useState(1)
@@ -34,6 +50,11 @@ export default function NouvelleDemandeForm({
   const maxPmr = partySize
   const maxAccompagnants = Math.min(3, partySize - pmrCount)
   const errors = state.fieldErrors
+  const champsEnErreur = errors
+    ? Object.entries(errors)
+        .filter(([, v]) => v && v.length)
+        .map(([k]) => FIELD_LABELS[k] ?? k)
+    : []
 
   return (
     <form action={formAction} className={styles.form} noValidate>
@@ -42,19 +63,46 @@ export default function NouvelleDemandeForm({
       <div className={styles.row}>
         <div className={styles.field}>
           <label htmlFor="firstName">Prénom</label>
-          <input id="firstName" name="firstName" type="text" maxLength={60} required />
+          <input
+            id="firstName"
+            name="firstName"
+            type="text"
+            maxLength={60}
+            required
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            aria-invalid={errors?.firstName ? true : undefined}
+          />
           <FieldError messages={errors?.firstName} />
         </div>
         <div className={styles.field}>
           <label htmlFor="lastName">Nom</label>
-          <input id="lastName" name="lastName" type="text" maxLength={60} required />
+          <input
+            id="lastName"
+            name="lastName"
+            type="text"
+            maxLength={60}
+            required
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            aria-invalid={errors?.lastName ? true : undefined}
+          />
           <FieldError messages={errors?.lastName} />
         </div>
       </div>
 
       <div className={styles.field}>
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" maxLength={200} required />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          maxLength={200}
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={errors?.email ? true : undefined}
+        />
         <FieldError messages={errors?.email} />
       </div>
 
@@ -70,6 +118,7 @@ export default function NouvelleDemandeForm({
           required
           value={phone}
           onChange={(e) => setPhone(formatFrPhone(e.target.value))}
+          aria-invalid={errors?.phone ? true : undefined}
         />
         <FieldError messages={errors?.phone} />
       </div>
@@ -159,13 +208,24 @@ export default function NouvelleDemandeForm({
 
       <div className={styles.field}>
         <label htmlFor="notes">Commentaire (facultatif)</label>
-        <textarea id="notes" name="notes" rows={2} maxLength={500} placeholder="Demande particulière…" />
+        <textarea
+          id="notes"
+          name="notes"
+          rows={2}
+          maxLength={500}
+          placeholder="Demande particulière…"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          aria-invalid={errors?.notes ? true : undefined}
+        />
         <FieldError messages={errors?.notes} />
       </div>
 
-      {state.error && (
+      {(champsEnErreur.length > 0 || state.error) && (
         <p className={styles.formError} role="alert">
-          {state.error}
+          {champsEnErreur.length > 0
+            ? `À corriger : ${champsEnErreur.join(', ')}.`
+            : state.error}
         </p>
       )}
 

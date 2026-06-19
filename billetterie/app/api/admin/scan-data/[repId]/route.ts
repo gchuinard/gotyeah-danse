@@ -26,7 +26,7 @@ export async function GET(
     select: {
       qrToken: true,
       scannedAt: true,
-      booking: { select: { name: true } },
+      booking: { select: { name: true, phone: true, email: true } },
       seat: {
         select: {
           number: true,
@@ -44,6 +44,8 @@ export async function GET(
         rowLabel: t.seat.row.label,
         number: t.seat.number,
         name: t.booking.name,
+        phone: t.booking.phone,
+        email: t.booking.email,
         scannedAt: t.scannedAt ? t.scannedAt.toISOString() : null,
       })),
       ts: Date.now(),
