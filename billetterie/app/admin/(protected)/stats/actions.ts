@@ -47,8 +47,8 @@ function lireQty(formData: FormData, champ: string): number {
   return parsed.success ? parsed.data : 0
 }
 
-function lirePrixCents(formData: FormData): number {
-  const parsed = prixCentsSchema.safeParse(formData.get('prix') ?? '0')
+function lirePrixCents(formData: FormData, champ: string): number {
+  const parsed = prixCentsSchema.safeParse(formData.get(champ) ?? '0')
   return parsed.success ? parsed.data : 0
 }
 
@@ -90,7 +90,8 @@ export async function ajouterBuvetteAction(formData: FormData): Promise<void> {
       label: label.data,
       qtyStock: lireQty(formData, 'qtyStock'),
       qtySold: lireQty(formData, 'qtySold'),
-      unitPriceCents: lirePrixCents(formData),
+      unitPriceCents: lirePrixCents(formData, 'prix'),
+      purchasePriceCents: lirePrixCents(formData, 'prixAchat'),
     },
   })
   retour(repId)
@@ -109,7 +110,8 @@ export async function modifierBuvetteAction(formData: FormData): Promise<void> {
       label: label.data,
       qtyStock: lireQty(formData, 'qtyStock'),
       qtySold: lireQty(formData, 'qtySold'),
-      unitPriceCents: lirePrixCents(formData),
+      unitPriceCents: lirePrixCents(formData, 'prix'),
+      purchasePriceCents: lirePrixCents(formData, 'prixAchat'),
     },
   })
   retour(repId)

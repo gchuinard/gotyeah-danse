@@ -187,10 +187,10 @@ async function seedDemoBookings() {
   await prisma.buvetteItem.deleteMany({ where: { representationId: 'rep-samedi' } })
   await prisma.buvetteItem.createMany({
     data: [
-      { representationId: 'rep-samedi', label: 'Eau', qtyStock: 60, qtySold: 28, unitPriceCents: 100 },
-      { representationId: 'rep-samedi', label: 'Coca', qtyStock: 48, qtySold: 45, unitPriceCents: 200 },
-      { representationId: 'rep-samedi', label: 'Bière', qtyStock: 36, qtySold: 36, unitPriceCents: 300 },
-      { representationId: 'rep-samedi', label: 'Café', qtyStock: 50, qtySold: 11, unitPriceCents: 150 },
+      { representationId: 'rep-samedi', label: 'Eau', qtyStock: 60, qtySold: 28, purchasePriceCents: 30, unitPriceCents: 100 },
+      { representationId: 'rep-samedi', label: 'Coca', qtyStock: 48, qtySold: 45, purchasePriceCents: 80, unitPriceCents: 200 },
+      { representationId: 'rep-samedi', label: 'Bière', qtyStock: 36, qtySold: 36, purchasePriceCents: 120, unitPriceCents: 300 },
+      { representationId: 'rep-samedi', label: 'Café', qtyStock: 50, qtySold: 11, purchasePriceCents: 40, unitPriceCents: 150 },
     ],
   })
 

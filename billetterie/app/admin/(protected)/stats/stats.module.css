@@ -240,10 +240,11 @@
      identiques. La dernière colonne était `auto` → dimensionnée sur son contenu
      (vide dans l'en-tête, boutons dans les lignes), ce qui élargissait la 1re
      colonne flexible de l'en-tête et décalait tout d'une colonne. Largeur fixe. */
-  grid-template-columns: minmax(120px, 2fr) 72px 72px 84px 84px 72px 104px;
+  /* 8 colonnes : Article | Acheté | P.achat | Vendu | P.vente | Recette | Balance | actions */
+  grid-template-columns: minmax(110px, 2fr) 60px 76px 60px 76px 80px 84px 104px;
   gap: 0.4rem;
   align-items: center;
-  min-width: 660px;
+  min-width: 720px;
   padding: 0.25rem 0;
 }
 
@@ -270,6 +271,11 @@
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--terre);
+}
+
+/* Balance négative (recette < coût d'achat) : en rouge, pour alerter. */
+.buvetteNeg {
+  color: #b3463c;
 }
 
 .buvetteActions {

@@ -75,17 +75,18 @@ model Representation {
 }
 
 // Buvette du soir J — saisie manuelle pour le bilan d'organisation : articles
-// proposés vs vendus, et à quel prix. Aide à décider l'an prochain (ce qui ne
-// se vend pas, prix à ajuster).
+// achetés vs vendus, prix d'achat et de vente → balance (recette − coût). Aide
+// à décider l'an prochain (ce qui ne se vend pas, prix à ajuster).
 model BuvetteItem {
-  id               String         @id @default(cuid())
-  representation   Representation @relation(fields: [representationId], references: [id], onDelete: Cascade)
-  representationId String
-  label            String // "Coca", "Eau", "Café"…
-  qtyStock         Int            @default(0) // proposé / approvisionné
-  qtySold          Int            @default(0) // vendu
-  unitPriceCents   Int            @default(0) // prix unitaire de vente
-  createdAt        DateTime       @default(now())
+  id                 String         @id @default(cuid())
+  representation     Representation @relation(fields: [representationId], references: [id], onDelete: Cascade)
+  representationId   String
+  label              String // "Coca", "Eau", "Café"…
+  qtyStock           Int            @default(0) // quantité achetée / approvisionnée
+  qtySold            Int            @default(0) // quantité vendue
+  unitPriceCents     Int            @default(0) // prix unitaire de VENTE
+  purchasePriceCents Int            @default(0) // prix unitaire d'ACHAT (coût)
+  createdAt          DateTime       @default(now())
 
   @@index([representationId])
 }
