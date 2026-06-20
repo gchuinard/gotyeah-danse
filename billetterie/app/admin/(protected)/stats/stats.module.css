@@ -235,10 +235,15 @@
 
 .buvetteLigne {
   display: grid;
-  grid-template-columns: minmax(120px, 2fr) 72px 72px 84px 84px 72px auto;
+  /* En-tête et chaque ligne sont des grids SÉPARÉS (un <form> par ligne) : pour
+     qu'ils s'alignent, toutes les colonnes doivent résoudre des largeurs
+     identiques. La dernière colonne était `auto` → dimensionnée sur son contenu
+     (vide dans l'en-tête, boutons dans les lignes), ce qui élargissait la 1re
+     colonne flexible de l'en-tête et décalait tout d'une colonne. Largeur fixe. */
+  grid-template-columns: minmax(120px, 2fr) 72px 72px 84px 84px 72px 104px;
   gap: 0.4rem;
   align-items: center;
-  min-width: 620px;
+  min-width: 660px;
   padding: 0.25rem 0;
 }
 
