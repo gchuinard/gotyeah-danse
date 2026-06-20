@@ -174,7 +174,11 @@ async function seedDemoBookings() {
   await prisma.representation.update({
     where: { id: 'rep-samedi' },
     data: {
-      weather: 'Chaud (27 °C), averse vers 22h',
+      weatherReadings: JSON.stringify({
+        debut: { sky: 'soleil', tempC: 27 },
+        milieu: { sky: 'eclaircies', tempC: 25 },
+        fin: { sky: 'averses', tempC: 21 },
+      }),
       orgNotes:
         'Le coca et la bière partent très bien, l’eau et le café beaucoup moins. ' +
         'Idée : moins d’eau, plus de bière l’an prochain ; café à baisser ou retirer.',

@@ -7,6 +7,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { invendusLigne, recetteLigneCents, totauxBuvette } from '@/lib/admin/buvette'
+import { MOMENTS, SKY_OPTIONS, parseWeatherReadings } from '@/lib/admin/weather'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
@@ -110,7 +111,9 @@ export default async function StatsPage() {
     <main className={styles.page}>
       <h1>Statistiques</h1>
 
-      {stats.map(({ rep, ...s }) => (
+      {stats.map(({ rep, ...s }) => {
+        const meteo = parseWeatherReadings(rep.weatherReadings)
+        return (
         <section key={rep.id} className={styles.bloc}>
           <header className={styles.blocHeader}>
             <h2>{rep.title}</h2>
@@ -201,15 +204,47 @@ export default async function StatsPage() {
 
             <form action={enregistrerBilanAction} className={styles.bilanForm}>
               <input type="hidden" name="repId" value={rep.id} />
-              <label className={styles.bilanChamp}>
-                <span>Météo du soir</span>
-                <input
-                  name="weather"
-                  defaultValue={rep.weather ?? ''}
-                  maxLength={200}
-                  placeholder="Chaud, 28 °C, averse en fin de soirée…"
-                />
-              </label>
+
+              <fieldset className={styles.meteoFieldset}>
+                <legend className={styles.meteoLegend}>Météo du soir</legend>
+                {rep.weather && (
+                  <p className={styles.meteoLegacy}>Ancienne saisie : {rep.weather}</p>
+                )}
+                <div className={styles.meteoEntete} aria-hidden="true">
+                  <span>Moment</span>
+                  <span>Ciel</span>
+                  <span>Temp.</span>
+                </div>
+                {MOMENTS.map((m) => (
+                  <div key={m.key} className={styles.meteoLigne}>
+                    <span className={styles.meteoMoment}>{m.label}</span>
+                    <select
+                      name={`sky_${m.key}`}
+                      defaultValue={meteo[m.key].sky}
+                      aria-label={`Ciel — ${m.label}`}
+                    >
+                      {SKY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className={styles.meteoTemp}>
+                      <input
+                        name={`temp_${m.key}`}
+                        type="number"
+                        inputMode="numeric"
+                        step={1}
+                        min={-30}
+                        max={60}
+                        defaultValue={meteo[m.key].tempC ?? ''}
+                        aria-label={`Température — ${m.label}`}
+                      />
+                      <span aria-hidden="true">°C</span>
+                    </span>
+                  </div>
+                ))}
+              </fieldset>
               <label className={styles.bilanChamp}>
                 <span>Notes / à retenir pour l’an prochain</span>
                 <textarea
@@ -308,7 +343,8 @@ export default async function StatsPage() {
             )}
           </div>
         </section>
-      ))}
+        )
+      })}
     </main>
   )
 }

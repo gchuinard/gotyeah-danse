@@ -9,6 +9,13 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
+import {
+  MOMENTS,
+  emptyReadings,
+  normalizeSky,
+  normalizeTemp,
+  serializeWeatherReadings,
+} from '@/lib/admin/weather'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
@@ -45,16 +52,26 @@ function lirePrixCents(formData: FormData): number {
   return parsed.success ? parsed.data : 0
 }
 
-// Météo + notes libres de la représentation.
+// Météo structurée (début / milieu / fin) + notes libres de la représentation.
+// L'ancien champ `weather` (texte libre) n'est plus écrit ici : on le laisse
+// intact pour ne perdre aucune saisie passée.
 export async function enregistrerBilanAction(formData: FormData): Promise<void> {
   await requireAdmin()
   const repId = lireRepId(formData)
-  const weather = z.string().trim().max(200).safeParse(formData.get('weather') ?? '')
+
+  const readings = emptyReadings()
+  for (const m of MOMENTS) {
+    readings[m.key] = {
+      sky: normalizeSky(formData.get(`sky_${m.key}`)),
+      tempC: normalizeTemp(formData.get(`temp_${m.key}`)),
+    }
+  }
+
   const orgNotes = z.string().trim().max(2000).safeParse(formData.get('orgNotes') ?? '')
   await prisma.representation.update({
     where: { id: repId },
     data: {
-      weather: weather.success && weather.data ? weather.data : null,
+      weatherReadings: serializeWeatherReadings(readings),
       orgNotes: orgNotes.success && orgNotes.data ? orgNotes.data : null,
     },
   })

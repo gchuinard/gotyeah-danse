@@ -60,8 +60,13 @@ model Representation {
   isOpen   Boolean  @default(false)
 
   // Bilan d'organisation (saisi à la main après la soirée, pour l'an prochain).
-  weather  String? // météo du soir
-  orgNotes String? // notes libres : ce qui se vend / pas, prix à ajuster…
+  // weather         : ancienne météo en texte libre — conservée pour ne rien
+  //                   perdre, plus éditée (remplacée par weatherReadings).
+  // weatherReadings : relevés structurés début / milieu / fin en JSON
+  //                   ({ debut|milieu|fin: { sky, tempC } }, cf. lib/admin/weather.ts).
+  weather         String?
+  weatherReadings String?
+  orgNotes        String? // notes libres : ce qui se vend / pas, prix à ajuster…
 
   overrides    SeatOverride[]
   bookings     Booking[]

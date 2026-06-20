@@ -138,6 +138,73 @@
   resize: vertical;
 }
 
+/* Météo du soir — relevés structurés début / milieu / fin. */
+.meteoFieldset {
+  border: 1px solid #e8ddd0;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem 0.7rem;
+  margin: 0;
+}
+
+.meteoLegend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--terre);
+  padding: 0 0.3rem;
+}
+
+.meteoLegacy {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--gris-chd);
+  margin-bottom: 0.5rem;
+}
+
+.meteoEntete,
+.meteoLigne {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(120px, 1.4fr) 100px;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.meteoEntete {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gris-chd);
+  margin-bottom: 0.3rem;
+}
+
+.meteoLigne {
+  padding: 0.2rem 0;
+}
+
+.meteoMoment {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--terre);
+}
+
+.meteoLigne select,
+.meteoTemp input {
+  font: inherit;
+  color: var(--encre);
+  background: #fff;
+  border: 1px solid #ddd2c4;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  width: 100%;
+}
+
+.meteoTemp {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--gris-chd);
+}
+
 .bilanBtn {
   font: inherit;
   font-weight: 600;
