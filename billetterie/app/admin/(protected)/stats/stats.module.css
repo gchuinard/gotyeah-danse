@@ -241,11 +241,28 @@
      (vide dans l'en-tête, boutons dans les lignes), ce qui élargissait la 1re
      colonne flexible de l'en-tête et décalait tout d'une colonne. Largeur fixe. */
   /* 8 colonnes : Article | Acheté | P.achat | Vendu | P.vente | Recette | Balance | actions */
-  grid-template-columns: minmax(110px, 2fr) 60px 76px 60px 76px 80px 84px 104px;
+  grid-template-columns: minmax(104px, 2fr) 56px 84px 56px 84px 80px 86px 92px;
   gap: 0.4rem;
   align-items: center;
   min-width: 720px;
   padding: 0.25rem 0;
+}
+
+/* Champ de prix avec son suffixe « € » collé à droite. */
+.buvettePrix {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.buvettePrix input {
+  flex: 1;
+  min-width: 0;
+}
+
+.buvettePrix > span {
+  font-size: 0.85rem;
+  color: var(--gris-chd);
 }
 
 .buvetteEntete {

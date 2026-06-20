@@ -97,13 +97,15 @@ export async function ajouterBuvetteAction(formData: FormData): Promise<void> {
   retour(repId)
 }
 
-// Modifie un article existant (scopé à la représentation, défensif).
+// Modifie un article existant (scopé à la représentation, défensif). Appelée en
+// AUTO-SAVE depuis la ligne client (BuvetteRow) : on revalide SANS rediriger,
+// pour ne pas naviguer/scroller à chaque frappe — le client garde le focus.
 export async function modifierBuvetteAction(formData: FormData): Promise<void> {
   await requireAdmin()
   const repId = lireRepId(formData)
   const id = idSchema.safeParse(formData.get('id'))
   const label = labelSchema.safeParse(formData.get('label'))
-  if (!id.success || !label.success) retour(repId)
+  if (!id.success || !label.success) return
   await prisma.buvetteItem.updateMany({
     where: { id: id.data, representationId: repId },
     data: {
@@ -114,7 +116,7 @@ export async function modifierBuvetteAction(formData: FormData): Promise<void> {
       purchasePriceCents: lirePrixCents(formData, 'prixAchat'),
     },
   })
-  retour(repId)
+  revalidatePath('/admin/stats')
 }
 
 // Supprime un article.

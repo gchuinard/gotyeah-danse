@@ -6,18 +6,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { balanceLigneCents, recetteLigneCents, totauxBuvette } from '@/lib/admin/buvette'
+import { totauxBuvette } from '@/lib/admin/buvette'
 import { MOMENTS, SKY_OPTIONS, parseWeatherReadings } from '@/lib/admin/weather'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
-import {
-  ajouterBuvetteAction,
-  enregistrerBilanAction,
-  modifierBuvetteAction,
-  supprimerBuvetteAction,
-} from './actions'
-import { ConfirmDeleteButton } from './confirm-delete'
+import { ajouterBuvetteAction, enregistrerBilanAction } from './actions'
+import { BuvetteRow } from './buvette-row'
 import styles from './stats.module.css'
 
 export const metadata: Metadata = { title: 'Statistiques — Billetterie admin' }
@@ -274,62 +269,9 @@ export default async function StatsPage() {
                 <span aria-hidden="true" />
               </div>
 
-              {s.buvette.map((it) => {
-                const balance = balanceLigneCents(it)
-                return (
-                <form key={it.id} action={modifierBuvetteAction} className={styles.buvetteLigne}>
-                  <input type="hidden" name="id" value={it.id} />
-                  <input type="hidden" name="repId" value={rep.id} />
-                  <input name="label" defaultValue={it.label} maxLength={60} aria-label="Article" />
-                  <input
-                    name="qtyStock"
-                    type="number"
-                    min={0}
-                    defaultValue={it.qtyStock}
-                    aria-label="Quantité achetée"
-                  />
-                  <input
-                    name="prixAchat"
-                    inputMode="decimal"
-                    defaultValue={(it.purchasePriceCents / 100).toString()}
-                    aria-label="Prix d'achat en euros"
-                  />
-                  <input
-                    name="qtySold"
-                    type="number"
-                    min={0}
-                    defaultValue={it.qtySold}
-                    aria-label="Quantité vendue"
-                  />
-                  <input
-                    name="prix"
-                    inputMode="decimal"
-                    defaultValue={(it.unitPriceCents / 100).toString()}
-                    aria-label="Prix de vente en euros"
-                  />
-                  <span className={styles.buvetteCalc}>{euros(recetteLigneCents(it))}</span>
-                  <span
-                    className={`${styles.buvetteCalc} ${balance < 0 ? styles.buvetteNeg : ''}`}
-                  >
-                    {euros(balance)}
-                  </span>
-                  <span className={styles.buvetteActions}>
-                    <button type="submit" className={styles.btnMini} title="Enregistrer">
-                      OK
-                    </button>
-                    <ConfirmDeleteButton
-                      formAction={supprimerBuvetteAction}
-                      message={`Supprimer « ${it.label} » de la buvette ? C'est définitif.`}
-                      className={styles.btnMiniDanger}
-                      title="Supprimer cet article"
-                      ariaLabel="Supprimer"
-                    >
-                      ✕
-                    </ConfirmDeleteButton>
-                  </span>
-                </form>
-                )
-              })}
+              {s.buvette.map((it) => (
+                <BuvetteRow key={it.id} item={it} repId={rep.id} />
+              ))}
 
               <form
                 action={ajouterBuvetteAction}
@@ -338,9 +280,15 @@ export default async function StatsPage() {
                 <input type="hidden" name="repId" value={rep.id} />
                 <input name="label" placeholder="Article (ex. Coca)" maxLength={60} required aria-label="Nouvel article" />
                 <input name="qtyStock" type="number" min={0} placeholder="Acheté" aria-label="Quantité achetée" />
-                <input name="prixAchat" inputMode="decimal" placeholder="P. achat €" aria-label="Prix d'achat en euros" />
+                <span className={styles.buvettePrix}>
+                  <input name="prixAchat" inputMode="decimal" placeholder="P. achat" aria-label="Prix d'achat en euros" />
+                  <span aria-hidden="true">€</span>
+                </span>
                 <input name="qtySold" type="number" min={0} placeholder="Vendu" aria-label="Quantité vendue" />
-                <input name="prix" inputMode="decimal" placeholder="P. vente €" aria-label="Prix de vente en euros" />
+                <span className={styles.buvettePrix}>
+                  <input name="prix" inputMode="decimal" placeholder="P. vente" aria-label="Prix de vente en euros" />
+                  <span aria-hidden="true">€</span>
+                </span>
                 <span aria-hidden="true" />
                 <span aria-hidden="true" />
                 <span className={styles.buvetteActions}>
