@@ -1,19 +1,22 @@
 'use client'
 
-// Ligne d'article buvette, éditable À LA VOLÉE :
-//  - inputs contrôlés ; recette et balance se recalculent à chaque frappe,
-//    100 % côté client, via les mêmes fonctions pures que le serveur ;
-//  - pas de bouton « OK » : la ligne s'enregistre toute seule — sauvegarde
-//    debouncée pendant la frappe + immédiate quand un champ perd le focus
-//    (requestSubmit déclenche l'action serveur, qui revalide sans rediriger) ;
-//  - suppression via une confirmation.
+// Ligne d'article buvette, éditable à la volée :
+//  - inputs contrôlés ; recette et balance se recalculent à CHAQUE FRAPPE,
+//    100 % côté client (mêmes fonctions pures que le serveur) ;
+//  - pas de bouton « OK » : la ligne s'enregistre quand un champ perd le focus
+//    (tab, clic ailleurs, Entrée), et seulement si quelque chose a changé.
+//
+// On N'UTILISE PAS de <form> + requestSubmit : on appelle l'action serveur
+// directement (startTransition). Enregistrer via un <form> PENDANT qu'un champ
+// est encore focalisé rejouait l'ancienne valeur dans la case (revalidation +
+// reset du form en conflit avec l'input contrôlé) — d'où la sauvegarde au blur.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState, useTransition } from 'react'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { balanceLigneCents, recetteLigneCents } from '@/lib/admin/buvette'
 
 import { modifierBuvetteAction, supprimerBuvetteAction } from './actions'
-import { ConfirmDeleteButton } from './confirm-delete'
 import styles from './stats.module.css'
 
 type Item = {
@@ -24,8 +27,6 @@ type Item = {
   unitPriceCents: number
   purchasePriceCents: number
 }
-
-const SAVE_DEBOUNCE_MS = 700
 
 // Centimes → champ en euros (sans forcer 2 décimales, pour éditer librement).
 function centsToInput(cents: number): string {
@@ -53,31 +54,40 @@ export function BuvetteRow({ item, repId }: { item: Item; repId: string }) {
   const [prixAchat, setPrixAchat] = useState(centsToInput(item.purchasePriceCents))
   const [vendu, setVendu] = useState(String(item.qtySold))
   const [prixVente, setPrixVente] = useState(centsToInput(item.unitPriceCents))
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [, startTransition] = useTransition()
 
-  const formRef = useRef<HTMLFormElement>(null)
-  const timerRef = useRef<number | null>(null)
-  const dirtyRef = useRef(false)
+  // Enregistrement au blur (un champ perd le focus), seulement si modifié.
+  function save() {
+    if (!dirty) return
+    setDirty(false)
+    const fd = new FormData()
+    fd.set('id', item.id)
+    fd.set('repId', repId)
+    fd.set('label', label)
+    fd.set('qtyStock', achat)
+    fd.set('qtySold', vendu)
+    fd.set('prix', prixVente)
+    fd.set('prixAchat', prixAchat)
+    startTransition(() => modifierBuvetteAction(fd))
+  }
 
-  const submit = useCallback(() => {
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
+  // Entrée = valider le champ courant (déclenche le blur → save).
+  function onEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.currentTarget.blur()
     }
-    if (!dirtyRef.current) return
-    dirtyRef.current = false
-    formRef.current?.requestSubmit()
-  }, [])
+  }
 
-  // Appelé à chaque modif : marque la ligne « sale » et programme l'envoi.
-  const onEdit = useCallback(() => {
-    dirtyRef.current = true
-    if (timerRef.current !== null) clearTimeout(timerRef.current)
-    timerRef.current = window.setTimeout(submit, SAVE_DEBOUNCE_MS)
-  }, [submit])
-
-  useEffect(() => () => {
-    if (timerRef.current !== null) clearTimeout(timerRef.current)
-  }, [])
+  function remove() {
+    setConfirmOpen(false)
+    const fd = new FormData()
+    fd.set('id', item.id)
+    fd.set('repId', repId)
+    startTransition(() => supprimerBuvetteAction(fd))
+  }
 
   // Calcul à la volée, via les mêmes fonctions pures que le serveur.
   const ligne = {
@@ -90,82 +100,91 @@ export function BuvetteRow({ item, repId }: { item: Item; repId: string }) {
   const balanceCents = balanceLigneCents(ligne)
 
   return (
-    <form ref={formRef} action={modifierBuvetteAction} className={styles.buvetteLigne} onBlur={submit}>
-      <input type="hidden" name="id" value={item.id} />
-      <input type="hidden" name="repId" value={repId} />
-      <input
-        name="label"
-        value={label}
-        onChange={(e) => {
-          setLabel(e.target.value)
-          onEdit()
-        }}
-        maxLength={60}
-        aria-label="Article"
-      />
-      <input
-        name="qtyStock"
-        type="number"
-        min={0}
-        value={achat}
-        onChange={(e) => {
-          setAchat(e.target.value)
-          onEdit()
-        }}
-        aria-label="Quantité achetée"
-      />
-      <span className={styles.buvettePrix}>
+    <>
+      <div className={styles.buvetteLigne} onBlur={save}>
         <input
-          name="prixAchat"
-          inputMode="decimal"
-          value={prixAchat}
+          value={label}
           onChange={(e) => {
-            setPrixAchat(e.target.value)
-            onEdit()
+            setLabel(e.target.value)
+            setDirty(true)
           }}
-          aria-label="Prix d'achat en euros"
+          onKeyDown={onEnter}
+          maxLength={60}
+          aria-label="Article"
         />
-        <span aria-hidden="true">€</span>
-      </span>
-      <input
-        name="qtySold"
-        type="number"
-        min={0}
-        value={vendu}
-        onChange={(e) => {
-          setVendu(e.target.value)
-          onEdit()
-        }}
-        aria-label="Quantité vendue"
-      />
-      <span className={styles.buvettePrix}>
         <input
-          name="prix"
-          inputMode="decimal"
-          value={prixVente}
+          type="number"
+          min={0}
+          value={achat}
           onChange={(e) => {
-            setPrixVente(e.target.value)
-            onEdit()
+            setAchat(e.target.value)
+            setDirty(true)
           }}
-          aria-label="Prix de vente en euros"
+          onKeyDown={onEnter}
+          aria-label="Quantité achetée"
         />
-        <span aria-hidden="true">€</span>
-      </span>
-      <span className={styles.buvetteCalc}>{formatEuros(recetteCents)}</span>
-      <span className={`${styles.buvetteCalc} ${balanceCents < 0 ? styles.buvetteNeg : ''}`}>
-        {formatEuros(balanceCents)}
-      </span>
-      <span className={styles.buvetteActions}>
-        <ConfirmDeleteButton
-          formAction={supprimerBuvetteAction}
-          message={`Supprimer « ${label} » de la buvette ? C'est définitif.`}
-          className={styles.btnMiniDanger}
-          title="Supprimer cet article"
-          ariaLabel="Supprimer"
-        >
-          ✕
-        </ConfirmDeleteButton>
-      </span>
-    </form>
+        <span className={styles.buvettePrix}>
+          <input
+            inputMode="decimal"
+            value={prixAchat}
+            onChange={(e) => {
+              setPrixAchat(e.target.value)
+              setDirty(true)
+            }}
+            onKeyDown={onEnter}
+            aria-label="Prix d'achat en euros"
+          />
+          <span aria-hidden="true">€</span>
+        </span>
+        <input
+          type="number"
+          min={0}
+          value={vendu}
+          onChange={(e) => {
+            setVendu(e.target.value)
+            setDirty(true)
+          }}
+          onKeyDown={onEnter}
+          aria-label="Quantité vendue"
+        />
+        <span className={styles.buvettePrix}>
+          <input
+            inputMode="decimal"
+            value={prixVente}
+            onChange={(e) => {
+              setPrixVente(e.target.value)
+              setDirty(true)
+            }}
+            onKeyDown={onEnter}
+            aria-label="Prix de vente en euros"
+          />
+          <span aria-hidden="true">€</span>
+        </span>
+        <span className={styles.buvetteCalc}>{formatEuros(recetteCents)}</span>
+        <span className={`${styles.buvetteCalc} ${balanceCents < 0 ? styles.buvetteNeg : ''}`}>
+          {formatEuros(balanceCents)}
+        </span>
+        <span className={styles.buvetteActions}>
+          <button
+            type="button"
+            className={styles.btnMiniDanger}
+            title="Supprimer cet article"
+            aria-label="Supprimer"
+            onClick={() => setConfirmOpen(true)}
+          >
+            ✕
+          </button>
+        </span>
+      </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer cet article ?"
+        message={`Supprimer « ${label} » de la buvette ? C'est définitif.`}
+        confirmLabel="Supprimer"
+        danger
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={remove}
+      />
+    </>
   )
 }
