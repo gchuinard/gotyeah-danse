@@ -243,6 +243,25 @@
   color: #5c3d2e;
 }
 
+.fieldPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: #5a544c;
+}
+
+.fieldPicker select {
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid #d8cfc0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e1a16;
+  min-height: 48px;
+}
+
 .search {
   font: inherit;
   font-size: 1.15rem;

@@ -65,6 +65,26 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+// Critère de la recherche manuelle. Le nom est stocké « Prénom Nom » dans un
+// seul champ : on le scinde au premier espace (premier mot = prénom, le reste
+// = nom). Un nom d'un seul mot reste cherchable sous les deux critères.
+type SearchField = 'nom' | 'prenom' | 'tel' | 'email' | 'place'
+
+const SEARCH_FIELDS: { value: SearchField; label: string; placeholder: string }[] = [
+  { value: 'nom', label: 'Nom', placeholder: 'Nom de famille' },
+  { value: 'prenom', label: 'Prénom', placeholder: 'Prénom' },
+  { value: 'tel', label: 'Téléphone', placeholder: 'ex. 06 12 34 56 78' },
+  { value: 'email', label: 'Email', placeholder: 'ex. martin@email.fr' },
+  { value: 'place', label: 'Place', placeholder: 'ex. G12' },
+]
+
+function splitName(name: string): { first: string; last: string } {
+  const t = name.trim().replace(/\s+/g, ' ')
+  const sp = t.indexOf(' ')
+  if (sp === -1) return { first: t, last: t }
+  return { first: t.slice(0, sp), last: t.slice(sp + 1) }
+}
+
 function seatLabel(t: TicketInfo): string {
   return `Rang ${t.rowLabel} · Place ${t.number} · ${capitalize(t.section)}`
 }
@@ -392,25 +412,42 @@ export default function ScanView({ representations, repId }: Props) {
     }
   }, [])
 
-  // --- Saisie manuelle de secours : nom, téléphone, email, ou place « G12 ».
+  // --- Saisie manuelle de secours : on choisit le critère (nom, prénom, tél.,
+  // email ou place « G12 »), puis on tape. Filtrage 100 % local sur le manifeste.
+  const [field, setField] = useState<SearchField>('nom')
   const [query, setQuery] = useState('')
   const results = useMemo(() => {
     if (!tickets) return []
     const q = query.trim()
     if (q.length < 2) return []
-    const seatMatch = /^([a-z])\s*(\d{1,3})$/i.exec(q)
     const nq = normalize(q)
-    // Suite de chiffres saisie → recherche par téléphone (≥ 4 chiffres, sinon
-    // « 06 » matcherait tout le monde). Les séparateurs sont ignorés des 2 côtés.
+    // Séparateurs ignorés des deux côtés pour le téléphone.
     const qDigits = q.replace(/\D/g, '')
+    const seatMatch = /^([a-z])\s*(\d{1,3})$/i.exec(q)
     const found: TicketInfo[] = []
     for (const t of tickets.values()) {
-      const match = seatMatch
-        ? t.rowLabel.toLowerCase() === seatMatch[1].toLowerCase() &&
-          t.number === Number(seatMatch[2])
-        : normalize(t.name).includes(nq) ||
-          normalize(t.email).includes(nq) ||
-          (qDigits.length >= 4 && t.phone.replace(/\D/g, '').includes(qDigits))
+      let match = false
+      switch (field) {
+        case 'nom':
+          match = normalize(splitName(t.name).last).includes(nq)
+          break
+        case 'prenom':
+          match = normalize(splitName(t.name).first).includes(nq)
+          break
+        case 'tel':
+          // ≥ 2 chiffres pour ne pas matcher tout le monde sur « 0 ».
+          match = qDigits.length >= 2 && t.phone.replace(/\D/g, '').includes(qDigits)
+          break
+        case 'email':
+          match = normalize(t.email).includes(nq)
+          break
+        case 'place':
+          match =
+            seatMatch !== null &&
+            t.rowLabel.toLowerCase() === seatMatch[1].toLowerCase() &&
+            t.number === Number(seatMatch[2])
+          break
+      }
       if (match) {
         found.push(t)
         if (found.length >= 30) break
@@ -423,7 +460,7 @@ export default function ScanView({ representations, repId }: Props) {
         a.number - b.number,
     )
     return found
-  }, [tickets, query])
+  }, [tickets, query, field])
 
   // --- Compteurs.
   const scannedCount = useMemo(() => {
@@ -541,12 +578,23 @@ export default function ScanView({ representations, repId }: Props) {
       {/* Saisie manuelle de secours. */}
       <section className={styles.manual}>
         <h2 className={styles.manualTitle}>Recherche manuelle</h2>
+        <label className={styles.fieldPicker}>
+          Rechercher par
+          <select value={field} onChange={(e) => setField(e.target.value as SearchField)}>
+            {SEARCH_FIELDS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <input
           type="search"
           className={styles.search}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nom, tél., email ou place (ex. G12)"
+          placeholder={SEARCH_FIELDS.find((f) => f.value === field)?.placeholder}
+          inputMode={field === 'tel' ? 'tel' : undefined}
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
