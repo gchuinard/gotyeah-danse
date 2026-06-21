@@ -118,7 +118,14 @@ export async function annulerPaiement(
     const booking = await tx.booking.findUnique({ where: { id: bookingId } })
     if (!booking) throw new Error('Demande introuvable.')
     if (!booking.paidAt) throw new Error("Cette demande n'est pas marquée payée.")
-    const reglementVide = { paidAt: null, paymentMethod: null, amountCents: null }
+    // Effacer le règlement remet AUSSI à zéro un éventuel remboursement.
+    const reglementVide = {
+      paidAt: null,
+      paymentMethod: null,
+      amountCents: null,
+      refundCents: null,
+      refundReason: null,
+    }
     if (booking.status === 'paid') {
       await tx.booking.update({
         where: { id: bookingId },
@@ -135,6 +142,36 @@ export async function annulerPaiement(
       return { statut: 'placed' }
     }
     throw new Error('Le règlement de cette demande ne peut pas être annulé.')
+  })
+}
+
+// Enregistre (ou met à jour) le remboursement d'une demande déjà réglée — ex.
+// après le retrait de places. `refundCents` est le TOTAL remboursé (cumulatif,
+// éditable) ; la caisse compte le net = amountCents − refundCents.
+export async function enregistrerRemboursement(
+  db: PrismaClient,
+  bookingId: string,
+  remboursement: { refundCents: number; refundReason?: string },
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new Error('Demande introuvable.')
+    if (!booking.paidAt || booking.amountCents === null) {
+      throw new Error(
+        'Enregistrez d’abord un montant encaissé (Marquer payée) avant un remboursement.',
+      )
+    }
+    const { refundCents } = remboursement
+    if (!Number.isInteger(refundCents) || refundCents <= 0) {
+      throw new Error('Le montant remboursé doit être supérieur à 0.')
+    }
+    if (refundCents > booking.amountCents) {
+      throw new Error('Le remboursement ne peut pas dépasser le montant encaissé.')
+    }
+    await tx.booking.update({
+      where: { id: bookingId },
+      data: { refundCents, refundReason: remboursement.refundReason?.trim() || null },
+    })
   })
 }
 

@@ -16,6 +16,7 @@ import {
   annulerPaiement,
   changerNombrePlaces,
   chargerBookingAvecBillets,
+  enregistrerRemboursement,
   marquerPayee,
   prolongerExpiration,
   type BookingAvecBillets,
@@ -37,6 +38,7 @@ const montantSchema = z
   .refine((n) => Number.isFinite(n) && n >= 0 && n <= 10_000)
   .transform((euros) => Math.round(euros * 100))
 const annotationSchema = z.string().trim().max(300)
+const raisonSchema = z.string().trim().max(200)
 
 // Module email créé en parallèle par un autre agent : import dynamique +
 // fonctions optionnelles, pour que la liste fonctionne même si les exports
@@ -198,6 +200,31 @@ export async function rectifierPlacesAction(formData: FormData): Promise<void> {
     redirect(`/admin/placement/${id}${anciens ? `?anciens=${anciens}` : ''}`)
   }
   redirect(urlListe(formData.get('retour'), 'ok', 'Nombre de places mis à jour.'))
+}
+
+// Enregistre un remboursement (montant + motif) sur une demande déjà réglée —
+// ex. après le retrait de places. La caisse comptera le net (encaissé − remboursé).
+export async function rembourserAction(formData: FormData): Promise<void> {
+  const { email } = await requireAdmin()
+  const id = lireId(formData)
+  const montant = montantSchema.safeParse(formData.get('montant'))
+  if (!montant.success) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Montant de remboursement invalide.'))
+  }
+  const raison = raisonSchema.safeParse(formData.get('raison') ?? '')
+  const motif = raison.success && raison.data ? raison.data : undefined
+
+  try {
+    await enregistrerRemboursement(prisma, id, { refundCents: montant.data, refundReason: motif })
+  } catch (error) {
+    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+  }
+
+  const montantTxt = `${(montant.data / 100).toFixed(2).replace('.', ',')} €`
+  await logBookingEvent(id, 'refunded', email, motif ? `${montantTxt} · ${motif}` : montantTxt)
+  revalidatePath('/admin/demandes')
+  revalidatePath('/admin')
+  redirect(urlListe(formData.get('retour'), 'ok', 'Remboursement enregistré.'))
 }
 
 export async function prolongerAction(formData: FormData): Promise<void> {

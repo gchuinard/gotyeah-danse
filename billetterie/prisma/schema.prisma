@@ -134,6 +134,10 @@ model Booking {
   // Règlement (saisi au « marquer payée ») — pour la réconciliation de caisse.
   paymentMethod String? // especes | cheque | autre
   amountCents   Int? // montant encaissé en centimes
+  // Remboursement (ex. places retirées après paiement). Total remboursé en
+  // centimes + motif libre. La caisse compte le NET = amountCents − refundCents.
+  refundCents   Int? // total remboursé en centimes (<= amountCents)
+  refundReason  String? // motif libre du remboursement
 
   createdAt  DateTime  @default(now())
   paidAt     DateTime?

@@ -19,6 +19,11 @@
   padding: 1.4rem 1.5rem 1.2rem;
 }
 
+/* Variante large : centre d'actions d'une demande. */
+.dialogLarge {
+  max-width: 46rem;
+}
+
 .title {
   font-size: 1.1rem;
   font-weight: 700;

@@ -15,6 +15,7 @@ import {
   annulerPaiement,
   deplacerBillets,
   emettreBillets,
+  enregistrerRemboursement,
   marquerPayee,
   prolongerExpiration,
 } from '@/lib/admin/bookings'
@@ -154,6 +155,54 @@ describe('annulerPaiement', () => {
   it('refuse une demande non réglée', async () => {
     const booking = await creerBooking('pending', 1)
     await expect(annulerPaiement(db, booking.id)).rejects.toThrow(/pas marquée payée/)
+  })
+
+  it('efface aussi un remboursement éventuel', async () => {
+    const booking = await creerBooking('pending')
+    await marquerPayee(db, booking.id, { paymentMethod: 'cheque', amountCents: 4000 })
+    await enregistrerRemboursement(db, booking.id, { refundCents: 1500, refundReason: 'place retirée' })
+    await annulerPaiement(db, booking.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.refundCents).toBeNull()
+    expect(apres.refundReason).toBeNull()
+  })
+})
+
+describe('enregistrerRemboursement', () => {
+  async function payee(amountCents = 4000) {
+    const booking = await creerBooking('pending')
+    await marquerPayee(db, booking.id, { paymentMethod: 'especes', amountCents })
+    return booking
+  }
+
+  it('enregistre un remboursement (montant + motif)', async () => {
+    const booking = await payee(4000)
+    await enregistrerRemboursement(db, booking.id, { refundCents: 1500, refundReason: 'place retirée' })
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.refundCents).toBe(1500)
+    expect(apres.refundReason).toBe('place retirée')
+  })
+
+  it('refuse un remboursement supérieur au montant encaissé', async () => {
+    const booking = await payee(4000)
+    await expect(
+      enregistrerRemboursement(db, booking.id, { refundCents: 5000 }),
+    ).rejects.toThrow(/dépasser/)
+  })
+
+  it('refuse un montant nul ou négatif', async () => {
+    const booking = await payee(4000)
+    await expect(enregistrerRemboursement(db, booking.id, { refundCents: 0 })).rejects.toThrow(
+      /supérieur à 0/,
+    )
+  })
+
+  it('refuse si la demande n’a pas de montant encaissé', async () => {
+    const booking = await creerBooking('pending')
+    await marquerPayee(db, booking.id) // payée sans montant
+    await expect(
+      enregistrerRemboursement(db, booking.id, { refundCents: 1000 }),
+    ).rejects.toThrow(/montant encaissé/)
   })
 })
 

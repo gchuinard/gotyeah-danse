@@ -21,6 +21,7 @@ export const ACTION_LABELS: Record<string, string> = {
   ticket_mode: 'Mode de remise changé',
   note: 'Note interne modifiée',
   tickets_sent: 'Billets (r)envoyés',
+  refunded: 'Remboursement',
 }
 
 export async function logBookingEvent(

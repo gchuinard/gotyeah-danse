@@ -16,6 +16,8 @@ export function ConfirmDialog({
   danger = false,
   // Mode INFO (récap) : un seul bouton (pas de choix oui/non).
   hideCancel = false,
+  // Boîte large (ex. centre d'actions d'une demande).
+  wide = false,
   onConfirm,
   onCancel,
 }: {
@@ -26,6 +28,7 @@ export function ConfirmDialog({
   cancelLabel?: string
   danger?: boolean
   hideCancel?: boolean
+  wide?: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -44,7 +47,7 @@ export function ConfirmDialog({
   return (
     <div className={styles.overlay} onClick={onCancel}>
       <div
-        className={styles.dialog}
+        className={wide ? `${styles.dialog} ${styles.dialogLarge}` : styles.dialog}
         role="alertdialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}

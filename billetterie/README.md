@@ -92,11 +92,11 @@ navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes : marquer payée / **annuler le règlement**, **placer** (même non payée), prolonger, annuler, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, **historique** (audit : qui a fait quoi, avec l'email de l'admin) |
+| `/admin/demandes` | File des demandes (liste épurée). **Clic sur une ligne → popup « centre d'actions »** : détail, **historique**, note modifiable, et toutes les actions — marquer payée / **annuler le règlement** / **remboursement** (montant + motif), rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
-| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
+| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (par mode, **net = encaissé − remboursé**) + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 | `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
 | `/admin/comptes` | **(super-admin)** Gérer les comptes admin (ajout / rôle / suppression) + le **PIN du mode scan** |

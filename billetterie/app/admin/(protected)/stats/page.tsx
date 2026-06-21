@@ -54,7 +54,13 @@ export default async function StatsPage() {
         prisma.ticket.count({ where: { representationId: rep.id, scannedAt: { not: null } } }),
         prisma.booking.findMany({
           where: { representationId: rep.id },
-          select: { status: true, partySize: true, paymentMethod: true, amountCents: true },
+          select: {
+            status: true,
+            partySize: true,
+            paymentMethod: true,
+            amountCents: true,
+            refundCents: true,
+          },
         }),
         prisma.buvetteItem.findMany({
           where: { representationId: rep.id },
@@ -66,7 +72,11 @@ export default async function StatsPage() {
       const parStatut = new Map<string, number>()
       const parTaille = new Map<number, number>()
       // Caisse : demandes payées ou placées (l'argent est encaissé dans les 2 cas).
-      const caisse = new Map<string, { nb: number; total: number; sansMontant: number }>()
+      // total = encaissé, rembourse = remboursé → net = total − rembourse.
+      const caisse = new Map<
+        string,
+        { nb: number; total: number; rembourse: number; sansMontant: number }
+      >()
 
       for (const b of bookings) {
         parStatut.set(b.status, (parStatut.get(b.status) ?? 0) + 1)
@@ -75,15 +85,16 @@ export default async function StatsPage() {
         }
         if (['paid', 'placed'].includes(b.status)) {
           const methode = b.paymentMethod ?? 'inconnu'
-          const ligne = caisse.get(methode) ?? { nb: 0, total: 0, sansMontant: 0 }
+          const ligne = caisse.get(methode) ?? { nb: 0, total: 0, rembourse: 0, sansMontant: 0 }
           ligne.nb += 1
           if (b.amountCents !== null) ligne.total += b.amountCents
           else ligne.sansMontant += 1
+          ligne.rembourse += b.refundCents ?? 0
           caisse.set(methode, ligne)
         }
       }
 
-      const totalCaisse = [...caisse.values()].reduce((s, l) => s + l.total, 0)
+      const totalCaisse = [...caisse.values()].reduce((s, l) => s + l.total - l.rembourse, 0)
       const passee = rep.startsAt < now
 
       return {
@@ -179,13 +190,17 @@ export default async function StatsPage() {
                   <ul className={styles.liste}>
                     {[...s.caisse.entries()].map(([methode, ligne]) => (
                       <li key={methode}>
-                        {METHODE_LABELS[methode] ?? methode} : <strong>{euros(ligne.total)}</strong>{' '}
+                        {METHODE_LABELS[methode] ?? methode} :{' '}
+                        <strong>{euros(ligne.total - ligne.rembourse)}</strong>{' '}
                         ({ligne.nb} demande{ligne.nb > 1 ? 's' : ''}
+                        {ligne.rembourse > 0
+                          ? `, encaissé ${euros(ligne.total)}, remboursé ${euros(ligne.rembourse)}`
+                          : ''}
                         {ligne.sansMontant > 0 ? `, ${ligne.sansMontant} sans montant` : ''})
                       </li>
                     ))}
                   </ul>
-                  <p className={styles.totalCaisse}>Total : {euros(s.totalCaisse)}</p>
+                  <p className={styles.totalCaisse}>Total net : {euros(s.totalCaisse)}</p>
                 </>
               )}
               <p className={styles.detail}>

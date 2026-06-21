@@ -12,19 +12,8 @@ import Link from 'next/link'
 import { ACTION_LABELS } from '@/lib/admin/events'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
-import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
-import {
-  annulerAction,
-  annulerPaiementAction,
-  basculerRemiseAction,
-  marquerPayeeAction,
-  prolongerAction,
-  rectifierPlacesAction,
-  renvoyerBilletsAction,
-} from './actions'
-import { ConfirmSubmit } from './confirm-submit'
 import { DemandeRow, type DemandeDetail } from './demande-row'
 import { FiltresDemandes } from './filtres-demandes'
 import styles from './demandes.module.css'
@@ -102,19 +91,6 @@ const CLASSES_BADGE: Record<string, string> = {
 }
 
 const METHODES: Record<string, string> = { especes: 'Espèces', cheque: 'Chèque', autre: 'Autre' }
-
-// Règlement formaté pour la popup de détail (« Chèque · 25,00 € »).
-function formatReglement(paidAt: Date | null, methode: string | null, montant: number | null): string | null {
-  if (!paidAt) return null
-  return (
-    [
-      methode ? (METHODES[methode] ?? methode) : null,
-      montant != null ? `${(montant / 100).toFixed(2).replace('.', ',')} €` : null,
-    ]
-      .filter(Boolean)
-      .join(' · ') || null
-  )
-}
 
 export default async function DemandesPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin()
@@ -230,21 +206,39 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
               {demandes.map((d) => {
                 const expiree = d.status === 'pending' && d.expiresAt !== null && d.expiresAt <= now
                 const affichage = expiree ? 'expired' : d.status
+                // Rappel popup : les places ont-elles changé APRÈS le paiement ?
+                let placesChangedAfterPayment = false
+                if (d.paidAt) {
+                  const paidMs = d.paidAt.getTime()
+                  placesChangedAfterPayment = d.events.some(
+                    (e) => e.action === 'party_changed' && e.createdAt.getTime() > paidMs,
+                  )
+                }
                 const detail: DemandeDetail = {
                   id: d.id,
                   name: d.name,
                   email: d.email,
                   phone: d.phone,
                   partySize: d.partySize,
+                  status: d.status,
                   statutLabel: LIBELLES[affichage] ?? d.status,
+                  expiree,
+                  paid: d.paidAt != null,
                   pmrCount: d.pmrCount,
                   pmrCompanions: d.pmrCompanions,
                   ticketMode: d.ticketMode,
+                  publicToken: d.publicToken,
+                  paymentMethodLabel: d.paymentMethod
+                    ? (METHODES[d.paymentMethod] ?? d.paymentMethod)
+                    : null,
+                  amountCents: d.amountCents,
+                  refundCents: d.refundCents,
+                  refundReason: d.refundReason,
+                  placesChangedAfterPayment,
                   notes: d.notes,
                   adminNotes: d.adminNotes,
                   places:
                     d.status === 'placed' && d.tickets.length > 0 ? placesAttribuees(d.tickets) : null,
-                  reglement: formatReglement(d.paidAt, d.paymentMethod, d.amountCents),
                   createdAt: dateHeureCourte.format(d.createdAt),
                   paidAt: d.paidAt ? dateHeureCourte.format(d.paidAt) : null,
                   placedAt: d.placedAt ? dateHeureCourte.format(d.placedAt) : null,
@@ -314,181 +308,21 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     <td>{d.status === 'pending' && d.expiresAt ? dateCourte.format(d.expiresAt) : '—'}</td>
                     <td>
                       <div className={styles.actions}>
-                        {d.status === 'pending' && (
-                          <>
-                            <form action={marquerPayeeAction} className={styles.payerForm}>
-                              <input type="hidden" name="id" value={d.id} />
-                              <input type="hidden" name="retour" value={retour.toString()} />
-                              <div className={styles.payerChamps}>
-                                <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
-                                  <option value="cheque">Chèque</option>
-                                  <option value="especes">Espèces</option>
-                                  <option value="autre">Autre</option>
-                                </select>
-                                <input
-                                  type="text"
-                                  name="montant"
-                                  inputMode="decimal"
-                                  placeholder="€"
-                                  aria-label="Montant encaissé en euros"
-                                  className={styles.montantInput}
-                                />
-                              </div>
-                              <button type="submit" className={styles.btn}>
-                                Marquer payée
-                              </button>
-                            </form>
-                            <form action={prolongerAction}>
-                              <input type="hidden" name="id" value={d.id} />
-                              <input type="hidden" name="retour" value={retour.toString()} />
-                              <button type="submit" className={styles.btn}>
-                                Prolonger (+14 j)
-                              </button>
-                            </form>
-                            {!expiree && (
-                              <Link
-                                className={styles.btnLien}
-                                href={avecRetour(`/admin/placement/${d.id}`)}
-                                title="Placer maintenant, sans attendre le paiement"
-                              >
-                                Placer
-                              </Link>
-                            )}
-                          </>
-                        )}
-                        {d.status === 'paid' && (
-                          <>
-                            <Link className={styles.btnLien} href={avecRetour(`/admin/placement/${d.id}`)}>
-                              Placer
-                            </Link>
-                            <form action={annulerPaiementAction}>
-                              <input type="hidden" name="id" value={d.id} />
-                              <input type="hidden" name="retour" value={retour.toString()} />
-                              <ConfirmSubmit
-                                className={styles.btn}
-                                message={`Annuler le règlement de ${d.name} ? La demande repassera en attente de paiement.`}
-                              >
-                                Annuler le règlement
-                              </ConfirmSubmit>
-                            </form>
-                          </>
+                        {(d.status === 'pending' || d.status === 'paid') && !expiree && (
+                          <Link
+                            className={styles.btnLien}
+                            href={avecRetour(`/admin/placement/${d.id}`)}
+                          >
+                            Placer
+                          </Link>
                         )}
                         {d.status === 'placed' && (
-                          <>
-                            {!d.paidAt && (
-                              <form action={marquerPayeeAction} className={styles.payerForm}>
-                                <input type="hidden" name="id" value={d.id} />
-                                <input type="hidden" name="retour" value={retour.toString()} />
-                                <div className={styles.payerChamps}>
-                                  <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
-                                    <option value="cheque">Chèque</option>
-                                    <option value="especes">Espèces</option>
-                                    <option value="autre">Autre</option>
-                                  </select>
-                                  <input
-                                    type="text"
-                                    name="montant"
-                                    inputMode="decimal"
-                                    placeholder="€"
-                                    aria-label="Montant encaissé en euros"
-                                    className={styles.montantInput}
-                                  />
-                                </div>
-                                <button type="submit" className={styles.btn}>
-                                  Marquer payée
-                                </button>
-                              </form>
-                            )}
-                            {d.paidAt && (
-                              <form action={annulerPaiementAction}>
-                                <input type="hidden" name="id" value={d.id} />
-                                <input type="hidden" name="retour" value={retour.toString()} />
-                                <ConfirmSubmit
-                                  className={styles.btn}
-                                  message={`Annuler le règlement de ${d.name} ? La demande restera placée mais non réglée.`}
-                                >
-                                  Annuler le règlement
-                                </ConfirmSubmit>
-                              </form>
-                            )}
-                            <Link
-                              className={styles.btnLien}
-                              href={avecRetour(`/admin/placement/${d.id}?mode=deplacer`)}
-                            >
-                              Déplacer
-                            </Link>
-                            {d.ticketMode === 'papier' ? (
-                              <Link
-                                className={styles.btnLien}
-                                href={`/billets/${d.publicToken}`}
-                                target="_blank"
-                                rel="noopener"
-                                title="Ouvre la page imprimable des billets (avec QR)"
-                              >
-                                Imprimer les billets ↗
-                              </Link>
-                            ) : (
-                              <form action={renvoyerBilletsAction}>
-                                <input type="hidden" name="id" value={d.id} />
-                                <input type="hidden" name="retour" value={retour.toString()} />
-                                {d.paidAt ? (
-                                  <button type="submit" className={styles.btn}>
-                                    Renvoyer les billets
-                                  </button>
-                                ) : (
-                                  <ConfirmSubmit
-                                    className={styles.btn}
-                                    message={`Aucun paiement n'est enregistré pour la demande de ${d.name}. Envoyer quand même les billets et le QR à la famille ?`}
-                                  >
-                                    Envoyer les billets
-                                  </ConfirmSubmit>
-                                )}
-                              </form>
-                            )}
-                          </>
-                        )}
-                        {['pending', 'paid', 'placed'].includes(d.status) && (
-                          <form action={basculerRemiseAction}>
-                            <input type="hidden" name="id" value={d.id} />
-                            <input type="hidden" name="retour" value={retour.toString()} />
-                            <button
-                              type="submit"
-                              className={styles.btn}
-                              title="Choisir comment remettre les billets : e-billet (email) ou papier (impression)"
-                            >
-                              {d.ticketMode === 'papier' ? '📧 Passer en e-billet' : '🖨️ Passer en papier'}
-                            </button>
-                          </form>
-                        )}
-                        {['pending', 'paid', 'placed'].includes(d.status) && (
-                          <form action={rectifierPlacesAction} className={styles.rectif}>
-                            <input type="hidden" name="id" value={d.id} />
-                            <input type="hidden" name="retour" value={retour.toString()} />
-                            <input
-                              type="number"
-                              name="places"
-                              min={1}
-                              max={MAX_PARTY_SIZE}
-                              defaultValue={d.partySize}
-                              aria-label="Nombre de places"
-                              className={styles.rectifInput}
-                            />
-                            <button type="submit" className={styles.btn}>
-                              Rectifier
-                            </button>
-                          </form>
-                        )}
-                        {['pending', 'paid', 'placed'].includes(d.status) && (
-                          <form action={annulerAction}>
-                            <input type="hidden" name="id" value={d.id} />
-                            <input type="hidden" name="retour" value={retour.toString()} />
-                            <ConfirmSubmit
-                              className={styles.btnDanger}
-                              message={`Annuler la demande de ${d.name} (${d.partySize} place(s)) ? Les billets éventuels seront invalidés.`}
-                            >
-                              Annuler
-                            </ConfirmSubmit>
-                          </form>
+                          <Link
+                            className={styles.btnLien}
+                            href={avecRetour(`/admin/placement/${d.id}?mode=deplacer`)}
+                          >
+                            Déplacer
+                          </Link>
                         )}
                       </div>
                     </td>

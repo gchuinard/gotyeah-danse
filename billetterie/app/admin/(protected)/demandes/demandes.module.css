@@ -560,3 +560,58 @@
   color: #7a7068;
   font-style: italic;
 }
+
+/* Actions dans la popup : boutons en ligne (≠ pleine largeur de la liste). */
+.detail .btn,
+.detail .btnLien,
+.detail .btnDanger {
+  display: inline-block;
+  width: auto;
+}
+
+.detailWarn {
+  margin: 0 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  background: #f8efdd;
+  color: #8a5a14;
+  font-size: 0.85rem;
+}
+
+.detailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.detailActionForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.detailActionForm input,
+.detailActionForm select {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d9cbb8;
+  border-radius: 6px;
+  background: #faf7f2;
+}
+
+.detailActionForm input[type='number'] {
+  width: 4.5rem;
+}
+
+.detailInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: #1e1a16;
+}
