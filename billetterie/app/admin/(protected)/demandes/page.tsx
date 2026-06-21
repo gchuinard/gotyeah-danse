@@ -92,6 +92,29 @@ const CLASSES_BADGE: Record<string, string> = {
 
 const METHODES: Record<string, string> = { especes: 'Espèces', cheque: 'Chèque', autre: 'Autre' }
 
+// Statut de paiement (chip sous le statut de la demande).
+function statutPaiement(
+  paidAt: Date | null,
+  amountCents: number | null,
+  refundCents: number | null,
+): { label: string; cls: 'payOui' | 'payNon' | 'payRembourse'; title: string } {
+  const e = (c: number) => `${(c / 100).toFixed(2).replace('.', ',')} €`
+  if (!paidAt) return { label: '✗ Non payé', cls: 'payNon', title: 'Pas encore réglé' }
+  if (refundCents && refundCents > 0) {
+    const net = (amountCents ?? 0) - refundCents
+    return {
+      label: '↩ Remboursé',
+      cls: 'payRembourse',
+      title: `Encaissé ${amountCents != null ? e(amountCents) : '—'}, remboursé ${e(refundCents)} → net ${e(net)}`,
+    }
+  }
+  return {
+    label: '✓ Payé',
+    cls: 'payOui',
+    title: amountCents != null ? `Réglé ${e(amountCents)}` : 'Réglé (sans montant)',
+  }
+}
+
 export default async function DemandesPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin()
 
@@ -214,6 +237,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     (e) => e.action === 'party_changed' && e.createdAt.getTime() > paidMs,
                   )
                 }
+                const paiement = statutPaiement(d.paidAt, d.amountCents, d.refundCents)
                 const detail: DemandeDetail = {
                   id: d.id,
                   name: d.name,
@@ -296,9 +320,12 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                       <span className={`${styles.badge} ${styles[CLASSES_BADGE[affichage] ?? 'badgeCancelled']}`}>
                         {LIBELLES[affichage] ?? d.status}
                       </span>
-                      {d.status === 'placed' && !d.paidAt && (
-                        <span className={styles.nonRegle} title="Placé mais pas encore réglé">
-                          ⚠ non réglé
+                      {['pending', 'paid', 'placed'].includes(d.status) && (
+                        <span
+                          className={`${styles.payChip} ${styles[paiement.cls]}`}
+                          title={paiement.title}
+                        >
+                          {paiement.label}
                         </span>
                       )}
                     </td>

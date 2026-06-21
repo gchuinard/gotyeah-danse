@@ -362,7 +362,7 @@ export async function changerNombrePlaces(
   db: PrismaClient,
   bookingId: string,
   nouveauNombre: number,
-): Promise<{ etaitPlace: boolean; anciensSeatIds: string[] }> {
+): Promise<{ etaitPlace: boolean; anciensSeatIds: string[]; ancienNombre: number }> {
   if (!Number.isInteger(nouveauNombre) || nouveauNombre < 1 || nouveauNombre > MAX_PARTY_SIZE) {
     throw new Error(`Le nombre de places doit être compris entre 1 et ${MAX_PARTY_SIZE}.`)
   }
@@ -372,8 +372,9 @@ export async function changerNombrePlaces(
     if (!['pending', 'paid', 'placed'].includes(booking.status)) {
       throw new Error('Cette demande est annulée ou expirée.')
     }
+    const ancienNombre = booking.partySize
     if (nouveauNombre === booking.partySize) {
-      return { etaitPlace: false, anciensSeatIds: [] }
+      return { etaitPlace: false, anciensSeatIds: [], ancienNombre }
     }
 
     // Capacité max pour CETTE demande = jauge restante + sa propre empreinte
@@ -398,14 +399,14 @@ export async function changerNombrePlaces(
         where: { id: bookingId },
         data: { partySize: nouveauNombre, status: 'paid', placedAt: null },
       })
-      return { etaitPlace: true, anciensSeatIds: anciens.map((t) => t.seatId) }
+      return { etaitPlace: true, anciensSeatIds: anciens.map((t) => t.seatId), ancienNombre }
     }
 
     await tx.booking.update({
       where: { id: bookingId },
       data: { partySize: nouveauNombre },
     })
-    return { etaitPlace: false, anciensSeatIds: [] }
+    return { etaitPlace: false, anciensSeatIds: [], ancienNombre }
   })
 }
 

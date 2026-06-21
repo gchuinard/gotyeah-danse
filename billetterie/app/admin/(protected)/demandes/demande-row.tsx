@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { MOTIF_AUTRE, REFUND_MOTIFS } from '@/lib/admin/refund-motifs'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 import { ConfirmSubmit } from './confirm-submit'
 import {
@@ -116,6 +117,42 @@ function Hidden({ detail }: { detail: DemandeDetail }) {
   )
 }
 
+// Motif de remboursement : motifs courants en menu déroulant + « Autre… » qui
+// révèle un champ libre. Le serveur (rembourserAction) lit `raison` (ou
+// `raisonAutre` quand « Autre… » est choisi).
+function MotifRemboursement({ initial }: { initial: string | null }) {
+  const presets = REFUND_MOTIFS as readonly string[]
+  const initialChoix = initial ? (presets.includes(initial) ? initial : MOTIF_AUTRE) : presets[0]
+  const [choix, setChoix] = useState(initialChoix)
+  return (
+    <>
+      <select
+        name="raison"
+        value={choix}
+        onChange={(e) => setChoix(e.target.value)}
+        aria-label="Motif du remboursement"
+      >
+        {REFUND_MOTIFS.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+        <option value={MOTIF_AUTRE}>Autre…</option>
+      </select>
+      {choix === MOTIF_AUTRE && (
+        <input
+          type="text"
+          name="raisonAutre"
+          maxLength={200}
+          placeholder="préciser le motif"
+          aria-label="Autre motif"
+          defaultValue={initial && !presets.includes(initial) ? initial : ''}
+        />
+      )}
+    </>
+  )
+}
+
 function SectionPaiement({ detail }: { detail: DemandeDetail }) {
   const net =
     detail.amountCents != null ? detail.amountCents - (detail.refundCents ?? 0) : null
@@ -174,14 +211,7 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
                 aria-label="Montant remboursé en euros"
                 defaultValue={detail.refundCents ? eur(detail.refundCents).replace(' €', '') : ''}
               />
-              <input
-                type="text"
-                name="raison"
-                maxLength={200}
-                placeholder="motif (place retirée…)"
-                aria-label="Motif du remboursement"
-                defaultValue={detail.refundReason ?? ''}
-              />
+              <MotifRemboursement initial={detail.refundReason} />
               <button type="submit" className={styles.btn}>
                 Enregistrer le remboursement
               </button>

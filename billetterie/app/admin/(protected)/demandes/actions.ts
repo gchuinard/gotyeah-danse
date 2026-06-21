@@ -22,6 +22,7 @@ import {
   type BookingAvecBillets,
 } from '@/lib/admin/bookings'
 import { logBookingEvent } from '@/lib/admin/events'
+import { MOTIF_AUTRE } from '@/lib/admin/refund-motifs'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -189,7 +190,16 @@ export async function rectifierPlacesAction(formData: FormData): Promise<void> {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
 
-  await logBookingEvent(id, 'party_changed', email, `${parsed.data} place${parsed.data > 1 ? 's' : ''}`)
+  // Une ligne d'historique par changement réel : « ancien → nouveau places »
+  // (permet de suivre p.ex. 5 → 3 → 5 au fil des allers-retours).
+  if (res.ancienNombre !== parsed.data) {
+    await logBookingEvent(
+      id,
+      'party_changed',
+      email,
+      `${res.ancienNombre} → ${parsed.data} place${parsed.data > 1 ? 's' : ''}`,
+    )
+  }
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   if (res.etaitPlace) {
@@ -211,7 +221,10 @@ export async function rembourserAction(formData: FormData): Promise<void> {
   if (!montant.success) {
     redirect(urlListe(formData.get('retour'), 'err', 'Montant de remboursement invalide.'))
   }
-  const raison = raisonSchema.safeParse(formData.get('raison') ?? '')
+  // Motif : valeur du menu déroulant, sauf « Autre… » → champ libre.
+  const choix = String(formData.get('raison') ?? '')
+  const raisonBrute = choix === MOTIF_AUTRE ? formData.get('raisonAutre') : choix
+  const raison = raisonSchema.safeParse(raisonBrute ?? '')
   const motif = raison.success && raison.data ? raison.data : undefined
 
   try {
