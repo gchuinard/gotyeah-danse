@@ -4,7 +4,7 @@
 // La liste des représentations (déjà filtrées jauge > 0, dates formatées)
 // vient du server component app/page.tsx.
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Script from 'next/script'
 
 import { MAX_PARTY_SIZE, PARTY_SIZES } from '@/lib/public/limits'
@@ -23,19 +23,35 @@ function FieldError({ messages }: { messages?: string[] }) {
 export default function DemandeForm({
   representationId,
   turnstileSiteKey,
+  formRenderedAt,
 }: {
   // Une seule représentation par an : pas de choix, transmise en champ caché.
   representationId: string
-  // Clé publique Turnstile (absente en dev → pas de CAPTCHA).
+  // Clé publique Turnstile — fournie SEULEMENT si le CAPTCHA est actif côté
+  // serveur (clé secrète présente), pour éviter toute « fausse confiance ».
   turnstileSiteKey?: string
+  // Heure de rendu serveur (time-trap) : base fiable, indépendante de la vitesse
+  // d'hydratation et de l'horloge du client.
+  formRenderedAt: number
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
-  // Horodatage du montage (time-trap serveur), écrit dans le champ caché APRÈS
-  // l'hydratation (write DOM via ref, pas de setState → pas d'écart SSR/client).
-  const tsRef = useRef<HTMLInputElement>(null)
+  // Token Turnstile : tant que le widget n'a pas résolu (script CDN en cours de
+  // chargement), on désactive l'envoi — sinon un POST partirait sans token et
+  // serait rejeté à tort. Callbacks branchés via les attributs data-* du widget.
+  const [turnstileToken, setTurnstileToken] = useState('')
   useEffect(() => {
-    if (tsRef.current) tsRef.current.value = String(Date.now())
-  }, [])
+    if (!turnstileSiteKey) return
+    const w = window as unknown as {
+      __onTurnstile?: (token?: string) => void
+      __onTurnstileExpired?: () => void
+    }
+    w.__onTurnstile = (token) => setTurnstileToken(token ?? '')
+    w.__onTurnstileExpired = () => setTurnstileToken('')
+    return () => {
+      w.__onTurnstile = undefined
+      w.__onTurnstileExpired = undefined
+    }
+  }, [turnstileSiteKey])
   // Champs CONTRÔLÉS : une erreur de validation ne vide pas la saisie.
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -51,7 +67,7 @@ export default function DemandeForm({
   // avoir plus de PMR que de places, ni plus d'accompagnants que de places
   // non-PMR restantes.
   const maxPmr = partySize
-  const maxAccompagnants = Math.min(3, partySize - pmrCount)
+  const maxAccompagnants = Math.max(0, Math.min(3, partySize - pmrCount))
 
   // Succès « générique » (cas honeypot) : confirmation sobre, rien de plus.
   if (state.ok) {
@@ -67,7 +83,7 @@ export default function DemandeForm({
   return (
     <form action={formAction} className={styles.form} noValidate>
       <input type="hidden" name="representationId" value={representationId} />
-      <input ref={tsRef} type="hidden" name="ts" defaultValue="" />
+      <input type="hidden" name="ts" value={formRenderedAt} />
 
       <div className={styles.field}>
         <label htmlFor="firstName">Prénom</label>
@@ -276,19 +292,32 @@ export default function DemandeForm({
       )}
 
       {/* Turnstile (CAPTCHA invisible) : pose un input caché cf-turnstile-response
-          dans le formulaire. Rendu uniquement si une clé publique est fournie. */}
+          dans le formulaire. Rendu uniquement si le CAPTCHA est actif (clé). */}
       {turnstileSiteKey && (
         <>
           <Script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js"
             strategy="afterInteractive"
           />
-          <div className="cf-turnstile" data-sitekey={turnstileSiteKey} />
+          <div
+            className="cf-turnstile"
+            data-sitekey={turnstileSiteKey}
+            data-callback="__onTurnstile"
+            data-expired-callback="__onTurnstileExpired"
+          />
         </>
       )}
 
-      <button type="submit" className={styles.submit} disabled={pending}>
-        {pending ? 'Envoi en cours…' : 'Envoyer ma demande'}
+      <button
+        type="submit"
+        className={styles.submit}
+        disabled={pending || (Boolean(turnstileSiteKey) && !turnstileToken)}
+      >
+        {pending
+          ? 'Envoi en cours…'
+          : turnstileSiteKey && !turnstileToken
+            ? 'Vérification de sécurité…'
+            : 'Envoyer ma demande'}
       </button>
     </form>
   )

@@ -6,7 +6,7 @@
 
 import { prisma } from '@/lib/db'
 import { representationsOuvertes } from '@/lib/jauge'
-import { turnstileSiteKey } from '@/lib/public/turnstile'
+import { turnstileEnabled, turnstileSiteKey } from '@/lib/public/turnstile'
 
 import AccesForm from './demande/acces-form'
 import DemandeForm from './demande/demande-form'
@@ -20,7 +20,15 @@ export default async function Home() {
   // reste de la place — pas de choix proposé à la famille.
   const ouvertes = await representationsOuvertes(prisma)
   const representationId = ouvertes.find((rep) => rep.jauge > 0)?.id ?? null
-  const siteKey = turnstileSiteKey()
+  // On n'affiche le widget Turnstile QUE si la vérification est réellement
+  // active côté serveur (clé secrète présente) : sinon, ni widget ni blocage
+  // (cohérence client/serveur, pas de « fausse confiance »).
+  const siteKey = turnstileEnabled() ? turnstileSiteKey() : undefined
+  // Page dynamique (force-dynamic) : un horodatage serveur par requête est
+  // exactement ce qu'on veut pour le time-trap → la règle de pureté ne
+  // s'applique pas ici.
+  // eslint-disable-next-line react-hooks/purity
+  const formRenderedAt = Date.now()
 
   return (
     <div className={styles.page}>
@@ -53,7 +61,11 @@ export default async function Home() {
           <Onglets
             nouvelle={
               representationId ? (
-                <DemandeForm representationId={representationId} turnstileSiteKey={siteKey} />
+                <DemandeForm
+                  representationId={representationId}
+                  turnstileSiteKey={siteKey}
+                  formRenderedAt={formRenderedAt}
+                />
               ) : (
                 <p className={styles.complet}>
                   Les demandes de places ne sont pas ouvertes pour le moment.

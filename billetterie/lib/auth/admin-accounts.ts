@@ -57,7 +57,15 @@ export async function createAdminAccount(
   if (existing) {
     throw new AdminAccountError('Un compte existe déjà pour cette adresse.')
   }
-  await db.adminAccount.create({ data: { email: cleanEmail, role } })
+  try {
+    await db.adminAccount.create({ data: { email: cleanEmail, role } })
+  } catch (e) {
+    // Course entre deux super-admins : la contrainte d'unicité (P2002) gagne.
+    if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'P2002') {
+      throw new AdminAccountError('Un compte existe déjà pour cette adresse.')
+    }
+    throw e
+  }
 }
 
 export async function updateAdminAccountRole(

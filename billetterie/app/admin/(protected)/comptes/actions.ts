@@ -69,7 +69,12 @@ export async function changerRole(formData: FormData): Promise<void> {
     versListe('err', 'Vous ne pouvez pas retirer votre propre accès super-admin.')
   }
 
-  await updateAdminAccountRole(prisma, account.id, role.data)
+  try {
+    await updateAdminAccountRole(prisma, account.id, role.data)
+  } catch {
+    // Course : un autre admin a supprimé ce compte entre-temps (Prisma P2025).
+    versListe('err', 'Ce compte a été supprimé entre-temps.')
+  }
   rafraichir()
   versListe('ok', `Rôle de ${account.email} : ${role.data}.`)
 }
@@ -86,7 +91,12 @@ export async function supprimerCompte(formData: FormData): Promise<void> {
     versListe('err', 'Vous ne pouvez pas supprimer votre propre compte.')
   }
 
-  await deleteAdminAccount(prisma, account.id)
+  try {
+    await deleteAdminAccount(prisma, account.id)
+  } catch {
+    // Course : déjà supprimé par un autre admin (Prisma P2025) → idempotent.
+    versListe('ok', `Compte ${account.email} supprimé.`)
+  }
   rafraichir()
   versListe('ok', `Compte ${account.email} supprimé.`)
 }

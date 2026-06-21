@@ -34,8 +34,10 @@ export async function verifyTurnstile(token: string | undefined, ip: string): Pr
     if (!res.ok) return false
     const data = (await res.json()) as { success?: boolean }
     return data.success === true
-  } catch {
-    // Réseau HS côté serveur : on refuse plutôt que d'ouvrir une faille.
+  } catch (e) {
+    // Réseau HS côté serveur : on refuse plutôt que d'ouvrir une faille
+    // (fail-closed assumé). On loggue pour repérer une panne Cloudflare.
+    console.error('[turnstile] vérification injoignable, demande refusée:', e)
     return false
   }
 }
