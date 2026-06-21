@@ -139,6 +139,15 @@
   stroke-dasharray: 3 3;
 }
 
+/* Anciennes places (rappel après rectification du nombre) : contour ambre
+   pointillé, purement visuel — le siège reste cliquable pour le re-sélectionner.
+   Défini AVANT .highlighted/.selected/.current pour qu'ils l'emportent. */
+.previous {
+  stroke: #d39a3a;
+  stroke-width: 3;
+  stroke-dasharray: 3 2;
+}
+
 /* Suggestion mise en avant : halo + contour épais distinct. */
 .highlighted {
   stroke: #b3543f;
@@ -267,4 +276,9 @@
 .dotCurrent {
   background: #e8edf3;
   border: 2px solid #5e718a;
+}
+
+.dotPrevious {
+  background: #faf7f2;
+  border: 2px dashed #d39a3a;
 }

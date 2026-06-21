@@ -68,6 +68,8 @@ export type SeatMapProps = {
   highlightedIds?: string[]
   // Places actuelles d'un booking en mode déplacement — style distinct, cliquables.
   currentIds?: string[]
+  // Anciennes places (rappel après rectification) — style distinct, affichage seul.
+  previousIds?: string[]
   onSeatClick?: (seat: SeatView) => void
   // Mode « gérer les blocages » : autorise aussi le clic sur les sièges bloqués
   // (pour les débloquer). Par défaut, seuls libre/current sont cliquables.
@@ -89,6 +91,7 @@ export default function SeatMap({
   selectedIds,
   highlightedIds,
   currentIds,
+  previousIds,
   onSeatClick,
   clickBlocked = false,
   clickAll = false,
@@ -99,6 +102,7 @@ export default function SeatMap({
   const selected = useMemo(() => new Set(selectedIds ?? []), [selectedIds])
   const highlighted = useMemo(() => new Set(highlightedIds ?? []), [highlightedIds])
   const current = useMemo(() => new Set(currentIds ?? []), [currentIds])
+  const previous = useMemo(() => new Set(previousIds ?? []), [previousIds])
 
   const geometry = useMemo(() => {
     const xs = seats.map((s) => s.x)
@@ -307,6 +311,7 @@ export default function SeatMap({
               // Zébrure : un rang sur deux, contour teinté (lecture des rangs).
               seat.status === 'libre' && seat.rowOrder % 2 === 1 ? styles.libreAlt : '',
               seat.removable && seat.status !== 'bloque' ? styles.removable : '',
+              previous.has(seat.id) ? styles.previous : '',
               current.has(seat.id) ? styles.current : '',
               highlighted.has(seat.id) ? styles.highlighted : '',
               selected.has(seat.id) ? styles.selected : '',
@@ -401,6 +406,11 @@ export default function SeatMap({
         {currentIds !== undefined && currentIds.length > 0 && (
           <span className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotCurrent}`} /> places actuelles
+          </span>
+        )}
+        {previousIds !== undefined && previousIds.length > 0 && (
+          <span className={styles.legendItem}>
+            <span className={`${styles.dot} ${styles.dotPrevious}`} /> anciennes places
           </span>
         )}
         <span className={styles.legendHint}>molette : zoom · glisser : déplacer</span>

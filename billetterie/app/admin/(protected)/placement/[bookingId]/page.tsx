@@ -52,14 +52,21 @@ export default async function PlacementPage({
   searchParams,
 }: {
   params: Promise<{ bookingId: string }>
-  searchParams: Promise<{ mode?: string | string[]; retour?: string | string[] }>
+  searchParams: Promise<{
+    mode?: string | string[]
+    retour?: string | string[]
+    anciens?: string | string[]
+  }>
 }) {
   await requireAdmin()
 
   const { bookingId } = await params
-  const { mode: modeParam, retour: retourParam } = await searchParams
+  const { mode: modeParam, retour: retourParam, anciens: anciensParam } = await searchParams
   const wantsDeplacement = (Array.isArray(modeParam) ? modeParam[0] : modeParam) === 'deplacer'
   const retour = (Array.isArray(retourParam) ? retourParam[0] : retourParam) ?? ''
+  // Anciennes places (après rectification du nombre) : affichées en rappel.
+  const previousIds =
+    (Array.isArray(anciensParam) ? anciensParam[0] : anciensParam)?.split(',').filter(Boolean) ?? []
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -154,6 +161,7 @@ export default async function PlacementPage({
         partySize={booking.partySize}
         seats={seatMap}
         currentIds={currentIds}
+        previousIds={previousIds}
         suggestions={suggestions.map((s) => ({ seatIds: s.seatIds, score: s.score }))}
         retour={retour}
       />

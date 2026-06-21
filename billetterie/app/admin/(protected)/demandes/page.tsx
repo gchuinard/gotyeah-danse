@@ -16,7 +16,6 @@ import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
 import {
-  annoterAction,
   annulerAction,
   annulerPaiementAction,
   basculerRemiseAction,
@@ -26,6 +25,7 @@ import {
   renvoyerBilletsAction,
 } from './actions'
 import { ConfirmSubmit } from './confirm-submit'
+import { DemandeRow, type DemandeDetail } from './demande-row'
 import { FiltresDemandes } from './filtres-demandes'
 import styles from './demandes.module.css'
 
@@ -99,6 +99,21 @@ const CLASSES_BADGE: Record<string, string> = {
   placed: 'badgePlaced',
   cancelled: 'badgeCancelled',
   expired: 'badgeExpired',
+}
+
+const METHODES: Record<string, string> = { especes: 'Espèces', cheque: 'Chèque', autre: 'Autre' }
+
+// Règlement formaté pour la popup de détail (« Chèque · 25,00 € »).
+function formatReglement(paidAt: Date | null, methode: string | null, montant: number | null): string | null {
+  if (!paidAt) return null
+  return (
+    [
+      methode ? (METHODES[methode] ?? methode) : null,
+      montant != null ? `${(montant / 100).toFixed(2).replace('.', ',')} €` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || null
+  )
 }
 
 export default async function DemandesPage({ searchParams }: { searchParams: SearchParams }) {
@@ -215,8 +230,36 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
               {demandes.map((d) => {
                 const expiree = d.status === 'pending' && d.expiresAt !== null && d.expiresAt <= now
                 const affichage = expiree ? 'expired' : d.status
+                const detail: DemandeDetail = {
+                  id: d.id,
+                  name: d.name,
+                  email: d.email,
+                  phone: d.phone,
+                  partySize: d.partySize,
+                  statutLabel: LIBELLES[affichage] ?? d.status,
+                  pmrCount: d.pmrCount,
+                  pmrCompanions: d.pmrCompanions,
+                  ticketMode: d.ticketMode,
+                  notes: d.notes,
+                  adminNotes: d.adminNotes,
+                  places:
+                    d.status === 'placed' && d.tickets.length > 0 ? placesAttribuees(d.tickets) : null,
+                  reglement: formatReglement(d.paidAt, d.paymentMethod, d.amountCents),
+                  createdAt: dateHeureCourte.format(d.createdAt),
+                  paidAt: d.paidAt ? dateHeureCourte.format(d.paidAt) : null,
+                  placedAt: d.placedAt ? dateHeureCourte.format(d.placedAt) : null,
+                  expiresAt: d.expiresAt ? dateHeureCourte.format(d.expiresAt) : null,
+                  retour: retour.toString(),
+                  events: d.events.map((e) => ({
+                    id: e.id,
+                    label: ACTION_LABELS[e.action] ?? e.action,
+                    detail: e.detail,
+                    adminEmail: e.adminEmail,
+                    date: dateHeureCourte.format(e.createdAt),
+                  })),
+                }
                 return (
-                  <tr key={d.id}>
+                  <DemandeRow key={d.id} detail={detail}>
                     <td>
                       <span className={styles.nom}>
                         {d.name}
@@ -242,44 +285,13 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                           </span>
                         )}
                       </span>
-                      {d.notes && <span className={styles.notes}>{d.notes}</span>}
-                      {d.adminNotes && <span className={styles.adminNotes}>📝 {d.adminNotes}</span>}
-                      <details className={styles.annoter}>
-                        <summary>{d.adminNotes ? 'Modifier la note' : 'Ajouter une note'}</summary>
-                        <form action={annoterAction} className={styles.annoterForm}>
-                          <input type="hidden" name="id" value={d.id} />
-                          <input type="hidden" name="retour" value={retour.toString()} />
-                          <input
-                            type="text"
-                            name="annotation"
-                            maxLength={300}
-                            defaultValue={d.adminNotes ?? ''}
-                            placeholder="chèque n°…, PMR, contexte…"
-                          />
-                          <button type="submit" className={styles.btn}>
-                            OK
-                          </button>
-                        </form>
-                      </details>
-                      <details className={styles.historique}>
-                        <summary>Historique ({d.events.length})</summary>
-                        {d.events.length === 0 ? (
-                          <p className={styles.histoVide}>Aucune action enregistrée.</p>
-                        ) : (
-                          <ul className={styles.histoListe}>
-                            {d.events.map((e) => (
-                              <li key={e.id}>
-                                <span className={styles.histoDate}>
-                                  {dateHeureCourte.format(e.createdAt)}
-                                </span>{' '}
-                                — {ACTION_LABELS[e.action] ?? e.action}
-                                {e.detail ? ` (${e.detail})` : ''} —{' '}
-                                <span className={styles.histoAuteur}>{e.adminEmail}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </details>
+                      <span className={styles.indics}>
+                        {d.adminNotes && <span title="Note interne présente">📝</span>}
+                        {d.notes && <span title="Demande particulière de la famille">💬</span>}
+                        <span className={styles.histoCount} title="Actions enregistrées">
+                          🕘 {d.events.length}
+                        </span>
+                      </span>
                     </td>
                     <td>
                       <span className={styles.contact}>{d.email}</span>
@@ -480,7 +492,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                         )}
                       </div>
                     </td>
-                  </tr>
+                  </DemandeRow>
                 )
               })}
             </tbody>

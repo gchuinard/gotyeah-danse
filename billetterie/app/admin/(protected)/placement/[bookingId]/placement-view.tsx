@@ -21,6 +21,8 @@ type Props = {
   partySize: number
   seats: SeatView[]
   currentIds: string[]
+  // Anciennes places (rappel après rectification) — affichage seul.
+  previousIds?: string[]
   suggestions: SuggestionView[]
   // Filtre de la liste des demandes à reconduire au retour (query string).
   retour: string
@@ -38,6 +40,7 @@ export default function PlacementView({
   partySize,
   seats,
   currentIds,
+  previousIds,
   suggestions,
   retour,
 }: Props) {
@@ -85,6 +88,7 @@ export default function PlacementView({
           selectedIds={selection}
           highlightedIds={highlightedIds}
           currentIds={mode === 'deplacement' ? currentIds : undefined}
+          previousIds={previousIds}
           onSeatClick={toggleSeat}
           clickPmr
           caption={

@@ -325,7 +325,7 @@ export async function changerNombrePlaces(
   db: PrismaClient,
   bookingId: string,
   nouveauNombre: number,
-): Promise<{ etaitPlace: boolean }> {
+): Promise<{ etaitPlace: boolean; anciensSeatIds: string[] }> {
   if (!Number.isInteger(nouveauNombre) || nouveauNombre < 1 || nouveauNombre > MAX_PARTY_SIZE) {
     throw new Error(`Le nombre de places doit être compris entre 1 et ${MAX_PARTY_SIZE}.`)
   }
@@ -336,7 +336,7 @@ export async function changerNombrePlaces(
       throw new Error('Cette demande est annulée ou expirée.')
     }
     if (nouveauNombre === booking.partySize) {
-      return { etaitPlace: false }
+      return { etaitPlace: false, anciensSeatIds: [] }
     }
 
     // Capacité max pour CETTE demande = jauge restante + sa propre empreinte
@@ -350,19 +350,25 @@ export async function changerNombrePlaces(
     }
 
     if (booking.status === 'placed') {
+      // Mémoriser où la famille était placée AVANT de supprimer les billets,
+      // pour l'afficher en rappel sur l'écran de re-placement.
+      const anciens = await tx.ticket.findMany({
+        where: { bookingId },
+        select: { seatId: true },
+      })
       await tx.ticket.deleteMany({ where: { bookingId } })
       await tx.booking.update({
         where: { id: bookingId },
         data: { partySize: nouveauNombre, status: 'paid', placedAt: null },
       })
-      return { etaitPlace: true }
+      return { etaitPlace: true, anciensSeatIds: anciens.map((t) => t.seatId) }
     }
 
     await tx.booking.update({
       where: { id: bookingId },
       data: { partySize: nouveauNombre },
     })
-    return { etaitPlace: false }
+    return { etaitPlace: false, anciensSeatIds: [] }
   })
 }
 

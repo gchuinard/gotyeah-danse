@@ -191,8 +191,11 @@ export async function rectifierPlacesAction(formData: FormData): Promise<void> {
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
   if (res.etaitPlace) {
-    // Le placement n'est plus valide : on ré-attribue les sièges.
-    redirect(`/admin/placement/${id}`)
+    // Le placement n'est plus valide : on ré-attribue les sièges. Les anciens
+    // sièges sont transmis en rappel (couleur dédiée) pour les replacer au même
+    // endroit si possible.
+    const anciens = res.anciensSeatIds.join(',')
+    redirect(`/admin/placement/${id}${anciens ? `?anciens=${anciens}` : ''}`)
   }
   redirect(urlListe(formData.get('retour'), 'ok', 'Nombre de places mis à jour.'))
 }
