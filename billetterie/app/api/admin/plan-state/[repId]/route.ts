@@ -17,6 +17,9 @@ export async function GET(
   if (!session) {
     return Response.json({ error: 'Non autorisé' }, { status: 401, headers: NO_STORE })
   }
+  if (session.role === 'scan') {
+    return Response.json({ error: 'Accès refusé' }, { status: 403, headers: NO_STORE })
+  }
 
   const { repId } = await params
 

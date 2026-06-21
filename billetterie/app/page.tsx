@@ -6,6 +6,7 @@
 
 import { prisma } from '@/lib/db'
 import { representationsOuvertes } from '@/lib/jauge'
+import { turnstileSiteKey } from '@/lib/public/turnstile'
 
 import AccesForm from './demande/acces-form'
 import DemandeForm from './demande/demande-form'
@@ -19,6 +20,7 @@ export default async function Home() {
   // reste de la place — pas de choix proposé à la famille.
   const ouvertes = await representationsOuvertes(prisma)
   const representationId = ouvertes.find((rep) => rep.jauge > 0)?.id ?? null
+  const siteKey = turnstileSiteKey()
 
   return (
     <div className={styles.page}>
@@ -51,7 +53,7 @@ export default async function Home() {
           <Onglets
             nouvelle={
               representationId ? (
-                <DemandeForm representationId={representationId} />
+                <DemandeForm representationId={representationId} turnstileSiteKey={siteKey} />
               ) : (
                 <p className={styles.complet}>
                   Les demandes de places ne sont pas ouvertes pour le moment.

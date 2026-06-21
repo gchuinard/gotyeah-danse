@@ -43,8 +43,9 @@ Dans `.env` :
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | Expéditeur des emails |
 | `PLACEMENT_IMPL` | `baseline` (défaut) ou `custom` |
 | `VENUE_ID` | Salle active : charge `config/venues/<id>.json` (défaut : Bergerac intégré) |
-| `ADMIN_EMAILS` | Liste blanche des admins (emails séparés par des virgules) |
+| `ADMIN_EMAILS` | **Super-admins « garantis »** (anti-lockout), emails séparés par des virgules. Les autres comptes se gèrent dans `/admin/comptes` |
 | `SESSION_SECRET` | Signature des cookies admin — générer : `openssl rand -hex 32` |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile (anti-bot du formulaire public). **Sans la clé secrète, le CAPTCHA est désactivé** (parfait en dev) |
 
 Puis :
 
@@ -64,10 +65,21 @@ Le seed est **relançable** (upserts, ids déterministes). En dev il crée :
 Les demandes de démo sont **gardées par `NODE_ENV !== 'production'`** : en prod,
 le seed ne crée que le plan de salle et les représentations.
 
-**Connexion admin** : pas de mot de passe. On saisit son email (qui doit figurer
-dans `ADMIN_EMAILS` du `.env`), on reçoit un **code à 6 chiffres** (valable
-10 minutes, usage unique) et on le saisit. En dev sans `BREVO_API_KEY`, le code
-s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
+**Connexion** : pas de mot de passe. Deux modes sur `/admin/login` (onglets) :
+
+- **Admin / super-admin** : on saisit son email (autorisé via `ADMIN_EMAILS` du
+  `.env` **ou** un compte créé dans `/admin/comptes`), on reçoit un **code à
+  6 chiffres** (valable 10 minutes, usage unique) qu'on saisit **case par
+  case**. En dev sans `BREVO_API_KEY`, le code s'affiche **dans la console du
+  serveur** (`[email dev] code de connexion …`).
+- **Bénévole · scan** : **prénom + PIN partagé** (défini dans `/admin/comptes`).
+  Donne accès **uniquement** à la page de scan ; le prénom trace qui a scanné
+  (`Ticket.scannedBy`).
+
+**Trois rôles** : `super-admin` (tout) · `admin` (tout **sauf** calibration,
+salles, représentations, comptes) · `scan` (uniquement la page scan). La
+navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
+(défense en profondeur, cf. `lib/auth/roles.ts` + `lib/auth/require-admin.ts`).
 
 > **Note WSL2 / `/mnt/c`** : le watcher de Next ne voit pas les **nouveaux**
 > fichiers créés sur le montage Windows. Si une page fraîchement créée renvoie
@@ -87,6 +99,7 @@ s'affiche **dans la console du serveur** (`[email dev] code de connexion …`).
 | `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 | `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
+| `/admin/comptes` | **(super-admin)** Gérer les comptes admin (ajout / rôle / suppression) + le **PIN du mode scan** |
 
 Deux tokens de démo pratiques (seed dev) :
 
@@ -227,12 +240,14 @@ docker compose cp web:/data/prod.db ./backup-$(date +%F).db
 faire la copie à un moment calme ou via `sqlite3 prod.db ".backup ..."` si
 sqlite3 est installé sur l'hôte.)
 
-**Admins** : aucun compte à créer. La liste blanche `ADMIN_EMAILS` de
-`.env.production` fait foi — chaque bénévole se connecte avec son email et le
-code à 6 chiffres reçu via Brevo. Ajouter/retirer un bénévole = éditer la
-variable puis `docker compose up -d`. ⚠️ La clé Brevo est donc indispensable
-pour se connecter en production (et chaque admin doit se connecter **avant** le
-soir du spectacle — la session dure 7 jours).
+**Admins & rôles** : `ADMIN_EMAILS` de `.env.production` = les **super-admins
+garantis** (anti-lockout, modifiables uniquement par `docker compose up -d`).
+Tous les autres comptes (`admin` / `super-admin`) **et le PIN du mode scan** se
+gèrent ensuite dans **`/admin/comptes`**, sans redeploy. Chaque admin se
+connecte avec son email + le code à 6 chiffres reçu via Brevo ; les bénévoles
+scan avec prénom + PIN. ⚠️ La clé Brevo est indispensable pour le login admin
+en production (et chaque admin doit se connecter **avant** le soir du spectacle
+— la session dure 7 jours). Le PIN scan, lui, ne dépend pas de Brevo.
 
 Initialiser le plan de salle et les représentations en prod (une fois) :
 
@@ -305,10 +320,11 @@ Checklist :
 | --- | --- | --- |
 | `DATABASE_URL` | `file:./dev.db` | `file:/data/prod.db` (volume Docker) |
 | `APP_BASE_URL` | `http://localhost:3000` | `https://billets.cours-danse-bergerac.fr` |
-| `ADMIN_EMAILS` | liste blanche admins | idem — **obligatoire** (login par code email) |
+| `ADMIN_EMAILS` | super-admins garantis | idem — **obligatoire** (au moins un, anti-lockout) |
 | `SESSION_SECRET` | `openssl rand -hex 32` | idem — **obligatoire** |
 | `BREVO_API_KEY` | optionnel (emails + codes → console) | **requis** (sinon aucun email ne part, login impossible) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | expéditeur | idem |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | optionnel (CAPTCHA désactivé) | recommandé (anti-bot du formulaire public) |
 | `PLACEMENT_IMPL` | `baseline` (défaut) \| `custom` | idem |
 | `VENUE_ID` | optionnel — salle JSON de `config/venues/` | idem (re-seeder après changement) |
 | `NODE_ENV` | — | `production` (coupe la démo du seed) |

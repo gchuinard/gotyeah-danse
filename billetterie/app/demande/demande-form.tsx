@@ -4,7 +4,8 @@
 // La liste des représentations (déjà filtrées jauge > 0, dates formatées)
 // vient du server component app/page.tsx.
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
+import Script from 'next/script'
 
 import { MAX_PARTY_SIZE, PARTY_SIZES } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
@@ -21,11 +22,20 @@ function FieldError({ messages }: { messages?: string[] }) {
 
 export default function DemandeForm({
   representationId,
+  turnstileSiteKey,
 }: {
   // Une seule représentation par an : pas de choix, transmise en champ caché.
   representationId: string
+  // Clé publique Turnstile (absente en dev → pas de CAPTCHA).
+  turnstileSiteKey?: string
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
+  // Horodatage du montage (time-trap serveur), écrit dans le champ caché APRÈS
+  // l'hydratation (write DOM via ref, pas de setState → pas d'écart SSR/client).
+  const tsRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (tsRef.current) tsRef.current.value = String(Date.now())
+  }, [])
   // Champs CONTRÔLÉS : une erreur de validation ne vide pas la saisie.
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -57,6 +67,7 @@ export default function DemandeForm({
   return (
     <form action={formAction} className={styles.form} noValidate>
       <input type="hidden" name="representationId" value={representationId} />
+      <input ref={tsRef} type="hidden" name="ts" defaultValue="" />
 
       <div className={styles.field}>
         <label htmlFor="firstName">Prénom</label>
@@ -262,6 +273,18 @@ export default function DemandeForm({
         <p className={styles.formError} role="alert">
           {state.error}
         </p>
+      )}
+
+      {/* Turnstile (CAPTCHA invisible) : pose un input caché cf-turnstile-response
+          dans le formulaire. Rendu uniquement si une clé publique est fournie. */}
+      {turnstileSiteKey && (
+        <>
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="afterInteractive"
+          />
+          <div className="cf-turnstile" data-sitekey={turnstileSiteKey} />
+        </>
       )}
 
       <button type="submit" className={styles.submit} disabled={pending}>

@@ -54,6 +54,7 @@ export async function GET(
 ) {
   const session = await getAdminSession()
   if (!session) return new Response('Non autorisé', { status: 401 })
+  if (session.role === 'scan') return new Response('Accès refusé', { status: 403 })
 
   const { repId } = await params
   if (!REP_ID_RE.test(repId)) return new Response('Introuvable', { status: 404 })

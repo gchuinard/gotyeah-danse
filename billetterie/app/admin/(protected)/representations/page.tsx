@@ -4,7 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { ConfirmSubmit } from '../demandes/confirm-submit'
 import { basculerOuverture, creerRepresentation, supprimerRepresentation } from './actions'
@@ -30,7 +30,7 @@ export default async function RepresentationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  await requireAdmin()
+  await requireSuperAdmin()
   const params = await searchParams
   const ok = premier(params.ok)
   const err = premier(params.err)

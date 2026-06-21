@@ -172,6 +172,7 @@ model Ticket {
 
   qrToken   String    @unique // UUID v4, aucune donnée embarquée
   scannedAt DateTime?
+  scannedBy String? // nom/prénom du bénévole qui a scanné (session.name), pour l'audit du soir J
 
   // LA contrainte qui rend les doublons impossibles, même entre deux
   // bénévoles qui placent en parallèle : l'émission se fait en transaction.
@@ -197,9 +198,30 @@ model Venue {
   updatedAt DateTime @updatedAt
 }
 
+// Comptes admin gérés en base (en plus de la liste blanche ADMIN_EMAILS du
+// .env, qui reste la source des super-admins « garantis » anti-lockout).
+// role : "super-admin" | "admin" (le rôle "scan" n'a pas de compte : il passe
+// par le PIN partagé, cf. Setting "scan_pin_hash"). Login par code email,
+// comme les super-admins env.
+model AdminAccount {
+  id        String   @id @default(cuid())
+  email     String   @unique // normalisé minuscules
+  role      String // "super-admin" | "admin"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Réglages clé/valeur gérés depuis l'admin (sans redeploy). Aujourd'hui :
+// "scan_pin_hash" = sha256 du PIN partagé d'accès au mode scan.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // Code de connexion à usage unique (login admin sans mot de passe).
-// Les admins autorisés sont la liste blanche ADMIN_EMAILS du .env ;
-// seul le HASH du code est stocké.
+// Les admins autorisés sont la liste blanche ADMIN_EMAILS du .env (super-admins)
+// + les AdminAccount en base ; seul le HASH du code est stocké.
 model LoginCode {
   id         String    @id @default(cuid())
   email      String

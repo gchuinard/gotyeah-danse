@@ -5,13 +5,13 @@
 
 import type { Metadata } from 'next'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 
 import BuilderView from './builder-view'
 
 export const metadata: Metadata = { title: 'Créer une salle — Billetterie admin' }
 
 export default async function NouvelleSallePage() {
-  await requireAdmin()
+  await requireSuperAdmin()
   return <BuilderView />
 }

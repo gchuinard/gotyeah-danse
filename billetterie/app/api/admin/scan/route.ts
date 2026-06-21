@@ -50,9 +50,10 @@ export async function POST(request: Request) {
   const scannedAt = new Date(Math.max(now - 24 * 60 * 60 * 1000, Math.min(clientTime, now)))
 
   // Premier scan gagne — atomique grâce à la condition scannedAt: null.
+  // scannedBy = qui a scanné (prénom du bénévole ou email admin), pour l'audit.
   const { count } = await prisma.ticket.updateMany({
     where: { qrToken, scannedAt: null },
-    data: { scannedAt },
+    data: { scannedAt, scannedBy: session.name },
   })
   if (count === 1) {
     return Response.json(

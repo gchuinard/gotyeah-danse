@@ -5,11 +5,20 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
+import { isRole, type Role } from './roles'
 
 export const SESSION_COOKIE = 'session'
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 jours
 
-export type AdminSession = { adminId: string; email: string }
+// email = null pour un accès « scan » (login par prénom + PIN, sans email).
+// name  = libellé affiché et utilisé pour l'audit (prénom pour le scan, email
+//         sinon).
+export type AdminSession = {
+  adminId: string
+  role: Role
+  email: string | null
+  name: string
+}
 
 function secret(): string {
   const s = process.env.SESSION_SECRET
@@ -41,10 +50,15 @@ export function verifySessionToken(token: string | undefined, now = Date.now()):
   if (expected.length !== received.length || !timingSafeEqual(expected, received)) return null
 
   try {
-    const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as AdminSession & { exp: number }
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Partial<AdminSession> & {
+      exp?: number
+    }
     if (typeof data.exp !== 'number' || data.exp < now) return null
-    if (typeof data.adminId !== 'string' || typeof data.email !== 'string') return null
-    return { adminId: data.adminId, email: data.email }
+    if (typeof data.adminId !== 'string') return null
+    if (!isRole(data.role)) return null // rejette les anciens tokens sans rôle → reconnexion
+    if (data.email !== null && typeof data.email !== 'string') return null
+    if (typeof data.name !== 'string') return null
+    return { adminId: data.adminId, role: data.role, email: data.email, name: data.name }
   } catch {
     return null
   }

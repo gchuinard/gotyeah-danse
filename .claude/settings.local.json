@@ -11,7 +11,9 @@
       "Bash(npm install *)",
       "Bash(grep -iE \"readme|claude|\\\\.md$\")",
       "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline --diff-filter=D --name-only)",
-      "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline -- \"**/README*\")"
+      "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline -- \"**/README*\")",
+      "Bash(npx prisma *)",
+      "Bash(sudo apt-get install -y poppler-utils)"
     ]
   }
 }

@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { toParisInputValue } from '@/lib/paris-time'
 import { modifierRepresentation } from '../actions'
@@ -18,7 +18,7 @@ export default async function ModifierRepresentationPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireAdmin()
+  await requireSuperAdmin()
   const { id } = await params
   const rep = await prisma.representation.findUnique({
     where: { id },

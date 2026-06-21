@@ -4,7 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { generateSeats } from '@/lib/venue/generate'
 import { loadVenueConfig } from '@/lib/venue/load'
@@ -34,7 +34,7 @@ function premier(valeur: string | string[] | undefined): string {
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
 export default async function SallesPage({ searchParams }: { searchParams: SearchParams }) {
-  await requireAdmin()
+  await requireSuperAdmin()
   const params = await searchParams
   const ok = premier(params.ok)
   const err = premier(params.err)

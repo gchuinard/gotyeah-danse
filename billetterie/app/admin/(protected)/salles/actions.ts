@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { loadVenueConfig } from '@/lib/venue/load'
 import { parseVenueConfig } from '@/lib/venue/schema'
@@ -39,7 +39,7 @@ export async function enregistrerSalle(input: {
   config: unknown
   notation?: string
 }): Promise<SalleResult> {
-  await requireAdmin()
+  await requireSuperAdmin()
 
   const name = nameSchema.safeParse(input.name)
   if (!name.success) return { ok: false, error: 'Nom de salle invalide.' }
@@ -71,7 +71,7 @@ export async function modifierSalle(input: {
   config: unknown
   notation?: string
 }): Promise<SalleResult & { active?: boolean }> {
-  await requireAdmin()
+  await requireSuperAdmin()
 
   const id = idSchema.safeParse(input.id)
   const name = nameSchema.safeParse(input.name)
@@ -103,7 +103,7 @@ export async function modifierSalle(input: {
 // Re-synchronise le plan depuis la config de la salle ACTIVE (après une
 // modification, ou pour réparer). Mêmes garde-fous que l'activation.
 export async function reappliquerPlanAction(): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const active = await prisma.venue.findFirst({ where: { isActive: true } })
   if (!active) redirect(urlListe('err', 'Aucune salle active à réappliquer.'))
   try {
@@ -120,7 +120,7 @@ export async function reappliquerPlanAction(): Promise<void> {
 // Active une salle : synchronise le plan PUIS bascule le drapeau. Si la
 // synchro échoue (ex. billets sur des sièges disparus), rien ne bascule.
 export async function activerSalleAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const id = idSchema.safeParse(formData.get('id'))
   if (!id.success) redirect(urlListe('err', 'Identifiant invalide.'))
 
@@ -148,7 +148,7 @@ export async function activerSalleAction(formData: FormData): Promise<void> {
 // Revient à la salle « par défaut » (VENUE_ID ou intégrée) : re-synchronise
 // le plan depuis cette config puis efface les drapeaux.
 export async function desactiverSalleAction(): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   try {
     const result = await syncPlan(prisma, loadVenueConfig())
     await prisma.venue.updateMany({ data: { isActive: false } })
@@ -161,7 +161,7 @@ export async function desactiverSalleAction(): Promise<void> {
 }
 
 export async function supprimerSalleAction(formData: FormData): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const id = idSchema.safeParse(formData.get('id'))
   if (!id.success) redirect(urlListe('err', 'Identifiant invalide.'))
 

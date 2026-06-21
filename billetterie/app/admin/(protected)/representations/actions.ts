@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { parisToUtc } from '@/lib/paris-time'
 
@@ -32,7 +32,7 @@ function rafraichir() {
 }
 
 export async function creerRepresentation(formData: FormData): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const parsed = formSchema.safeParse({
     title: formData.get('title'),
     startsAt: formData.get('startsAt'),
@@ -51,7 +51,7 @@ export async function creerRepresentation(formData: FormData): Promise<void> {
 }
 
 export async function modifierRepresentation(formData: FormData): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const id = idSchema.safeParse(formData.get('id'))
   const parsed = formSchema.safeParse({
     title: formData.get('title'),
@@ -73,7 +73,7 @@ export async function modifierRepresentation(formData: FormData): Promise<void> 
 }
 
 export async function basculerOuverture(formData: FormData): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const id = idSchema.safeParse(formData.get('id'))
   if (!id.success) versListe('err', 'Représentation introuvable.')
 
@@ -94,7 +94,7 @@ export async function basculerOuverture(formData: FormData): Promise<void> {
 }
 
 export async function supprimerRepresentation(formData: FormData): Promise<void> {
-  await requireAdmin()
+  await requireSuperAdmin()
   const id = idSchema.safeParse(formData.get('id'))
   if (!id.success) versListe('err', 'Représentation introuvable.')
 

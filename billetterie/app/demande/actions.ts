@@ -11,7 +11,6 @@
 //
 // ⚠️ Ne JAMAIS logger les données personnelles ni le publicToken.
 
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -19,8 +18,13 @@ import { demandeEnAttentePourEmail, trouverDemandeParCode } from '@/lib/booking/
 import { ACTOR_PUBLIC } from '@/lib/admin/events'
 import { creerBookingEnAttente } from '@/lib/booking/creer'
 import { sendBookingPendingEmail } from '@/lib/email/booking'
+import { clientIp } from '@/lib/net/client-ip'
 import { bookingSchema, type BookingInput } from '@/lib/public/booking-schema'
+import { verifyTurnstile } from '@/lib/public/turnstile'
 import { rateLimit } from '@/lib/rate-limit'
+
+// Délai minimal plausible entre l'affichage du formulaire et sa soumission.
+const MIN_FILL_MS = 2_500
 
 export type DemandeState = {
   // true = confirmation générique affichée par l'UI. N'arrive que pour le
@@ -43,7 +47,7 @@ export async function accederDemande(
   _prevState: AccesState,
   formData: FormData,
 ): Promise<AccesState> {
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() || 'inconnue'
+  const ip = await clientIp()
   if (!rateLimit(`acces:${ip}`, { limit: 10, windowMs: 10 * 60_000 })) {
     return { error: 'Trop de tentatives, réessayez dans quelques minutes.' }
   }
@@ -70,7 +74,7 @@ export async function renvoyerIdentifiant(
   _prevState: AccesState,
   formData: FormData,
 ): Promise<AccesState> {
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() || 'inconnue'
+  const ip = await clientIp()
   if (!rateLimit(`renvoi:${ip}`, { limit: 5, windowMs: 15 * 60_000 })) {
     return { error: 'Trop de demandes, réessayez dans quelques minutes.' }
   }
@@ -100,7 +104,7 @@ export async function creerDemande(
   formData: FormData,
 ): Promise<DemandeState> {
   // Rate-limit par IP : premier élément de x-forwarded-for.
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() || 'inconnue'
+  const ip = await clientIp()
   if (!rateLimit(`demande:${ip}`, { limit: 5, windowMs: 10 * 60_000 })) {
     return { ok: false, error: 'Trop de demandes, réessayez dans quelques minutes.' }
   }
@@ -109,6 +113,14 @@ export async function creerDemande(
   // Succès factice AVANT zod, pour ne donner aucun indice au robot.
   const website = formData.get('website')
   if (typeof website === 'string' && website.length > 0) {
+    return { ok: true }
+  }
+
+  // Time-trap : un robot soumet en quelques millisecondes. Si le formulaire a
+  // été « rempli » trop vite, succès factice (comme le honeypot). Le champ `ts`
+  // est posé au montage côté client ; absent (ex. JS lent), on ne bloque pas.
+  const ts = Number(formData.get('ts'))
+  if (Number.isFinite(ts) && ts > 0 && Date.now() - ts < MIN_FILL_MS) {
     return { ok: true }
   }
 
@@ -131,6 +143,16 @@ export async function creerDemande(
     }
   }
   const demande = parsed.data
+
+  // Turnstile (CAPTCHA invisible Cloudflare) APRÈS zod : le jeton (usage unique,
+  // valable ~5 min) n'est consommé que pour une soumission par ailleurs valide
+  // — une faute de frappe corrigée puis renvoyée réutilise le même jeton.
+  // Sans TURNSTILE_SECRET_KEY (dev), verifyTurnstile renvoie true → aucun blocage.
+  const token = formData.get('cf-turnstile-response')
+  const humain = await verifyTurnstile(typeof token === 'string' ? token : undefined, ip)
+  if (!humain) {
+    return { ok: false, error: 'Vérification anti-robot échouée. Rechargez la page et réessayez.' }
+  }
 
   const result = await creerBookingEnAttente({
     representationId: demande.representationId,

@@ -8,6 +8,7 @@
 import type { Metadata } from 'next'
 
 import { AISLE_AXES } from '@/config/venue'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { loadVenueConfig } from '@/lib/venue/load'
 import { generateSeats, planBounds } from '@/lib/venue/generate'
 
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
   title: 'Calibration du plan de salle',
 }
 
-export default function CalibrationPage() {
+export default async function CalibrationPage() {
+  await requireSuperAdmin()
   const venueConfig = loadVenueConfig()
   const seats = generateSeats(venueConfig)
   const bounds = planBounds(seats)

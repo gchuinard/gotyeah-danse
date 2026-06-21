@@ -6,7 +6,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { serialiseVenueConfig } from '@/lib/venue/place-notation'
 import { parseVenueConfig } from '@/lib/venue/schema'
@@ -16,7 +16,7 @@ import BuilderView from '../../nouvelle/builder-view'
 export const metadata: Metadata = { title: 'Modifier la salle — Billetterie admin' }
 
 export default async function ModifierSallePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
+  await requireSuperAdmin()
   const { id } = await params
 
   const venue = await prisma.venue.findUnique({ where: { id } })

@@ -8,7 +8,7 @@
 
 import type { Metadata } from 'next'
 
-import { requireAdmin } from '@/lib/auth/require-admin'
+import { requireScanAccess } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
 import ScanView from './scan-view'
@@ -31,7 +31,7 @@ export default async function ScanPage({
 }: {
   searchParams: Promise<{ rep?: string | string[] }>
 }) {
-  await requireAdmin()
+  await requireScanAccess()
 
   const { rep } = await searchParams
   const repParam = Array.isArray(rep) ? rep[0] : rep
