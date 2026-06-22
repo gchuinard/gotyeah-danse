@@ -350,6 +350,65 @@
   border: 1px solid #ecd29a;
 }
 
+/* Chip « acompte / partiellement payé » — ambre, distinct du remboursé. */
+.payAcompte {
+  color: #8a5a00;
+  background: #fdf3df;
+  border: 1px solid #ecd29a;
+}
+
+/* Récap montant dans la popup paiement : dû / reçu / reste, bien lisible. */
+.montantRecap {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.montantRecap strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.resteDu {
+  color: #8a3a2a;
+  font-weight: 700;
+}
+
+.soldeOk {
+  color: #2d5a2d;
+  font-weight: 700;
+}
+
+/* Liste des versements enregistrés. */
+.versementListe {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.versementLigne {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.versementLigne .versementMontant {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.versementMeta {
+  color: #7a7068;
+}
+
+.versementSuppr {
+  margin-left: auto;
+}
+
 /* Chip « remise papier » — gris neutre (l'e-billet est le défaut, non affiché). */
 .remiseTag {
   display: inline-block;

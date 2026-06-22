@@ -7,6 +7,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { totauxBuvette } from '@/lib/admin/buvette'
+import { euros, resumePaiement } from '@/lib/admin/money'
+import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { MOMENTS, SKY_OPTIONS, parseWeatherReadings } from '@/lib/admin/weather'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
@@ -33,17 +35,32 @@ const METHODE_LABELS: Record<string, string> = {
   inconnu: 'Non renseigné',
 }
 
-function euros(cents: number): string {
-  return (cents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €'
-}
+// Mois + année (« juillet 2026 ») et jour court — pour les chèques à déposer.
+const moisAnnee = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  month: 'long',
+  year: 'numeric',
+})
+const jourCourt = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  day: '2-digit',
+  month: '2-digit',
+})
+// Clé de tri d'un mois (AAAA-MM en heure de Paris) indépendante de la locale.
+const cleMois = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Paris',
+  year: 'numeric',
+  month: '2-digit',
+})
 
 export default async function StatsPage() {
   await requireAdmin()
   const now = new Date()
 
-  const [representations, totalSieges] = await Promise.all([
+  const [representations, totalSieges, unitPriceCents] = await Promise.all([
     prisma.representation.findMany({ orderBy: { startsAt: 'asc' } }),
     prisma.seat.count(),
+    getTicketPriceCents(prisma),
   ])
 
   const stats = await Promise.all(
@@ -57,9 +74,13 @@ export default async function StatsPage() {
           select: {
             status: true,
             partySize: true,
-            paymentMethod: true,
-            amountCents: true,
+            freeSeats: true,
             refundCents: true,
+            name: true,
+            paidAt: true,
+            payments: {
+              select: { method: true, amountCents: true, depositOn: true },
+            },
           },
         }),
         prisma.buvetteItem.findMany({
@@ -71,30 +92,70 @@ export default async function StatsPage() {
       const capacite = totalSieges - overrides
       const parStatut = new Map<string, number>()
       const parTaille = new Map<number, number>()
-      // Caisse : demandes payées ou placées (l'argent est encaissé dans les 2 cas).
-      // total = encaissé, rembourse = remboursé → net = total − rembourse.
-      const caisse = new Map<
-        string,
-        { nb: number; total: number; rembourse: number; sansMontant: number }
-      >()
+      // Caisse : tous les versements comptent DÈS la remise (un chèque non encore
+      // déposé est déjà dans la caisse). Ventilation par méthode ; le remboursé
+      // est global (non rattaché à une méthode) → net = reçu − remboursé.
+      const caisse = new Map<string, { nb: number; total: number }>()
+      let rembourseCents = 0
+      let resteAEncaisserCents = 0 // acomptes restant à compléter (demandes réglées)
+      let tropPercuCents = 0 // sur-paiements à régulariser
+      let demandesSansMontant = 0 // héritage : payées sans montant saisi
+      // Chèques avec une date de dépôt prévue, groupés par mois.
+      const cheques: { name: string; amountCents: number; depositOn: Date }[] = []
 
       for (const b of bookings) {
         parStatut.set(b.status, (parStatut.get(b.status) ?? 0) + 1)
         if (['pending', 'paid', 'placed'].includes(b.status)) {
           parTaille.set(b.partySize, (parTaille.get(b.partySize) ?? 0) + 1)
         }
-        if (['paid', 'placed'].includes(b.status)) {
-          const methode = b.paymentMethod ?? 'inconnu'
-          const ligne = caisse.get(methode) ?? { nb: 0, total: 0, rembourse: 0, sansMontant: 0 }
+        // L'argent ne compte que pour les demandes ACTIVES réglées (paid/placed).
+        // Une demande annulée a déjà ses versements purgés (annulerDemande), ce
+        // garde-fou évite tout résidu (chèque à déposer, net) en cas d'anomalie.
+        if (!['paid', 'placed'].includes(b.status)) continue
+        for (const p of b.payments) {
+          const ligne = caisse.get(p.method) ?? { nb: 0, total: 0 }
           ligne.nb += 1
-          if (b.amountCents !== null) ligne.total += b.amountCents
-          else ligne.sansMontant += 1
-          ligne.rembourse += b.refundCents ?? 0
-          caisse.set(methode, ligne)
+          ligne.total += p.amountCents
+          caisse.set(p.method, ligne)
+          if (p.method === 'cheque' && p.depositOn) {
+            cheques.push({ name: b.name, amountCents: p.amountCents, depositOn: p.depositOn })
+          }
+        }
+        rembourseCents += b.refundCents ?? 0
+        // Une demande payée sans montant saisi (héritage) compte UNIQUEMENT comme
+        // « sans montant » — jamais aussi dans le reste à encaisser (sinon on
+        // réclamerait un argent déjà collecté).
+        if (b.paidAt && b.payments.length === 0) {
+          demandesSansMontant += 1
+        } else {
+          const r = resumePaiement({
+            partySize: b.partySize,
+            freeSeats: b.freeSeats,
+            unitPriceCents,
+            payments: b.payments,
+            refundCents: b.refundCents,
+          })
+          if (r.resteCents) resteAEncaisserCents += r.resteCents
+          tropPercuCents += r.tropPercuCents
         }
       }
 
-      const totalCaisse = [...caisse.values()].reduce((s, l) => s + l.total - l.rembourse, 0)
+      const totalRecu = [...caisse.values()].reduce((s, l) => s + l.total, 0)
+      const totalCaisse = totalRecu - rembourseCents
+
+      // Chèques à déposer, regroupés par mois (chronologique).
+      const chequesParMois = new Map<
+        string,
+        { label: string; total: number; items: { name: string; amountCents: number; jour: string }[] }
+      >()
+      for (const c of [...cheques].sort((a, b) => a.depositOn.getTime() - b.depositOn.getTime())) {
+        const key = cleMois.format(c.depositOn)
+        const grp =
+          chequesParMois.get(key) ?? { label: moisAnnee.format(c.depositOn), total: 0, items: [] }
+        grp.total += c.amountCents
+        grp.items.push({ name: c.name, amountCents: c.amountCents, jour: jourCourt.format(c.depositOn) })
+        chequesParMois.set(key, grp)
+      }
       const passee = rep.startsAt < now
 
       return {
@@ -107,7 +168,13 @@ export default async function StatsPage() {
         parStatut,
         parTaille,
         caisse,
+        totalRecu,
+        rembourseCents,
         totalCaisse,
+        resteAEncaisserCents,
+        tropPercuCents,
+        demandesSansMontant,
+        chequesMois: [...chequesParMois.values()],
         buvette,
         buvetteTotaux: totauxBuvette(buvette),
       }
@@ -184,30 +251,71 @@ export default async function StatsPage() {
             <div className={styles.carte}>
               <h3>Caisse</h3>
               {s.caisse.size === 0 ? (
-                <p className={styles.detail}>Aucun règlement enregistré.</p>
+                <p className={styles.detail}>Aucun versement enregistré.</p>
               ) : (
                 <>
                   <ul className={styles.liste}>
                     {[...s.caisse.entries()].map(([methode, ligne]) => (
                       <li key={methode}>
-                        {METHODE_LABELS[methode] ?? methode} :{' '}
-                        <strong>{euros(ligne.total - ligne.rembourse)}</strong>{' '}
-                        ({ligne.nb} demande{ligne.nb > 1 ? 's' : ''}
-                        {ligne.rembourse > 0
-                          ? `, encaissé ${euros(ligne.total)}, remboursé ${euros(ligne.rembourse)}`
-                          : ''}
-                        {ligne.sansMontant > 0 ? `, ${ligne.sansMontant} sans montant` : ''})
+                        {METHODE_LABELS[methode] ?? methode} : <strong>{euros(ligne.total)}</strong>{' '}
+                        ({ligne.nb} versement{ligne.nb > 1 ? 's' : ''})
                       </li>
                     ))}
+                    {s.rembourseCents > 0 && (
+                      <li>
+                        Remboursé : <strong>− {euros(s.rembourseCents)}</strong>
+                      </li>
+                    )}
                   </ul>
                   <p className={styles.totalCaisse}>Total net : {euros(s.totalCaisse)}</p>
                 </>
               )}
+              {s.resteAEncaisserCents > 0 && (
+                <p className={styles.detail}>
+                  Reste à encaisser (acomptes) : <strong>{euros(s.resteAEncaisserCents)}</strong>
+                </p>
+              )}
+              {s.tropPercuCents > 0 && (
+                <p className={styles.detail}>
+                  Trop-perçu à régulariser : <strong>{euros(s.tropPercuCents)}</strong>
+                </p>
+              )}
+              {s.demandesSansMontant > 0 && (
+                <p className={styles.detail}>
+                  {s.demandesSansMontant} demande{s.demandesSansMontant > 1 ? 's' : ''} réglée
+                  {s.demandesSansMontant > 1 ? 's' : ''} sans montant saisi.
+                </p>
+              )}
               <p className={styles.detail}>
-                Renseigné au « Marquer payée » dans{' '}
+                Renseigné via les versements dans{' '}
                 <Link href={`/admin/demandes?rep=${rep.id}`}>les demandes</Link>.
               </p>
             </div>
+
+            {s.chequesMois.length > 0 && (
+              <div className={styles.carte}>
+                <h3>Chèques à déposer</h3>
+                <ul className={styles.liste}>
+                  {s.chequesMois.map((mois) => (
+                    <li key={mois.label}>
+                      <strong>
+                        {mois.label} — {euros(mois.total)}
+                      </strong>
+                      <ul className={styles.liste}>
+                        {mois.items.map((it, i) => (
+                          <li key={i}>
+                            {it.jour} · {it.name} · {euros(it.amountCents)}
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.detail}>
+                  Date de dépôt prévue saisie sur le versement (chèques échelonnés).
+                </p>
+              </div>
+            )}
           </div>
 
           <div className={styles.bilan} id={`rep-${rep.id}`}>

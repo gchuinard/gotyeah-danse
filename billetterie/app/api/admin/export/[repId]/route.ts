@@ -5,6 +5,8 @@
 // getAdminSession() → 401 si pas de session : défense en profondeur,
 // proxy.ts filtre déjà /api/admin/*.
 
+import { resumePaiement } from '@/lib/admin/money'
+import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { getAdminSession } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 
@@ -18,6 +20,19 @@ const dateCourte = new Intl.DateTimeFormat('fr-FR', {
   hour: '2-digit',
   minute: '2-digit',
 })
+
+const jourCourt = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
+// Montant en centimes → nombre décimal FR (virgule, sans symbole €) : Excel le
+// lit comme un nombre. Vide si null.
+function montantCsv(cents: number | null): string {
+  return cents == null ? '' : (cents / 100).toFixed(2).replace('.', ',')
+}
 
 // Échappement CSV : guillemets si la valeur contient « ; », guillemet ou
 // retour à la ligne ; les guillemets internes sont doublés. Une valeur
@@ -62,43 +77,95 @@ export async function GET(
   const representation = await prisma.representation.findUnique({ where: { id: repId } })
   if (!representation) return new Response('Introuvable', { status: 404 })
 
-  const bookings = await prisma.booking.findMany({
-    where: { representationId: repId },
-    orderBy: { createdAt: 'asc' },
-    include: {
-      tickets: {
-        orderBy: [{ seat: { rowId: 'asc' } }, { seat: { number: 'asc' } }],
-        select: {
-          scannedAt: true,
-          seat: {
-            select: {
-              number: true,
-              row: { select: { label: true, section: { select: { name: true } } } },
+  const [unitPriceCents, bookings] = await Promise.all([
+    getTicketPriceCents(prisma),
+    prisma.booking.findMany({
+      where: { representationId: repId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        tickets: {
+          orderBy: [{ seat: { rowId: 'asc' } }, { seat: { number: 'asc' } }],
+          select: {
+            scannedAt: true,
+            seat: {
+              select: {
+                number: true,
+                row: { select: { label: true, section: { select: { name: true } } } },
+              },
             },
           },
         },
+        payments: {
+          orderBy: { createdAt: 'asc' },
+          select: { method: true, amountCents: true, depositOn: true, reference: true },
+        },
       },
-    },
-  })
+    }),
+  ])
 
   const lignes = [
-    ['Nom', 'Email', 'Téléphone', 'Statut', 'Places', 'Payé le', 'Règlement', 'Montant', 'Scanné', 'Note interne'],
+    [
+      'Nom',
+      'Email',
+      'Téléphone',
+      'Statut',
+      'Places',
+      'Places offertes',
+      'Montant dû',
+      'Payé le',
+      'Reçu',
+      'Reste',
+      'Soldé',
+      'Versements',
+      'Remboursé',
+      'Net',
+      'Place(s) attribuée(s)',
+      'Scanné',
+      'Note interne',
+    ],
   ]
   for (const b of bookings) {
     const places = b.tickets
       .map((t) => `${capitaliser(t.seat.row.section.name)} ${t.seat.row.label} ${t.seat.number}`)
       .join(' / ')
     const scannes = b.tickets.filter((t) => t.scannedAt !== null).length
+    const r = resumePaiement({
+      partySize: b.partySize,
+      freeSeats: b.freeSeats,
+      unitPriceCents,
+      payments: b.payments,
+      refundCents: b.refundCents,
+    })
+    // Montant dû / reste / soldé n'ont de sens que pour une demande active : une
+    // demande annulée/expirée n'est plus due (sinon « Reste » se lit comme une
+    // créance à recouvrer dans la feuille de caisse).
+    const actif = ['pending', 'paid', 'placed'].includes(b.status)
+    // Détail des versements : « chèque 20,00 (dépôt 15/07/2026, n°123) ; … ».
+    const versements = b.payments
+      .map((p) => {
+        const meta = [
+          p.depositOn ? `dépôt ${jourCourt.format(p.depositOn)}` : null,
+          p.reference || null,
+        ].filter(Boolean)
+        return `${METHODES[p.method] ?? p.method} ${montantCsv(p.amountCents)}${meta.length ? ` (${meta.join(', ')})` : ''}`
+      })
+      .join(' ; ')
     lignes.push([
       b.name,
       b.email,
       b.phone,
       STATUTS[b.status] ?? b.status,
-      places,
+      String(b.partySize),
+      b.freeSeats > 0 ? String(b.freeSeats) : '',
+      actif ? montantCsv(r.duCents) : '',
       b.paidAt ? dateCourte.format(b.paidAt) : '',
-      b.paymentMethod ? (METHODES[b.paymentMethod] ?? b.paymentMethod) : '',
-      // Virgule décimale : Excel FR le lit comme un nombre.
-      b.amountCents !== null ? (b.amountCents / 100).toFixed(2).replace('.', ',') : '',
+      montantCsv(r.remisCents),
+      actif && r.resteCents != null ? montantCsv(r.resteCents) : '',
+      actif ? (r.soldee == null ? '' : r.soldee ? 'Oui' : 'Non') : '',
+      versements,
+      r.rembourseCents > 0 ? montantCsv(r.rembourseCents) : '',
+      montantCsv(r.netCents),
+      places,
       b.tickets.length > 0 ? `${scannes}/${b.tickets.length}` : '',
       b.adminNotes ?? '',
     ])

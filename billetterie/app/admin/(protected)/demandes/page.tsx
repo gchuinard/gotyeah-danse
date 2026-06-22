@@ -10,6 +10,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { ACTION_LABELS } from '@/lib/admin/events'
+import { euros, resumePaiement, type ResumePaiement } from '@/lib/admin/money'
+import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { formatFrPhone } from '@/lib/public/phone'
@@ -90,28 +92,41 @@ const CLASSES_BADGE: Record<string, string> = {
   expired: 'badgeExpired',
 }
 
-const METHODES: Record<string, string> = { especes: 'Espèces', cheque: 'Chèque', autre: 'Autre' }
-
-// Statut de paiement (chip sous le statut de la demande).
+// Statut de paiement (chip sous le statut de la demande), calculé depuis le
+// résumé des versements vs le montant dû — lib/admin/money fait foi.
 function statutPaiement(
-  paidAt: Date | null,
-  amountCents: number | null,
-  refundCents: number | null,
-): { label: string; cls: 'payOui' | 'payNon' | 'payRembourse'; title: string } {
-  const e = (c: number) => `${(c / 100).toFixed(2).replace('.', ',')} €`
-  if (!paidAt) return { label: '✗ Non payé', cls: 'payNon', title: 'Pas encore réglé' }
-  if (refundCents && refundCents > 0) {
-    const net = (amountCents ?? 0) - refundCents
+  r: ResumePaiement,
+  aPaidAt: boolean,
+): { label: string; cls: 'payOui' | 'payNon' | 'payRembourse' | 'payAcompte'; title: string } {
+  if (r.rembourseCents > 0) {
     return {
       label: '↩ Remboursé',
       cls: 'payRembourse',
-      title: `Encaissé ${amountCents != null ? e(amountCents) : '—'}, remboursé ${e(refundCents)} → net ${e(net)}`,
+      title: `Reçu ${euros(r.remisCents)}, remboursé ${euros(r.rembourseCents)} → net ${euros(r.netCents)}${r.duCents != null ? ` / dû ${euros(r.duCents)}` : ''}`,
     }
   }
+  if (r.remisCents === 0) {
+    return aPaidAt
+      ? { label: '✓ Payé', cls: 'payOui', title: 'Réglé (montant non saisi)' }
+      : { label: '✗ Non payé', cls: 'payNon', title: 'Pas encore réglé' }
+  }
+  if (r.duCents == null) {
+    return { label: '✓ Payé', cls: 'payOui', title: `Réglé ${euros(r.remisCents)}` }
+  }
+  if (r.tropPercuCents > 0) {
+    return {
+      label: '⚠ Trop-perçu',
+      cls: 'payAcompte',
+      title: `Reçu ${euros(r.netCents)} / dû ${euros(r.duCents)} — trop-perçu ${euros(r.tropPercuCents)}`,
+    }
+  }
+  if (r.soldee) {
+    return { label: '✓ Soldé', cls: 'payOui', title: `Soldé — ${euros(r.netCents)}` }
+  }
   return {
-    label: '✓ Payé',
-    cls: 'payOui',
-    title: amountCents != null ? `Réglé ${e(amountCents)}` : 'Réglé (sans montant)',
+    label: '⏳ Acompte',
+    cls: 'payAcompte',
+    title: `Reçu ${euros(r.netCents)} / dû ${euros(r.duCents)} — reste ${euros(r.resteCents ?? 0)}`,
   }
 }
 
@@ -162,8 +177,9 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   }
 
   // Une seule représentation par an : sert juste de cible à l'export CSV.
-  const [representation, demandes] = await Promise.all([
+  const [representation, unitPriceCents, demandes] = await Promise.all([
     prisma.representation.findFirst({ orderBy: { startsAt: 'asc' }, select: { id: true } }),
+    getTicketPriceCents(prisma),
     prisma.booking.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -177,6 +193,10 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
               },
             },
           },
+        },
+        payments: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, method: true, amountCents: true, depositOn: true, reference: true },
         },
         events: {
           orderBy: { createdAt: 'desc' },
@@ -237,13 +257,22 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     (e) => e.action === 'party_changed' && e.createdAt.getTime() > paidMs,
                   )
                 }
-                const paiement = statutPaiement(d.paidAt, d.amountCents, d.refundCents)
+                const resume = resumePaiement({
+                  partySize: d.partySize,
+                  freeSeats: d.freeSeats,
+                  unitPriceCents,
+                  payments: d.payments,
+                  refundCents: d.refundCents,
+                })
+                const paiement = statutPaiement(resume, d.paidAt != null)
                 const detail: DemandeDetail = {
                   id: d.id,
                   name: d.name,
                   email: d.email,
                   phone: d.phone,
                   partySize: d.partySize,
+                  freeSeats: d.freeSeats,
+                  unitPriceCents,
                   status: d.status,
                   statutLabel: LIBELLES[affichage] ?? d.status,
                   expiree,
@@ -252,10 +281,13 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                   pmrCompanions: d.pmrCompanions,
                   ticketMode: d.ticketMode,
                   publicToken: d.publicToken,
-                  paymentMethodLabel: d.paymentMethod
-                    ? (METHODES[d.paymentMethod] ?? d.paymentMethod)
-                    : null,
-                  amountCents: d.amountCents,
+                  payments: d.payments.map((p) => ({
+                    id: p.id,
+                    method: p.method,
+                    amountCents: p.amountCents,
+                    depositOnText: p.depositOn ? dateCourte.format(p.depositOn) : null,
+                    reference: p.reference,
+                  })),
                   refundCents: d.refundCents,
                   refundReason: d.refundReason,
                   placesChangedAfterPayment,

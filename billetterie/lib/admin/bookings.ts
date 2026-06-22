@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 
 import { Prisma, type PrismaClient } from '@prisma/client'
 
+import { montantDuCents } from '@/lib/admin/money'
 import { PMR_REASON } from '@/lib/admin/seat-map'
 import { computeJauge } from '@/lib/jauge'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -60,56 +61,119 @@ const selectionBookingAvecBillets = {
 
 type Tx = Prisma.TransactionClient
 
-export type Reglement = {
-  paymentMethod?: 'especes' | 'cheque' | 'autre'
-  amountCents?: number
+export type VersementInput = {
+  method: 'especes' | 'cheque' | 'autre'
+  amountCents: number // > 0
+  depositOn?: Date | null // date de dépôt prévue (chèques échelonnés)
+  reference?: string | null // n° de chèque / banque
+  note?: string | null
 }
 
-// Enregistre le règlement d'une demande. Paiement et placement sont
-// INDÉPENDANTS : on peut payer une demande en attente (→ paid, « à placer »)
-// OU une demande déjà placée mais non réglée (paiement après coup → reste
-// placed). Le règlement (méthode + montant) est facultatif — saisi pour la
-// réconciliation de caisse, jamais bloquant. Renvoie `etaitPlace` pour que
-// l'action sache où rediriger (liste si déjà placée, écran de placement sinon).
-export async function marquerPayee(
+// Enregistre UN versement (espèces ou chèque) sur une demande. Paiement et
+// placement sont INDÉPENDANTS : on encaisse une demande en attente (→ paid,
+// « à placer »), une demande « à placer » qui reçoit un nouveau chèque, OU une
+// demande déjà placée non réglée. Plusieurs versements peuvent s'accumuler
+// (paiement échelonné). Le 1er versement pose `paidAt` et fait passer une
+// pending « à placer ». `nowSoldee` indique si, ce versement compris, le net
+// atteint le montant dû — l'action s'en sert pour enchaîner sur le placement
+// (cas courant : règlement complet en une fois). Prix non défini → on considère
+// la demande comme « réglée » (préserve l'ancien flux « marquer payée »).
+export async function ajouterPaiement(
   db: PrismaClient,
   bookingId: string,
-  reglement: Reglement = {},
-): Promise<{ etaitPlace: boolean }> {
+  versement: VersementInput,
+  unitPriceCents: number | null,
+): Promise<{ etaitPending: boolean; etaitPlace: boolean; nowSoldee: boolean }> {
+  if (!Number.isInteger(versement.amountCents) || versement.amountCents <= 0) {
+    throw new Error('Le montant du versement doit être supérieur à 0.')
+  }
   return db.$transaction(async (tx) => {
-    const booking = await tx.booking.findUnique({ where: { id: bookingId } })
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      include: { payments: { select: { amountCents: true } } },
+    })
     if (!booking) throw new Error('Demande introuvable.')
-
-    // Déjà réglée : statut payé, ou placée avec un paidAt déjà posé.
-    if (booking.status === 'paid' || (booking.status === 'placed' && booking.paidAt)) {
-      throw new Error('Cette demande est déjà réglée.')
-    }
-    // Payable : en attente (non expirée) ou déjà placée mais non réglée.
-    if (booking.status !== 'pending' && booking.status !== 'placed') {
-      throw new Error('Cette demande ne peut pas être marquée payée.')
+    if (booking.status !== 'pending' && booking.status !== 'paid' && booking.status !== 'placed') {
+      throw new Error('Cette demande ne peut pas recevoir de versement.')
     }
     if (booking.status === 'pending' && booking.expiresAt && booking.expiresAt <= new Date()) {
-      throw new Error('Cette demande est expirée — prolonge-la avant de la marquer payée.')
+      throw new Error('Cette demande est expirée — prolonge-la avant d’enregistrer un versement.')
     }
 
+    const etaitPending = booking.status === 'pending'
     const etaitPlace = booking.status === 'placed'
-    await tx.booking.update({
-      where: { id: bookingId },
+
+    await tx.payment.create({
       data: {
-        // Une demande en attente passe « à placer » ; une placée le reste.
-        status: etaitPlace ? 'placed' : 'paid',
-        paidAt: new Date(),
-        paymentMethod: reglement.paymentMethod ?? null,
-        amountCents: reglement.amountCents ?? null,
+        bookingId,
+        method: versement.method,
+        amountCents: versement.amountCents,
+        depositOn: versement.depositOn ?? null,
+        reference: versement.reference?.trim() || null,
+        note: versement.note?.trim() || null,
       },
     })
-    return { etaitPlace }
+
+    // 1er versement : pose paidAt ; une demande en attente passe « à placer ».
+    const data: Prisma.BookingUpdateInput = {}
+    if (!booking.paidAt) data.paidAt = new Date()
+    if (etaitPending) data.status = 'paid'
+    if (Object.keys(data).length > 0) {
+      await tx.booking.update({ where: { id: bookingId }, data })
+    }
+
+    const remis =
+      booking.payments.reduce((s, p) => s + p.amountCents, 0) + versement.amountCents
+    const net = remis - (booking.refundCents ?? 0)
+    const du = montantDuCents(booking.partySize, booking.freeSeats, unitPriceCents)
+    const nowSoldee = du == null ? true : net >= du
+    return { etaitPending, etaitPlace, nowSoldee }
   })
 }
 
-// Annule un règlement posé par erreur. Une demande « à placer » (paid) repasse
-// EN ATTENTE (échéance ré-armée pour ne pas expirer aussitôt) ; une demande
-// déjà placée GARDE ses sièges et redevient simplement « placé non réglé ».
+// Supprime UN versement (saisi par erreur). Si c'était le dernier, on efface le
+// règlement : une demande « à placer » (paid) repasse en attente (échéance
+// ré-armée), une placée GARDE ses sièges. Garde-fou : un remboursement devenu
+// supérieur au reçu restant est retiré.
+export async function supprimerPaiement(
+  db: PrismaClient,
+  bookingId: string,
+  paymentId: string,
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    const payment = await tx.payment.findUnique({ where: { id: paymentId } })
+    if (!payment || payment.bookingId !== bookingId) throw new Error('Versement introuvable.')
+    await tx.payment.delete({ where: { id: paymentId } })
+
+    const agg = await tx.payment.aggregate({ where: { bookingId }, _sum: { amountCents: true } })
+    const remis = agg._sum.amountCents ?? 0
+    const booking = await tx.booking.findUniqueOrThrow({ where: { id: bookingId } })
+
+    const data: Prisma.BookingUpdateInput = {}
+    if (remis === 0) {
+      // Plus aucun versement : règlement effacé (remboursement compris).
+      data.paidAt = null
+      data.refundCents = null
+      data.refundReason = null
+      if (booking.status === 'paid') {
+        data.status = 'pending'
+        data.expiresAt = new Date(Date.now() + QUATORZE_JOURS_MS)
+      }
+    } else if (booking.refundCents != null && booking.refundCents > remis) {
+      // Le remboursement enregistré dépasse désormais le reçu : il n'a plus de
+      // sens, on le retire (cohérence net = reçu − remboursé).
+      data.refundCents = null
+      data.refundReason = null
+    }
+    if (Object.keys(data).length > 0) {
+      await tx.booking.update({ where: { id: bookingId }, data })
+    }
+  })
+}
+
+// Annule TOUT le règlement d'une demande (supprime tous les versements). Une
+// demande « à placer » (paid) repasse EN ATTENTE (échéance ré-armée) ; une
+// demande déjà placée GARDE ses sièges et redevient « placé non réglé ».
 export async function annulerPaiement(
   db: PrismaClient,
   bookingId: string,
@@ -118,21 +182,16 @@ export async function annulerPaiement(
     const booking = await tx.booking.findUnique({ where: { id: bookingId } })
     if (!booking) throw new Error('Demande introuvable.')
     if (!booking.paidAt) throw new Error("Cette demande n'est pas marquée payée.")
+    await tx.payment.deleteMany({ where: { bookingId } })
     // Effacer le règlement remet AUSSI à zéro un éventuel remboursement.
-    const reglementVide = {
-      paidAt: null,
-      paymentMethod: null,
-      amountCents: null,
-      refundCents: null,
-      refundReason: null,
-    }
+    const reglementVide = { paidAt: null, refundCents: null, refundReason: null }
     if (booking.status === 'paid') {
       await tx.booking.update({
         where: { id: bookingId },
         data: {
           ...reglementVide,
           status: 'pending',
-          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          expiresAt: new Date(Date.now() + QUATORZE_JOURS_MS),
         },
       })
       return { statut: 'pending' }
@@ -145,9 +204,35 @@ export async function annulerPaiement(
   })
 }
 
+// Définit le nombre de places OFFERTES d'une demande (ex. tout-petits qui
+// dansent) : elles sont exclues du montant dû. Borné à [0, partySize].
+export async function definirPlacesOffertes(
+  db: PrismaClient,
+  bookingId: string,
+  freeSeats: number,
+): Promise<void> {
+  if (!Number.isInteger(freeSeats) || freeSeats < 0) {
+    throw new Error('Le nombre de places offertes est invalide.')
+  }
+  await db.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new Error('Demande introuvable.')
+    if (!['pending', 'paid', 'placed'].includes(booking.status)) {
+      throw new Error('Cette demande est annulée ou expirée.')
+    }
+    if (booking.status === 'pending' && booking.expiresAt && booking.expiresAt <= new Date()) {
+      throw new Error('Cette demande est expirée — prolonge-la avant de modifier les places offertes.')
+    }
+    if (freeSeats > booking.partySize) {
+      throw new Error(`Au plus ${booking.partySize} place(s) offerte(s) sur cette demande.`)
+    }
+    await tx.booking.update({ where: { id: bookingId }, data: { freeSeats } })
+  })
+}
+
 // Enregistre (ou met à jour) le remboursement d'une demande déjà réglée — ex.
 // après le retrait de places. `refundCents` est le TOTAL remboursé (cumulatif,
-// éditable) ; la caisse compte le net = amountCents − refundCents.
+// éditable) ; la caisse compte le net = Σ versements − refundCents.
 export async function enregistrerRemboursement(
   db: PrismaClient,
   bookingId: string,
@@ -156,17 +241,17 @@ export async function enregistrerRemboursement(
   await db.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } })
     if (!booking) throw new Error('Demande introuvable.')
-    if (!booking.paidAt || booking.amountCents === null) {
-      throw new Error(
-        'Enregistrez d’abord un montant encaissé (Marquer payée) avant un remboursement.',
-      )
+    const agg = await tx.payment.aggregate({ where: { bookingId }, _sum: { amountCents: true } })
+    const remis = agg._sum.amountCents ?? 0
+    if (remis <= 0) {
+      throw new Error('Enregistrez d’abord un versement avant un remboursement.')
     }
     const { refundCents } = remboursement
     if (!Number.isInteger(refundCents) || refundCents <= 0) {
       throw new Error('Le montant remboursé doit être supérieur à 0.')
     }
-    if (refundCents > booking.amountCents) {
-      throw new Error('Le remboursement ne peut pas dépasser le montant encaissé.')
+    if (refundCents > remis) {
+      throw new Error('Le remboursement ne peut pas dépasser le total reçu.')
     }
     await tx.booking.update({
       where: { id: bookingId },
@@ -340,8 +425,16 @@ export async function annulerDemande(
       throw new Error('Cette demande est déjà annulée.')
     }
 
+    // Annuler = tout libérer : billets ET versements (sinon l'argent d'une
+    // demande annulée resterait compté en caisse, et les sièges revendus
+    // feraient un double comptage). Le remboursement physique se gère à part ;
+    // l'historique (BookingEvent) conserve la trace des versements passés.
     await tx.ticket.deleteMany({ where: { bookingId } })
-    await tx.booking.update({ where: { id: bookingId }, data: { status: 'cancelled' } })
+    await tx.payment.deleteMany({ where: { bookingId } })
+    await tx.booking.update({
+      where: { id: bookingId },
+      data: { status: 'cancelled', paidAt: null, refundCents: null, refundReason: null },
+    })
 
     return {
       name: booking.name,
@@ -372,6 +465,12 @@ export async function changerNombrePlaces(
     if (!['pending', 'paid', 'placed'].includes(booking.status)) {
       throw new Error('Cette demande est annulée ou expirée.')
     }
+    // Une pending dont l'échéance est passée (pas encore balayée par le cron)
+    // est traitée comme expirée : sinon on sur-compterait la jauge (son hold
+    // n'est plus décompté par computeJauge). Cohérent avec ajouter/émettre.
+    if (booking.status === 'pending' && booking.expiresAt && booking.expiresAt <= new Date()) {
+      throw new Error('Cette demande est expirée — prolonge-la avant de changer le nombre de places.')
+    }
     const ancienNombre = booking.partySize
     if (nouveauNombre === booking.partySize) {
       return { etaitPlace: false, anciensSeatIds: [], ancienNombre }
@@ -397,14 +496,20 @@ export async function changerNombrePlaces(
       await tx.ticket.deleteMany({ where: { bookingId } })
       await tx.booking.update({
         where: { id: bookingId },
-        data: { partySize: nouveauNombre, status: 'paid', placedAt: null },
+        // Places offertes bornées au nouveau total (jamais plus que partySize).
+        data: {
+          partySize: nouveauNombre,
+          status: 'paid',
+          placedAt: null,
+          freeSeats: Math.min(booking.freeSeats, nouveauNombre),
+        },
       })
       return { etaitPlace: true, anciensSeatIds: anciens.map((t) => t.seatId), ancienNombre }
     }
 
     await tx.booking.update({
       where: { id: bookingId },
-      data: { partySize: nouveauNombre },
+      data: { partySize: nouveauNombre, freeSeats: Math.min(booking.freeSeats, nouveauNombre) },
     })
     return { etaitPlace: false, anciensSeatIds: [], ancienNombre }
   })

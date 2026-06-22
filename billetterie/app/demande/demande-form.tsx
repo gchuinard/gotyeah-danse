@@ -7,6 +7,7 @@
 import { useActionState, useEffect, useState } from 'react'
 import Script from 'next/script'
 
+import { euros } from '@/lib/admin/money'
 import { MAX_PARTY_SIZE, PARTY_SIZES } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
@@ -24,6 +25,7 @@ export default function DemandeForm({
   representationId,
   turnstileSiteKey,
   formRenderedAt,
+  unitPriceCents,
 }: {
   // Une seule représentation par an : pas de choix, transmise en champ caché.
   representationId: string
@@ -33,6 +35,8 @@ export default function DemandeForm({
   // Heure de rendu serveur (time-trap) : base fiable, indépendante de la vitesse
   // d'hydratation et de l'horloge du client.
   formRenderedAt: number
+  // Prix unitaire global (centimes) pour le montant indicatif. null = non défini.
+  unitPriceCents?: number | null
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
   // Token Turnstile : tant que le widget n'a pas résolu (script CDN en cours de
@@ -174,6 +178,13 @@ export default function DemandeForm({
             </option>
           ))}
         </select>
+        {unitPriceCents != null && (
+          <p className={styles.estimate}>
+            À régler au studio : {partySize} × {euros(unitPriceCents)} ={' '}
+            <strong>{euros(partySize * unitPriceCents)}</strong>{' '}
+            <span className={styles.estimateNote}>(montant indicatif)</span>
+          </p>
+        )}
         <p className={styles.hint}>
           Plus de {MAX_PARTY_SIZE} places ? Contactez-nous aux permanences de l&apos;école.
         </p>

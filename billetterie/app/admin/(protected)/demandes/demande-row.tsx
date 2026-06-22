@@ -2,31 +2,43 @@
 
 // Ligne de demande cliquable : un clic n'importe où (sauf sur un élément
 // interactif) ouvre une popup LARGE qui sert de centre d'actions — détails,
-// historique, note modifiable ET toutes les actions (paiement, remboursement,
-// placement, billets, remise, rectification, annulation). La liste ne garde
-// qu'un raccourci de placement. La popup réutilise ConfirmDialog (mode info,
-// large) et est rendue via portal (HTML valide : pas de <div> enfant de <tr>).
+// historique, note modifiable ET toutes les actions (versements, remboursement,
+// placement, billets, remise, rectification, places offertes, annulation). La
+// liste ne garde qu'un raccourci de placement. La popup réutilise ConfirmDialog
+// (mode info, large) et est rendue via portal (HTML valide : pas de <div>
+// enfant de <tr>).
 
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { euros, resumePaiement } from '@/lib/admin/money'
 import { MOTIF_AUTRE, REFUND_MOTIFS } from '@/lib/admin/refund-motifs'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 import { ConfirmSubmit } from './confirm-submit'
 import {
+  ajouterPaiementAction,
   annoterAction,
   annulerAction,
   annulerPaiementAction,
   basculerRemiseAction,
-  marquerPayeeAction,
+  definirPlacesOffertesAction,
   prolongerAction,
   rectifierPlacesAction,
   rembourserAction,
   renvoyerBilletsAction,
+  supprimerPaiementAction,
 } from './actions'
 import styles from './demandes.module.css'
+
+export type PaymentRow = {
+  id: string
+  method: string // especes | cheque | autre
+  amountCents: number
+  depositOnText: string | null // date de dépôt prévue (chèque échelonné), formatée
+  reference: string | null
+}
 
 export type DemandeDetail = {
   id: string
@@ -34,6 +46,8 @@ export type DemandeDetail = {
   email: string
   phone: string
   partySize: number
+  freeSeats: number
+  unitPriceCents: number | null
   status: string // brut : pending | paid | placed | cancelled | expired
   statutLabel: string
   expiree: boolean
@@ -42,8 +56,7 @@ export type DemandeDetail = {
   pmrCompanions: number
   ticketMode: string
   publicToken: string
-  paymentMethodLabel: string | null
-  amountCents: number | null
+  payments: PaymentRow[]
   refundCents: number | null
   refundReason: string | null
   placesChangedAfterPayment: boolean
@@ -61,7 +74,7 @@ export type DemandeDetail = {
 // Éléments interactifs de la ligne : un clic dessus ne doit PAS ouvrir la popup.
 const INTERACTIVE = 'button, a, input, select, textarea, form, label, summary, details'
 
-const eur = (c: number) => `${(c / 100).toFixed(2).replace('.', ',')} €`
+const METHODES: Record<string, string> = { especes: 'Espèces', cheque: 'Chèque', autre: 'Autre' }
 
 export function DemandeRow({ detail, children }: { detail: DemandeDetail; children: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -154,80 +167,164 @@ function MotifRemboursement({ initial }: { initial: string | null }) {
 }
 
 function SectionPaiement({ detail }: { detail: DemandeDetail }) {
-  const net =
-    detail.amountCents != null ? detail.amountCents - (detail.refundCents ?? 0) : null
+  const r = resumePaiement({
+    partySize: detail.partySize,
+    freeSeats: detail.freeSeats,
+    unitPriceCents: detail.unitPriceCents,
+    payments: detail.payments,
+    refundCents: detail.refundCents,
+  })
+  const payantes = Math.max(0, detail.partySize - detail.freeSeats)
+  // Montant pré-rempli du prochain versement = reste dû (s'il est connu et > 0).
+  const presetMontant =
+    r.resteCents != null && r.resteCents > 0 ? (r.resteCents / 100).toFixed(2).replace('.', ',') : ''
+
   return (
     <div className={styles.detailBloc}>
       <h3 className={styles.detailTitre}>Paiement</h3>
 
       {detail.placesChangedAfterPayment && (
         <p className={styles.detailWarn}>
-          Le nombre de places a changé après le paiement : vérifiez le montant encaissé et
-          enregistrez un remboursement si besoin.
+          Le nombre de places a changé après le paiement : vérifiez le montant dû et enregistrez un
+          remboursement si besoin.
         </p>
       )}
 
-      {!detail.paid ? (
-        detail.expiree ? (
-          <p className={styles.detailTexte}>Demande expirée — prolongez-la avant de l’encaisser.</p>
+      {/* Récap dû / reçu / reste */}
+      <p className={styles.montantRecap}>
+        {r.duCents != null ? (
+          <>
+            Montant dû : <strong>{euros(r.duCents)}</strong>{' '}
+            <span className={styles.versementMeta}>
+              ({payantes} place{payantes > 1 ? 's' : ''} payante{payantes > 1 ? 's' : ''} ×{' '}
+              {euros(detail.unitPriceCents ?? 0)}
+              {detail.freeSeats > 0
+                ? `, ${detail.freeSeats} offerte${detail.freeSeats > 1 ? 's' : ''}`
+                : ''}
+              )
+            </span>
+            <br />
+          </>
         ) : (
-          <form action={marquerPayeeAction} className={styles.detailActionForm}>
-            <Hidden detail={detail} />
-            <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
-              <option value="cheque">Chèque</option>
-              <option value="especes">Espèces</option>
-              <option value="autre">Autre</option>
-            </select>
-            <input
-              type="text"
-              name="montant"
-              inputMode="decimal"
-              placeholder="€"
-              aria-label="Montant encaissé en euros"
-            />
-            <button type="submit" className={styles.btn}>
-              Marquer payée
-            </button>
-          </form>
-        )
+          <span className={styles.versementMeta}>
+            Prix unitaire non défini — montant dû indisponible.
+            <br />
+          </span>
+        )}
+        Reçu : <strong>{euros(r.remisCents)}</strong>
+        {r.rembourseCents > 0 && (
+          <>
+            {' · '}remboursé {euros(r.rembourseCents)} → net <strong>{euros(r.netCents)}</strong>
+          </>
+        )}
+        {r.duCents != null && (
+          <>
+            {' · '}
+            {r.resteCents && r.resteCents > 0 ? (
+              <span className={styles.resteDu}>reste {euros(r.resteCents)}</span>
+            ) : r.tropPercuCents > 0 ? (
+              <span className={styles.resteDu}>trop-perçu {euros(r.tropPercuCents)}</span>
+            ) : (
+              <span className={styles.soldeOk}>soldé ✓</span>
+            )}
+          </>
+        )}
+      </p>
+
+      {/* Versements enregistrés */}
+      {detail.payments.length > 0 && (
+        <ul className={styles.versementListe}>
+          {detail.payments.map((p) => (
+            <li key={p.id} className={styles.versementLigne}>
+              <span className={styles.versementMontant}>{euros(p.amountCents)}</span>
+              <span className={styles.versementMeta}>
+                {METHODES[p.method] ?? p.method}
+                {p.depositOnText ? ` · dépôt ${p.depositOnText}` : ''}
+                {p.reference ? ` · ${p.reference}` : ''}
+              </span>
+              <form action={supprimerPaiementAction} className={styles.versementSuppr}>
+                <Hidden detail={detail} />
+                <input type="hidden" name="paymentId" value={p.id} />
+                <ConfirmSubmit
+                  className={styles.btn}
+                  message={`Supprimer ce versement de ${euros(p.amountCents)} ?`}
+                >
+                  Supprimer
+                </ConfirmSubmit>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Ajouter un versement (toujours possible tant que la demande est active) */}
+      {detail.expiree && !detail.paid ? (
+        <p className={styles.detailTexte}>Demande expirée — prolongez-la avant d’encaisser.</p>
       ) : (
-        <>
-          <p className={styles.detailTexte}>
-            {detail.paymentMethodLabel ?? 'Réglée'}
-            {detail.amountCents != null ? ` · encaissé ${eur(detail.amountCents)}` : ' · sans montant'}
-            {detail.refundCents
-              ? ` · remboursé ${eur(detail.refundCents)} → net ${eur(net ?? 0)}`
-              : ''}
-          </p>
+        <form action={ajouterPaiementAction} className={styles.detailActionForm}>
+          <Hidden detail={detail} />
+          <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
+            <option value="cheque">Chèque</option>
+            <option value="especes">Espèces</option>
+            <option value="autre">Autre</option>
+          </select>
+          <input
+            type="text"
+            name="montant"
+            inputMode="decimal"
+            placeholder="€"
+            aria-label="Montant du versement en euros"
+            defaultValue={presetMontant}
+          />
+          <input
+            type="date"
+            name="depositOn"
+            aria-label="Date de dépôt (chèque échelonné, facultatif)"
+            title="Date de dépôt prévue (chèque échelonné) — facultatif"
+          />
+          <input
+            type="text"
+            name="reference"
+            maxLength={60}
+            placeholder="n° chèque (facultatif)"
+            aria-label="Référence du versement"
+          />
+          <button type="submit" className={styles.btn}>
+            Ajouter le versement
+          </button>
+        </form>
+      )}
 
-          {detail.amountCents != null && (
-            <form action={rembourserAction} className={styles.detailActionForm}>
-              <Hidden detail={detail} />
-              <input
-                type="text"
-                name="montant"
-                inputMode="decimal"
-                placeholder="€ remboursés"
-                aria-label="Montant remboursé en euros"
-                defaultValue={detail.refundCents ? eur(detail.refundCents).replace(' €', '') : ''}
-              />
-              <MotifRemboursement initial={detail.refundReason} />
-              <button type="submit" className={styles.btn}>
-                Enregistrer le remboursement
-              </button>
-            </form>
-          )}
+      {/* Remboursement (si de l'argent a été reçu) */}
+      {r.remisCents > 0 && (
+        <form action={rembourserAction} className={styles.detailActionForm}>
+          <Hidden detail={detail} />
+          <input
+            type="text"
+            name="montant"
+            inputMode="decimal"
+            placeholder="€ remboursés"
+            aria-label="Montant remboursé en euros"
+            defaultValue={detail.refundCents ? (detail.refundCents / 100).toFixed(2).replace('.', ',') : ''}
+          />
+          <MotifRemboursement initial={detail.refundReason} />
+          <button type="submit" className={styles.btn}>
+            Enregistrer le remboursement
+          </button>
+        </form>
+      )}
 
-          <form action={annulerPaiementAction} className={styles.detailActionForm}>
-            <Hidden detail={detail} />
-            <ConfirmSubmit
-              className={styles.btn}
-              message={`Annuler le règlement de ${detail.name} ? (le remboursement éventuel est aussi effacé)`}
-            >
-              Annuler le règlement
-            </ConfirmSubmit>
-          </form>
-        </>
+      {/* Annuler TOUT le règlement */}
+      {detail.paid && (
+        <form action={annulerPaiementAction} className={styles.detailActionForm}>
+          <Hidden detail={detail} />
+          <ConfirmSubmit
+            className={styles.btn}
+            message={`Annuler tout le règlement de ${detail.name} ? Tous les versements et le remboursement éventuel seront supprimés.`}
+          >
+            Annuler tout le règlement
+          </ConfirmSubmit>
+        </form>
       )}
     </div>
   )
@@ -317,11 +414,33 @@ function SectionGestion({ detail }: { detail: DemandeDetail }) {
         </button>
       </form>
 
+      <form action={definirPlacesOffertesAction} className={styles.detailActionForm}>
+        <Hidden detail={detail} />
+        <label className={styles.detailInline}>
+          Places offertes (gratuites)
+          <input
+            type="number"
+            name="freeSeats"
+            min={0}
+            max={detail.partySize}
+            defaultValue={detail.freeSeats}
+            aria-label="Places offertes"
+          />
+        </label>
+        <button type="submit" className={styles.btn}>
+          Enregistrer
+        </button>
+      </form>
+
       <form action={annulerAction} className={styles.detailActionForm}>
         <Hidden detail={detail} />
         <ConfirmSubmit
           className={styles.btnDanger}
-          message={`Annuler la demande de ${detail.name} (${detail.partySize} place(s)) ? Les billets éventuels seront invalidés.`}
+          message={`Annuler la demande de ${detail.name} (${detail.partySize} place(s)) ? Les billets éventuels seront invalidés.${
+            detail.paid
+              ? ' Les versements enregistrés seront retirés de la caisse — gère le remboursement à la famille séparément.'
+              : ''
+          }`}
         >
           Annuler la demande
         </ConfirmSubmit>
@@ -340,7 +459,12 @@ function DetailContent({ detail }: { detail: DemandeDetail }) {
           <br />
           {detail.phone}
         </Ligne>
-        <Ligne label="Places">{detail.partySize}</Ligne>
+        <Ligne label="Places">
+          {detail.partySize}
+          {detail.freeSeats > 0
+            ? ` (dont ${detail.freeSeats} offerte${detail.freeSeats > 1 ? 's' : ''})`
+            : ''}
+        </Ligne>
         <Ligne label="Statut">{detail.statutLabel}</Ligne>
         {detail.pmrCount > 0 && (
           <Ligne label="PMR">

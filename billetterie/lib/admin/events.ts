@@ -11,8 +11,11 @@ export const ACTOR_PUBLIC = 'demande en ligne'
 // Libellés FR des codes d'action (affichés dans l'historique).
 export const ACTION_LABELS: Record<string, string> = {
   created: 'Demande créée',
-  paid: 'Marquée payée',
+  paid: 'Marquée payée', // héritage : anciens règlements en un bloc
+  payment_added: 'Versement enregistré',
+  payment_removed: 'Versement supprimé',
   unpaid: 'Règlement annulé',
+  free_seats: 'Places offertes modifiées',
   placed: 'Placée',
   moved: 'Places déplacées',
   cancelled: 'Annulée',

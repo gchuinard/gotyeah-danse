@@ -12,16 +12,20 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import {
+  ajouterPaiement,
   annulerDemande,
   annulerPaiement,
   changerNombrePlaces,
   chargerBookingAvecBillets,
+  definirPlacesOffertes,
   enregistrerRemboursement,
-  marquerPayee,
   prolongerExpiration,
+  supprimerPaiement,
   type BookingAvecBillets,
 } from '@/lib/admin/bookings'
 import { logBookingEvent } from '@/lib/admin/events'
+import { euros } from '@/lib/admin/money'
+import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { MOTIF_AUTRE } from '@/lib/admin/refund-motifs'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
@@ -40,6 +44,24 @@ const montantSchema = z
   .transform((euros) => Math.round(euros * 100))
 const annotationSchema = z.string().trim().max(300)
 const raisonSchema = z.string().trim().max(200)
+const referenceSchema = z.string().trim().max(60)
+// Date de dépôt d'un chèque : valeur d'un <input type="date"> (AAAA-MM-JJ).
+const depositSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+const freeSeatsSchema = z.coerce.number().int().min(0).max(MAX_PARTY_SIZE)
+
+// Date « jour » (sans heure) en français, fuseau Paris — pour l'historique.
+const dateJourFr = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
+const METHODE_MOT: Record<string, string> = {
+  especes: 'espèces',
+  cheque: 'chèque',
+  autre: 'autre',
+}
 
 // Module email créé en parallèle par un autre agent : import dynamique +
 // fonctions optionnelles, pour que la liste fonctionne même si les exports
@@ -84,46 +106,122 @@ function lireId(formData: FormData): string {
   return parsed.data
 }
 
-// pending → paid (avec règlement facultatif pour la caisse), puis direction
-// l'écran de placement.
-export async function marquerPayeeAction(formData: FormData): Promise<void> {
+// Enregistre UN versement (espèces / chèque, éventuellement échelonné). Méthode
+// + montant requis ; date de dépôt et référence facultatives (chèques). Cas
+// courant — une demande en attente réglée d'un coup → on enchaîne le placement.
+export async function ajouterPaiementAction(formData: FormData): Promise<void> {
   const { email } = await requireAdmin()
   const id = lireId(formData)
 
-  // Méthode/montant : facultatifs, jamais bloquants — une saisie invalide est
-  // simplement ignorée (le paiement physique a déjà eu lieu au studio).
   const methode = methodeSchema.safeParse(formData.get('methode'))
-  const montantBrut = formData.get('montant')
-  const montant =
-    typeof montantBrut === 'string' && montantBrut.trim() !== ''
-      ? montantSchema.safeParse(montantBrut)
-      : null
+  if (!methode.success) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Mode de règlement invalide.'))
+  }
+  const montant = montantSchema.safeParse(formData.get('montant'))
+  if (!montant.success || montant.data <= 0) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Montant invalide (renseignez un montant supérieur à 0).'))
+  }
 
-  let res: Awaited<ReturnType<typeof marquerPayee>>
+  // Date de dépôt (chèque échelonné) : facultative. Stockée à midi UTC pour
+  // éviter tout décalage de jour à l'affichage (formaté ensuite en heure Paris).
+  const depBrut = formData.get('depositOn')
+  let depositOn: Date | null = null
+  if (typeof depBrut === 'string' && depBrut.trim() !== '') {
+    const d = depositSchema.safeParse(depBrut.trim())
+    if (!d.success) {
+      redirect(urlListe(formData.get('retour'), 'err', 'Date de dépôt invalide.'))
+    }
+    const dt = new Date(`${d.data}T12:00:00.000Z`)
+    // Round-trip : rejette les dates impossibles (« 2026-06-31 » roulerait au
+    // 01/07, « 2026-99-99 » donnerait Invalid Date) que la regex laisse passer.
+    if (Number.isNaN(dt.getTime()) || dt.toISOString().slice(0, 10) !== d.data) {
+      redirect(urlListe(formData.get('retour'), 'err', 'Date de dépôt invalide.'))
+    }
+    depositOn = dt
+  }
+  const reference = referenceSchema.safeParse(formData.get('reference') ?? '')
+
+  const unitPrice = await getTicketPriceCents(prisma)
+
+  let res: Awaited<ReturnType<typeof ajouterPaiement>>
   try {
-    res = await marquerPayee(prisma, id, {
-      ...(methode.success ? { paymentMethod: methode.data } : {}),
-      ...(montant?.success ? { amountCents: montant.data } : {}),
-    })
+    res = await ajouterPaiement(
+      prisma,
+      id,
+      {
+        method: methode.data,
+        amountCents: montant.data,
+        depositOn,
+        reference: reference.success ? reference.data : null,
+      },
+      unitPrice,
+    )
   } catch (error) {
     redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
   }
-  const detailReglement =
+
+  const detail =
     [
-      methode.success ? { especes: 'espèces', cheque: 'chèque', autre: 'autre' }[methode.data] : null,
-      montant?.success ? `${(montant.data / 100).toFixed(2).replace('.', ',')} €` : null,
+      METHODE_MOT[methode.data],
+      euros(montant.data),
+      depositOn ? `dépôt ${dateJourFr.format(depositOn)}` : null,
     ]
       .filter(Boolean)
       .join(' · ') || null
-  await logBookingEvent(id, 'paid', email, detailReglement)
+  await logBookingEvent(id, 'payment_added', email, detail)
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
-  // Demande déjà placée (paiement après coup) → retour à la liste ; une demande
-  // en attente qu'on vient de marquer payée → on enchaîne sur le placement.
-  if (res.etaitPlace) {
-    redirect(urlListe(formData.get('retour'), 'ok', 'Règlement enregistré.'))
+  // Cas courant : une demande en attente réglée intégralement en une fois → on
+  // enchaîne sur l'écran de placement (préserve l'ancien flux « marquer payée »).
+  // Acompte ou demande déjà « à placer »/placée → on reste sur la liste.
+  if (res.etaitPending && res.nowSoldee && !res.etaitPlace) {
+    redirect(`/admin/placement/${id}`)
   }
-  redirect(`/admin/placement/${id}`)
+  redirect(
+    urlListe(
+      formData.get('retour'),
+      'ok',
+      res.nowSoldee ? 'Versement enregistré (demande soldée).' : 'Versement enregistré (acompte).',
+    ),
+  )
+}
+
+// Supprime un versement saisi par erreur (cf. lib/admin/bookings.supprimerPaiement).
+export async function supprimerPaiementAction(formData: FormData): Promise<void> {
+  const { email } = await requireAdmin()
+  const id = lireId(formData)
+  const pid = idSchema.safeParse(formData.get('paymentId'))
+  if (!pid.success) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Versement introuvable.'))
+  }
+  try {
+    await supprimerPaiement(prisma, id, pid.data)
+  } catch (error) {
+    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+  }
+  await logBookingEvent(id, 'payment_removed', email)
+  revalidatePath('/admin/demandes')
+  revalidatePath('/admin')
+  redirect(urlListe(formData.get('retour'), 'ok', 'Versement supprimé.'))
+}
+
+// Définit le nombre de places offertes (exclues du montant dû).
+export async function definirPlacesOffertesAction(formData: FormData): Promise<void> {
+  const { email } = await requireAdmin()
+  const id = lireId(formData)
+  const parsed = freeSeatsSchema.safeParse(formData.get('freeSeats'))
+  if (!parsed.success) {
+    redirect(urlListe(formData.get('retour'), 'err', 'Nombre de places offertes invalide.'))
+  }
+  try {
+    await definirPlacesOffertes(prisma, id, parsed.data)
+  } catch (error) {
+    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+  }
+  await logBookingEvent(id, 'free_seats', email, `${parsed.data} place(s) offerte(s)`)
+  revalidatePath('/admin/demandes')
+  revalidatePath('/admin')
+  redirect(urlListe(formData.get('retour'), 'ok', 'Places offertes mises à jour.'))
 }
 
 // Annule un règlement posé par erreur (cf. lib/admin/bookings.annulerPaiement).

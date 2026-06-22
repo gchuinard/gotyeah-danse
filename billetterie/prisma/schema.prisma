@@ -131,12 +131,17 @@ model Booking {
   status      String // pending | paid | placed | cancelled | expired
   publicToken String  @unique // UUID — accès page « mes billets »
 
-  // Règlement (saisi au « marquer payée ») — pour la réconciliation de caisse.
-  paymentMethod String? // especes | cheque | autre
-  amountCents   Int? // montant encaissé en centimes
+  // Places offertes sur cette demande (ex. tout-petits qui dansent) : exclues
+  // du montant dû. Montant dû = (partySize − freeSeats) × prix unitaire global.
+  freeSeats Int @default(0)
+
+  // Règlement : un ou plusieurs versements (espèces / chèques, éventuellement
+  // échelonnés sur plusieurs mois) vivent dans la table `Payment`. Le total
+  // reçu = Σ Payment.amountCents ; la demande est « soldée » quand ce total
+  // (net du remboursement) atteint le montant dû. paidAt = date du 1er versement.
   // Remboursement (ex. places retirées après paiement). Total remboursé en
-  // centimes + motif libre. La caisse compte le NET = amountCents − refundCents.
-  refundCents   Int? // total remboursé en centimes (<= amountCents)
+  // centimes + motif libre. La caisse compte le NET = Σ versements − refundCents.
+  refundCents   Int? // total remboursé en centimes (<= total reçu)
   refundReason  String? // motif libre du remboursement
 
   createdAt  DateTime  @default(now())
@@ -145,10 +150,29 @@ model Booking {
   expiresAt  DateTime?
   remindedAt DateTime? // relance J+7 envoyée (cron) — garantit l'idempotence
 
-  tickets Ticket[]
-  events  BookingEvent[]
+  tickets  Ticket[]
+  events   BookingEvent[]
+  payments Payment[]
 
   @@index([representationId, status])
+}
+
+// Un versement d'une demande : espèces ou chèque. Plusieurs versements possibles
+// (paiement échelonné — ex. 3 chèques déposés sur 3 mois). Le total reçu est la
+// somme des versements ; la caisse les compte DÈS la remise (la date de dépôt
+// n'est qu'une aide à l'échelonnement, pas une condition d'encaissement).
+model Payment {
+  id          String   @id @default(cuid())
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId   String
+  method      String // especes | cheque | autre
+  amountCents Int // montant de CE versement, en centimes (> 0)
+  depositOn   DateTime? // date de dépôt prévue (surtout chèques échelonnés) ; null = espèces / dépôt immédiat
+  reference   String? // n° de chèque / banque (facultatif)
+  note        String? // contexte libre (facultatif)
+  createdAt   DateTime @default(now())
+
+  @@index([bookingId])
 }
 
 // Journal d'audit d'une demande : une ligne par action admin (ou création),

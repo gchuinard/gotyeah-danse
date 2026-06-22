@@ -11,13 +11,16 @@ import { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  ajouterPaiement,
   annulerDemande,
   annulerPaiement,
+  changerNombrePlaces,
+  definirPlacesOffertes,
   deplacerBillets,
   emettreBillets,
   enregistrerRemboursement,
-  marquerPayee,
   prolongerExpiration,
+  supprimerPaiement,
 } from '@/lib/admin/bookings'
 
 const dbFile = `/tmp/billetterie-test-${process.pid}.db`
@@ -91,65 +94,163 @@ async function creerBooking(status: string, partySize = 2, expiresAt: Date | nul
   })
 }
 
-describe('marquerPayee', () => {
-  it('passe une pending non expirée en paid avec paidAt', async () => {
+async function remis(db: PrismaClient, bookingId: string) {
+  const agg = await db.payment.aggregate({ where: { bookingId }, _sum: { amountCents: true } })
+  return agg._sum.amountCents ?? 0
+}
+
+describe('ajouterPaiement', () => {
+  it('1er versement : pending → paid, paidAt posé, versement créé', async () => {
     const booking = await creerBooking('pending')
-    await marquerPayee(db, booking.id)
+    const res = await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 2550 }, null)
+    expect(res.etaitPending).toBe(true)
     const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
     expect(apres.status).toBe('paid')
     expect(apres.paidAt).toBeInstanceOf(Date)
+    expect(await remis(db, booking.id)).toBe(2550)
   })
 
-  it('enregistre le règlement (méthode + montant en centimes) quand fourni', async () => {
-    const booking = await creerBooking('pending')
-    await marquerPayee(db, booking.id, { paymentMethod: 'cheque', amountCents: 2550 })
-    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
-    expect(apres.paymentMethod).toBe('cheque')
-    expect(apres.amountCents).toBe(2550)
+  it('plusieurs versements s’accumulent ; soldée seulement quand net ≥ dû', async () => {
+    // partySize 4, prix 1000 → dû 4000.
+    const booking = await creerBooking('pending', 4)
+    const a = await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 2000 }, 1000)
+    expect(a.nowSoldee).toBe(false) // acompte
+    const b = await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 2000 }, 1000)
+    expect(b.nowSoldee).toBe(true) // soldée
+    expect(await db.payment.count({ where: { bookingId: booking.id } })).toBe(2)
+    expect(await remis(db, booking.id)).toBe(4000)
   })
 
-  it('refuse une demande déjà réglée', async () => {
-    const booking = await creerBooking('paid')
-    await expect(marquerPayee(db, booking.id)).rejects.toThrow('Cette demande est déjà réglée.')
+  it('prix non défini → nowSoldee vrai dès le 1er versement (ancien flux)', async () => {
+    const booking = await creerBooking('pending', 4)
+    const res = await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 500 }, null)
+    expect(res.nowSoldee).toBe(true)
   })
 
-  it('enregistre le règlement après placement (paiement plus tard) sans déplacer', async () => {
+  it('versement sur une demande placée non réglée : reste placée, paidAt posé', async () => {
     const booking = await creerBooking('pending', 1)
-    await emettreBillets(db, booking.id, ['s1']) // placée, non réglée (paidAt null)
-    const res = await marquerPayee(db, booking.id, { paymentMethod: 'especes', amountCents: 1600 })
+    await emettreBillets(db, booking.id, ['s1']) // placée, non réglée
+    const res = await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 1600 }, null)
     expect(res.etaitPlace).toBe(true)
     const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
-    expect(apres.status).toBe('placed') // reste placée
+    expect(apres.status).toBe('placed')
     expect(apres.paidAt).toBeInstanceOf(Date)
-    expect(apres.amountCents).toBe(1600)
+    expect(await remis(db, booking.id)).toBe(1600)
+  })
+
+  it('enregistre la date de dépôt et la référence (chèque échelonné)', async () => {
+    const booking = await creerBooking('pending', 2)
+    const dep = new Date('2026-07-15T12:00:00Z')
+    await ajouterPaiement(
+      db,
+      booking.id,
+      { method: 'cheque', amountCents: 1200, depositOn: dep, reference: 'n°42' },
+      null,
+    )
+    const p = await db.payment.findFirstOrThrow({ where: { bookingId: booking.id } })
+    expect(p.depositOn?.toISOString()).toBe(dep.toISOString())
+    expect(p.reference).toBe('n°42')
+  })
+
+  it('refuse un montant nul ou négatif', async () => {
+    const booking = await creerBooking('pending')
+    await expect(
+      ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 0 }, null),
+    ).rejects.toThrow(/supérieur à 0/)
   })
 
   it('refuse une pending expirée', async () => {
     const booking = await creerBooking('pending', 2, new Date(Date.now() - DAY_MS))
-    await expect(marquerPayee(db, booking.id)).rejects.toThrow(/expirée/)
+    await expect(
+      ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 100 }, null),
+    ).rejects.toThrow(/expirée/)
+  })
+})
+
+describe('supprimerPaiement', () => {
+  it('supprime un versement ; le dernier supprimé efface le règlement (paid → pending)', async () => {
+    const booking = await creerBooking('pending', 2)
+    await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 1000 }, null)
+    const p = await db.payment.findFirstOrThrow({ where: { bookingId: booking.id } })
+    await supprimerPaiement(db, booking.id, p.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('pending')
+    expect(apres.paidAt).toBeNull()
+    expect(await remis(db, booking.id)).toBe(0)
+  })
+
+  it('garde un versement restant (reste « à placer »)', async () => {
+    const booking = await creerBooking('pending', 4)
+    await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 2000 }, 1000)
+    await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 2000 }, 1000)
+    const p = await db.payment.findFirstOrThrow({ where: { bookingId: booking.id } })
+    await supprimerPaiement(db, booking.id, p.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('paid')
+    expect(apres.paidAt).toBeInstanceOf(Date)
+    expect(await remis(db, booking.id)).toBe(2000)
+  })
+
+  it('une placée garde ses sièges même si le dernier versement est supprimé', async () => {
+    const booking = await creerBooking('pending', 1)
+    await emettreBillets(db, booking.id, ['s1'])
+    await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 1600 }, null)
+    const p = await db.payment.findFirstOrThrow({ where: { bookingId: booking.id } })
+    await supprimerPaiement(db, booking.id, p.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('placed')
+    expect(apres.paidAt).toBeNull()
+    expect(await db.ticket.count({ where: { bookingId: booking.id } })).toBe(1)
+  })
+
+  it('retire un remboursement devenu supérieur au reçu restant', async () => {
+    const booking = await creerBooking('pending', 4)
+    await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 3000 }, null)
+    await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 1000 }, null)
+    await enregistrerRemboursement(db, booking.id, { refundCents: 2000 })
+    // On supprime le gros versement → reçu = 1000 < remboursé 2000 → remboursé retiré.
+    const gros = await db.payment.findFirstOrThrow({ where: { bookingId: booking.id, amountCents: 3000 } })
+    await supprimerPaiement(db, booking.id, gros.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.refundCents).toBeNull()
+    expect(await remis(db, booking.id)).toBe(1000)
+  })
+
+  it('refuse un versement d’une autre demande', async () => {
+    const a = await creerBooking('pending', 1)
+    await ajouterPaiement(db, a.id, { method: 'especes', amountCents: 500 }, null)
+    const pA = await db.payment.findFirstOrThrow({ where: { bookingId: a.id } })
+    const b = await creerBooking('pending', 1)
+    await expect(supprimerPaiement(db, b.id, pA.id)).rejects.toThrow(/introuvable/)
   })
 })
 
 describe('annulerPaiement', () => {
-  it('une demande « à placer » (paid) repasse en attente, sans paiement', async () => {
-    const booking = await creerBooking('paid')
+  async function payee(status: 'pending' | 'placed' = 'pending') {
+    const booking = await creerBooking('pending', 1)
+    if (status === 'placed') await emettreBillets(db, booking.id, ['s1'])
+    await ajouterPaiement(db, booking.id, { method: 'especes', amountCents: 1600 }, null)
+    return booking
+  }
+
+  it('une demande « à placer » repasse en attente, versements supprimés', async () => {
+    const booking = await payee('pending')
     await annulerPaiement(db, booking.id)
     const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
     expect(apres.status).toBe('pending')
     expect(apres.paidAt).toBeNull()
-    expect(apres.expiresAt).toBeInstanceOf(Date) // échéance ré-armée
+    expect(apres.expiresAt).toBeInstanceOf(Date)
+    expect(await db.payment.count({ where: { bookingId: booking.id } })).toBe(0)
   })
 
   it('une demande placée GARDE ses sièges et redevient non réglée', async () => {
-    const booking = await creerBooking('pending', 1)
-    await emettreBillets(db, booking.id, ['s1'])
-    await marquerPayee(db, booking.id, { paymentMethod: 'cheque', amountCents: 1600 })
+    const booking = await payee('placed')
     await annulerPaiement(db, booking.id)
     const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
-    expect(apres.status).toBe('placed') // toujours placée
+    expect(apres.status).toBe('placed')
     expect(apres.paidAt).toBeNull()
-    expect(apres.amountCents).toBeNull()
-    expect(await db.ticket.count({ where: { bookingId: booking.id } })).toBe(1) // sièges gardés
+    expect(await db.payment.count({ where: { bookingId: booking.id } })).toBe(0)
+    expect(await db.ticket.count({ where: { bookingId: booking.id } })).toBe(1)
   })
 
   it('refuse une demande non réglée', async () => {
@@ -159,7 +260,7 @@ describe('annulerPaiement', () => {
 
   it('efface aussi un remboursement éventuel', async () => {
     const booking = await creerBooking('pending')
-    await marquerPayee(db, booking.id, { paymentMethod: 'cheque', amountCents: 4000 })
+    await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 4000 }, null)
     await enregistrerRemboursement(db, booking.id, { refundCents: 1500, refundReason: 'place retirée' })
     await annulerPaiement(db, booking.id)
     const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
@@ -168,10 +269,45 @@ describe('annulerPaiement', () => {
   })
 })
 
+describe('changerNombrePlaces', () => {
+  it('refuse une pending expirée (évite le sur-comptage de jauge)', async () => {
+    const booking = await creerBooking('pending', 2, new Date(Date.now() - DAY_MS))
+    await expect(changerNombrePlaces(db, booking.id, 4)).rejects.toThrow(/expirée/)
+  })
+
+  it('borne les places offertes au nouveau nombre quand on réduit', async () => {
+    const booking = await creerBooking('pending', 4)
+    await definirPlacesOffertes(db, booking.id, 3)
+    await changerNombrePlaces(db, booking.id, 2)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.partySize).toBe(2)
+    expect(apres.freeSeats).toBe(2)
+  })
+})
+
+describe('definirPlacesOffertes', () => {
+  it('définit les places offertes', async () => {
+    const booking = await creerBooking('pending', 4)
+    await definirPlacesOffertes(db, booking.id, 1)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.freeSeats).toBe(1)
+  })
+
+  it('refuse plus de places offertes que de places', async () => {
+    const booking = await creerBooking('pending', 2)
+    await expect(definirPlacesOffertes(db, booking.id, 3)).rejects.toThrow(/Au plus 2/)
+  })
+
+  it('refuse un nombre négatif', async () => {
+    const booking = await creerBooking('pending', 2)
+    await expect(definirPlacesOffertes(db, booking.id, -1)).rejects.toThrow(/invalide/)
+  })
+})
+
 describe('enregistrerRemboursement', () => {
   async function payee(amountCents = 4000) {
     const booking = await creerBooking('pending')
-    await marquerPayee(db, booking.id, { paymentMethod: 'especes', amountCents })
+    await ajouterPaiement(db, booking.id, { method: 'especes', amountCents }, null)
     return booking
   }
 
@@ -183,7 +319,7 @@ describe('enregistrerRemboursement', () => {
     expect(apres.refundReason).toBe('place retirée')
   })
 
-  it('refuse un remboursement supérieur au montant encaissé', async () => {
+  it('refuse un remboursement supérieur au total reçu', async () => {
     const booking = await payee(4000)
     await expect(
       enregistrerRemboursement(db, booking.id, { refundCents: 5000 }),
@@ -197,12 +333,11 @@ describe('enregistrerRemboursement', () => {
     )
   })
 
-  it('refuse si la demande n’a pas de montant encaissé', async () => {
+  it('refuse si la demande n’a aucun versement', async () => {
     const booking = await creerBooking('pending')
-    await marquerPayee(db, booking.id) // payée sans montant
     await expect(
       enregistrerRemboursement(db, booking.id, { refundCents: 1000 }),
-    ).rejects.toThrow(/montant encaissé/)
+    ).rejects.toThrow(/versement/)
   })
 })
 
@@ -355,6 +490,19 @@ describe('annulerDemande', () => {
     await annulerDemande(db, booking.id)
     const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
     expect(apres.status).toBe('cancelled')
+  })
+
+  it('purge les versements et remet le règlement à zéro (caisse propre)', async () => {
+    const booking = await creerBooking('pending', 2)
+    await ajouterPaiement(db, booking.id, { method: 'cheque', amountCents: 2400 }, null)
+    await enregistrerRemboursement(db, booking.id, { refundCents: 400 })
+    await annulerDemande(db, booking.id)
+    const apres = await db.booking.findUniqueOrThrow({ where: { id: booking.id } })
+    expect(apres.status).toBe('cancelled')
+    expect(apres.paidAt).toBeNull()
+    expect(apres.refundCents).toBeNull()
+    expect(apres.refundReason).toBeNull()
+    expect(await db.payment.count({ where: { bookingId: booking.id } })).toBe(0)
   })
 
   it('refuse une demande déjà annulée', async () => {

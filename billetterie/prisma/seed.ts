@@ -7,6 +7,7 @@
 // préservé sur les sièges existants, scores ré-écrits).
 
 import { PrismaClient } from '@prisma/client'
+import { setTicketPriceCents } from '../lib/admin/pricing'
 import { loadActiveVenueConfig } from '../lib/venue/load'
 import { syncPlan } from '../lib/venue/sync'
 
@@ -157,11 +158,54 @@ async function seedDemoBookings() {
 
   // Démo PMR structuré : la famille Garnier vient avec DEUX personnes en
   // fauteuil + 2 accompagnants à coller — montre le repérage ♿ et la gestion
-  // de plusieurs PMR sur une même commande.
+  // de plusieurs PMR sur une même commande. Une place offerte (un tout-petit).
   await prisma.booking.update({
     where: { publicToken: '3d5f7a9b-2c4e-4a6b-8d0f-1e3a5c7b9d2f' },
-    data: { pmrCount: 2, pmrCompanions: 2 },
+    data: { pmrCount: 2, pmrCompanions: 2, freeSeats: 1 },
   })
+
+  // Prix unitaire de démo : 12 € la place (le montant dû en découle).
+  await setTicketPriceCents(prisma, 1200)
+
+  // Versements de démo (relançables : on purge avant de recréer). Montre les
+  // cas : réglé d'un coup, acompte (reste dû), et chèques échelonnés sur 3 mois.
+  async function setDemoPayments(
+    publicToken: string,
+    payments: Array<{ method: string; amountCents: number; depositOn?: Date; reference?: string }>,
+  ) {
+    const b = await prisma.booking.findUniqueOrThrow({ where: { publicToken } })
+    await prisma.payment.deleteMany({ where: { bookingId: b.id } })
+    if (payments.length > 0) {
+      await prisma.payment.createMany({
+        data: payments.map((p) => ({
+          bookingId: b.id,
+          method: p.method,
+          amountCents: p.amountCents,
+          depositOn: p.depositOn ?? null,
+          reference: p.reference ?? null,
+        })),
+      })
+    }
+  }
+
+  // Julien Moreau (2 places) : réglé d'un coup, espèces 24 € → soldé.
+  await setDemoPayments('a2c4e6f8-1b3d-4f5a-9c7e-2d4f6a8b0c1e', [
+    { method: 'especes', amountCents: 2400 },
+  ])
+  // Élodie Garnier (6 places, 1 offerte → dû 60 €) : acompte de 30 € par chèque.
+  await setDemoPayments('3d5f7a9b-2c4e-4a6b-8d0f-1e3a5c7b9d2f', [
+    { method: 'cheque', amountCents: 3000, reference: 'chèque n°1042' },
+  ])
+  // Sophie Renaud (5 places → dû 60 €) : 3 chèques de 20 € déposés sur 3 mois.
+  await setDemoPayments('c1e3a5b7-9d2f-4c6a-8b0e-3f5a7c9e1b4d', [
+    { method: 'cheque', amountCents: 2000, depositOn: parisSummer('2026-07-05T12:00'), reference: 'chèque n°201' },
+    { method: 'cheque', amountCents: 2000, depositOn: parisSummer('2026-08-05T12:00'), reference: 'chèque n°202' },
+    { method: 'cheque', amountCents: 2000, depositOn: parisSummer('2026-09-05T12:00'), reference: 'chèque n°203' },
+  ])
+  // Famille Dupuis (placée, 4 places → dû 48 €) : réglé par chèque, soldé.
+  await setDemoPayments(PLACED_DEMO.publicToken, [
+    { method: 'cheque', amountCents: 4800, reference: 'chèque n°777' },
+  ])
 
   // Démo remise papier : la famille Dupuis (placée) prend ses billets en papier
   // → montre le chip « 🖨️ Papier » et le bouton « Imprimer les billets ».
@@ -202,7 +246,7 @@ async function seedDemoBookings() {
   await prisma.bookingEvent.createMany({
     data: [
       { bookingId: dupuis.id, action: 'created', adminEmail: 'demande en ligne', detail: '4 places', createdAt: parisSummer('2026-06-06T16:40') },
-      { bookingId: dupuis.id, action: 'paid', adminEmail: 'pascale@example.com', detail: 'chèque · 64,00 €', createdAt: parisSummer('2026-06-07T18:10') },
+      { bookingId: dupuis.id, action: 'payment_added', adminEmail: 'pascale@example.com', detail: 'chèque · 48,00 €', createdAt: parisSummer('2026-06-07T18:10') },
       { bookingId: dupuis.id, action: 'placed', adminEmail: 'pascale@example.com', detail: '4 places', createdAt: parisSummer('2026-06-09T20:30') },
     ],
   })

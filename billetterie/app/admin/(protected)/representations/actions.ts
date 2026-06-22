@@ -8,11 +8,22 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
+import { euros } from '@/lib/admin/money'
+import { clearTicketPrice, setTicketPriceCents } from '@/lib/admin/pricing'
 import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { parisToUtc } from '@/lib/paris-time'
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
+
+// Prix unitaire en euros (« 12 », « 12,50 ») → centimes ; borné à 1000 €.
+const prixSchema = z
+  .string()
+  .trim()
+  .max(10)
+  .transform((v) => Number(v.replace(',', '.')))
+  .refine((n) => Number.isFinite(n) && n >= 0 && n <= 1000)
+  .transform((e) => Math.round(e * 100))
 
 const formSchema = z.object({
   title: z.string().trim().min(2, 'Titre trop court').max(100),
@@ -28,7 +39,25 @@ function versListe(type: 'ok' | 'err', message: string): never {
 function rafraichir() {
   revalidatePath('/admin/representations')
   revalidatePath('/admin')
+  revalidatePath('/admin/demandes') // le prix change les montants dus affichés
+  revalidatePath('/admin/stats')
   revalidatePath('/') // le formulaire public liste les représentations ouvertes
+}
+
+// Fixe (ou efface) le prix unitaire global d'une place. Champ vide = effacer.
+export async function definirPrixAction(formData: FormData): Promise<void> {
+  await requireSuperAdmin()
+  const brut = formData.get('prix')
+  if (typeof brut === 'string' && brut.trim() === '') {
+    await clearTicketPrice(prisma)
+    rafraichir()
+    versListe('ok', 'Prix unitaire effacé (montant dû désactivé).')
+  }
+  const parsed = prixSchema.safeParse(brut)
+  if (!parsed.success) versListe('err', 'Prix invalide (montant en euros, entre 0 et 1000).')
+  await setTicketPriceCents(prisma, parsed.data)
+  rafraichir()
+  versListe('ok', `Prix unitaire fixé à ${euros(parsed.data)}.`)
 }
 
 export async function creerRepresentation(formData: FormData): Promise<void> {

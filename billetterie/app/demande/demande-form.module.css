@@ -52,6 +52,24 @@
   color: var(--terre-2);
 }
 
+/* Montant indicatif sous le choix du nombre de places. */
+.estimate {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--sable-2, #f2ece3);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.estimate strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.estimateNote {
+  color: var(--terre-2);
+  font-size: 0.82rem;
+}
+
 /* Récap « avant → après » d'une modification. */
 .diff {
   margin: 0.5rem 0 0;

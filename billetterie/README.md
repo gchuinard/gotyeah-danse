@@ -20,6 +20,16 @@ une base SQLite, et c'est tout.
   n'envoie PAS ses billets automatiquement : l'admin le déclenche à la main
   (avec avertissement). Pratique recommandée : premier payé, premier placé —
   mais ce n'est plus imposé.
+- **Prix unique et montant dû.** Un **prix unitaire global** (réglé dans
+  `/admin/representations`, rangé dans `Setting`) donne le **montant dû** de
+  chaque demande = (places − **places offertes**) × prix. Les places offertes
+  (ex. tout-petits qui dansent) se fixent par demande.
+- **Versements multiples.** Le règlement est une suite de **versements**
+  (espèces / chèques), pas un montant unique : on gère les **chèques échelonnés**
+  (montant + **date de dépôt** prévue). Une demande est **soldée** quand le net
+  (Σ versements − remboursé) atteint le dû ; sinon c'est un **acompte**. La
+  caisse compte un chèque **dès sa remise** (la date de dépôt n'est qu'une aide
+  à l'échelonnement).
 
 Stack : Next.js 16 (App Router) · Prisma 6 / SQLite · TypeScript · Docker sur Pi 5 ARM64.
 
@@ -92,11 +102,11 @@ navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes (liste épurée). **Clic sur une ligne → popup « centre d'actions »** : détail, **historique**, note modifiable, et toutes les actions — marquer payée / **annuler le règlement** / **remboursement** (montant + motif), rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
+| `/admin/demandes` | File des demandes (liste épurée). **Clic sur une ligne → popup « centre d'actions »** : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (montant pré-rempli = reste dû, date de dépôt + n° pour chèques) / supprimer un versement / **annuler tout le règlement** / **remboursement** (montant + motif), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
-| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (par mode, **net = encaissé − remboursé**) + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
+| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (par mode, **net = Σ versements − remboursé**, reste à encaisser, trop-perçu) + **« Chèques à déposer »** groupés par mois + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 | `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
 | `/admin/comptes` | **(super-admin)** Gérer les comptes admin (ajout / rôle / suppression) + le **PIN du mode scan** |
@@ -107,9 +117,10 @@ Deux tokens de démo pratiques (seed dev) :
 - `/billets/5f1e7c1a-9b3d-4e6f-8a2c-0d4b6e8f1a3c` — demande **pending** (page d'attente).
 
 Le flux complet : une famille fait une **demande** sur `/` (email de confirmation
-avec lien de suivi) → elle paie au studio, l'admin la marque **payée** (mode de
-règlement + montant facultatifs — alimentent la caisse de `/admin/stats`) →
-l'admin ouvre le **placement** (3 suggestions de l'algo, ajustables siège par
+avec lien de suivi, **montant indicatif** affiché) → elle paie au studio, l'admin
+enregistre un ou plusieurs **versements** (espèces/chèques, montant pré-rempli =
+reste dû ; chèques échelonnables avec date de dépôt — alimentent la caisse de
+`/admin/stats`) → l'admin ouvre le **placement** (3 suggestions de l'algo, ajustables siège par
 siège), valide → les **billets + QR** partent par email (sur téléphone, un tap
 sur le QR l'affiche **plein écran** pour le scan) → le soir, **scan** à l'entrée.
 Paiement et placement étant **indépendants**, l'admin peut aussi **placer avant
@@ -298,7 +309,9 @@ Checklist :
 - **Gérer les représentations** : `/admin/representations` — créer (fermée par
   défaut), modifier titre et date/heure (saisies en heure de Paris), **ouvrir/
   fermer les réservations** (une représentation fermée disparaît du formulaire
-  public), supprimer (bloqué dès qu'une demande existe, même annulée).
+  public), supprimer (bloqué dès qu'une demande existe, même annulée). C'est
+  aussi là qu'on fixe le **prix unitaire** d'une place (carte « Tarif »,
+  super-admin — champ vide = prix effacé). À faire **avant les ventes**.
 
 ## Référence rapide
 

@@ -4,10 +4,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { euros } from '@/lib/admin/money'
+import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { ConfirmSubmit } from '../demandes/confirm-submit'
-import { basculerOuverture, creerRepresentation, supprimerRepresentation } from './actions'
+import {
+  basculerOuverture,
+  creerRepresentation,
+  definirPrixAction,
+  supprimerRepresentation,
+} from './actions'
 import styles from './representations.module.css'
 
 export const metadata: Metadata = { title: 'Représentations — Admin' }
@@ -35,10 +42,14 @@ export default async function RepresentationsPage({
   const ok = premier(params.ok)
   const err = premier(params.err)
 
-  const reps = await prisma.representation.findMany({
-    orderBy: { startsAt: 'asc' },
-    include: { _count: { select: { bookings: true, tickets: true } } },
-  })
+  const [reps, unitPriceCents] = await Promise.all([
+    prisma.representation.findMany({
+      orderBy: { startsAt: 'asc' },
+      include: { _count: { select: { bookings: true, tickets: true } } },
+    }),
+    getTicketPriceCents(prisma),
+  ])
+  const prixEuros = unitPriceCents != null ? (unitPriceCents / 100).toFixed(2).replace('.', ',') : ''
 
   return (
     <main>
@@ -110,6 +121,44 @@ export default async function RepresentationsPage({
           )}
         </tbody>
       </table>
+
+      <section className={styles.createCard}>
+        <h2 className={styles.subtitle}>Tarif</h2>
+        <p className={styles.hint}>
+          {unitPriceCents != null ? (
+            <>
+              Prix unitaire actuel : <strong>{euros(unitPriceCents)}</strong> par place. Le montant
+              dû de chaque demande = (places − places offertes) × ce prix.
+            </>
+          ) : (
+            <>
+              Aucun prix défini : les montants dus ne sont pas calculés (saisie libre des
+              versements). Fixe le prix avant les ventes.
+            </>
+          )}
+        </p>
+        <form action={definirPrixAction} className={styles.createForm}>
+          <label className={styles.field}>
+            Prix par place (en euros)
+            <input
+              className={styles.input}
+              type="text"
+              name="prix"
+              inputMode="decimal"
+              placeholder="ex. 12"
+              defaultValue={prixEuros}
+              aria-label="Prix unitaire en euros"
+            />
+          </label>
+          <button type="submit" className={styles.btnPrimary}>
+            Enregistrer le prix
+          </button>
+        </form>
+        <p className={styles.hint}>
+          Laisse le champ vide puis enregistre pour effacer le prix. Un prix unique s’applique à
+          toutes les représentations.
+        </p>
+      </section>
 
       <section className={styles.createCard}>
         <h2 className={styles.subtitle}>Nouvelle représentation</h2>
