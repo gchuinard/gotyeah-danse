@@ -53,7 +53,6 @@ function seatTitle(seat: SeatView): string {
   let title = `Rang ${seat.rowLabel} place ${seat.number} — ${sectionLabel(seat.section)}`
   if (seat.removable) title += ' — amovible'
   if (seat.status === 'occupe' && seat.occupant) title += ` — ${seat.occupant}`
-  if (seat.status === 'occupe' && seat.occupantPmr) title += ' (famille PMR)'
   if (isPmr(seat)) title += ' — réservé PMR'
   else if (seat.status === 'bloque')
     title += ` — bloqué${seat.overrideReason ? ` (${reasonLabel(seat.overrideReason)})` : ''}`
@@ -63,9 +62,7 @@ function seatTitle(seat: SeatView): string {
 // Ligne de statut du tooltip + sa teinte (pastille colorée).
 function statutTexte(seat: SeatView): string {
   if (seat.status === 'occupe') {
-    return seat.occupant
-      ? `Occupé — ${seat.occupant}${seat.occupantPmr ? ' (famille PMR)' : ''}`
-      : 'Occupé'
+    return seat.occupant ? `Occupé — ${seat.occupant}` : 'Occupé'
   }
   if (isPmr(seat)) return 'Réservé PMR'
   if (seat.status === 'bloque') {
@@ -133,8 +130,8 @@ export default function SeatMap({
     const minY = Math.min(...ys) - MARGIN
     const maxSeatY = Math.max(...ys)
 
-    // Repère SCÈNE en bas du plan, centré sur l'axe de la salle.
-    const sceneWidth = (maxX - minX) * 0.42
+    // Repère SCÈNE en bas du plan, centré sur l'axe de la salle (élargi).
+    const sceneWidth = (maxX - minX) * 0.63
     const scene = {
       x: (minX + maxX) / 2 - sceneWidth / 2,
       y: maxSeatY + 55,
@@ -341,14 +338,10 @@ export default function SeatMap({
                   : seat.status === 'bloque'
                     ? styles.bloque
                     : styles.libre,
-              // Famille PMR déjà placée : intérieur marron, contour bleu.
-              seat.status === 'occupe' && seat.occupantPmr ? styles.occupePmr : '',
               // Zébrure : un rang sur deux, contour teinté (lecture des rangs) —
-              // sur les sièges libres ET occupés (hors PMR, qui garde son bleu).
+              // sur les sièges libres ET occupés.
               seat.status === 'libre' && seat.rowOrder % 2 === 1 ? styles.libreAlt : '',
-              seat.status === 'occupe' && !seat.occupantPmr && seat.rowOrder % 2 === 1
-                ? styles.occupeAlt
-                : '',
+              seat.status === 'occupe' && seat.rowOrder % 2 === 1 ? styles.occupeAlt : '',
               seat.removable && seat.status !== 'bloque' ? styles.removable : '',
               previous.has(seat.id) ? styles.previous : '',
               current.has(seat.id) ? styles.current : '',

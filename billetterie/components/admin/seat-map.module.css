@@ -183,12 +183,6 @@
   stroke: #2f8f7d;
 }
 
-/* Famille PMR déjà placée : intérieur marron (occupé), contour bleu épais. */
-.occupePmr {
-  stroke: #3f6fb0;
-  stroke-width: 3.5;
-}
-
 .bloque {
   fill: #dcd6cd;
   stroke: #9a948a;
