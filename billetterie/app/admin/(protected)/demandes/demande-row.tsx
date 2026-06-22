@@ -34,7 +34,7 @@ import {
   rembourserAction,
   renvoyerBilletsAction,
   supprimerPaiementAction,
-  type VersementState,
+  type ActionState,
 } from './actions'
 import styles from './demandes.module.css'
 
@@ -199,10 +199,31 @@ function MotifRemboursement({ initial }: { initial: string | null }) {
   )
 }
 
-// Formulaire « ajouter un versement » : useActionState → la popup reste ouverte
-// (feedback inline, pas de navigation). Remonté par sa `key` après chaque ajout
-// réussi (cf. SectionPaiement) → champs vidés et montant pré-rempli au nouveau
-// reste dû.
+// Formulaire générique d'action de la popup : useActionState → la POPUP RESTE
+// OUVERTE (feedback inline, pas de navigation), revalidatePath rafraîchit les
+// données affichées. `children(pending)` rend les champs/boutons.
+function ActionForm({
+  action,
+  children,
+  className,
+}: {
+  action: (prev: ActionState, formData: FormData) => Promise<ActionState>
+  children: (pending: boolean) => ReactNode
+  className?: string
+}) {
+  const [state, formAction, pending] = useActionState(action, {} as ActionState)
+  return (
+    <form action={formAction} className={className ?? styles.detailActionForm}>
+      {children(pending)}
+      {state.error && <p className={styles.detailWarn}>{state.error}</p>}
+      {state.ok && <p className={styles.detailOk}>{state.ok}</p>}
+    </form>
+  )
+}
+
+// « Ajouter un versement ». Remonté par sa `key` (= nb de versements, cf.
+// SectionPaiement) après chaque ajout réussi → champs vidés et montant
+// pré-rempli au nouveau reste dû.
 function AjouterVersementForm({
   detail,
   presetMontant,
@@ -210,42 +231,43 @@ function AjouterVersementForm({
   detail: DemandeDetail
   presetMontant: string
 }) {
-  const [state, formAction, pending] = useActionState(ajouterPaiementAction, {} as VersementState)
   return (
-    <form action={formAction} className={styles.detailActionForm}>
-      <Hidden detail={detail} />
-      <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
-        <option value="cheque">Chèque</option>
-        <option value="especes">Espèces</option>
-        <option value="autre">Autre</option>
-      </select>
-      <input
-        type="text"
-        name="montant"
-        inputMode="decimal"
-        placeholder="€"
-        aria-label="Montant du versement en euros"
-        defaultValue={presetMontant}
-      />
-      <input
-        type="date"
-        name="depositOn"
-        aria-label="Date de dépôt (chèque échelonné, facultatif)"
-        title="Date de dépôt prévue (chèque échelonné) — facultatif"
-      />
-      <input
-        type="text"
-        name="reference"
-        maxLength={60}
-        placeholder="n° chèque (facultatif)"
-        aria-label="Référence du versement"
-      />
-      <button type="submit" className={styles.btn} disabled={pending}>
-        {pending ? 'Enregistrement…' : 'Ajouter le versement'}
-      </button>
-      {state.error && <p className={styles.detailWarn}>{state.error}</p>}
-      {state.ok && <p className={styles.detailOk}>{state.ok}</p>}
-    </form>
+    <ActionForm action={ajouterPaiementAction}>
+      {(pending) => (
+        <>
+          <Hidden detail={detail} />
+          <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
+            <option value="cheque">Chèque</option>
+            <option value="especes">Espèces</option>
+            <option value="autre">Autre</option>
+          </select>
+          <input
+            type="text"
+            name="montant"
+            inputMode="decimal"
+            placeholder="€"
+            aria-label="Montant du versement en euros"
+            defaultValue={presetMontant}
+          />
+          <input
+            type="date"
+            name="depositOn"
+            aria-label="Date de dépôt (chèque échelonné, facultatif)"
+            title="Date de dépôt prévue (chèque échelonné) — facultatif"
+          />
+          <input
+            type="text"
+            name="reference"
+            maxLength={60}
+            placeholder="n° chèque (facultatif)"
+            aria-label="Référence du versement"
+          />
+          <button type="submit" className={styles.btn} disabled={pending}>
+            {pending ? 'Enregistrement…' : 'Ajouter le versement'}
+          </button>
+        </>
+      )}
+    </ActionForm>
   )
 }
 
@@ -325,16 +347,20 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
                 {p.depositOnText ? ` · dépôt ${p.depositOnText}` : ''}
                 {p.reference ? ` · ${p.reference}` : ''}
               </span>
-              <form action={supprimerPaiementAction} className={styles.versementSuppr}>
-                <Hidden detail={detail} />
-                <input type="hidden" name="paymentId" value={p.id} />
-                <ConfirmSubmit
-                  className={styles.btn}
-                  message={`Supprimer ce versement de ${euros(p.amountCents)} ?`}
-                >
-                  Supprimer
-                </ConfirmSubmit>
-              </form>
+              <ActionForm action={supprimerPaiementAction} className={styles.versementSuppr}>
+                {() => (
+                  <>
+                    <Hidden detail={detail} />
+                    <input type="hidden" name="paymentId" value={p.id} />
+                    <ConfirmSubmit
+                      className={styles.btn}
+                      message={`Supprimer ce versement de ${euros(p.amountCents)} ?`}
+                    >
+                      Supprimer
+                    </ConfirmSubmit>
+                  </>
+                )}
+              </ActionForm>
             </li>
           ))}
         </ul>
@@ -356,15 +382,19 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
 
       {/* Annuler TOUT le règlement */}
       {detail.paid && (
-        <form action={annulerPaiementAction} className={styles.detailActionForm}>
-          <Hidden detail={detail} />
-          <ConfirmSubmit
-            className={styles.btn}
-            message={`Annuler tout le règlement de ${detail.name} ? Tous les versements et le remboursement éventuel seront supprimés.`}
-          >
-            Annuler tout le règlement
-          </ConfirmSubmit>
-        </form>
+        <ActionForm action={annulerPaiementAction}>
+          {() => (
+            <>
+              <Hidden detail={detail} />
+              <ConfirmSubmit
+                className={styles.btn}
+                message={`Annuler tout le règlement de ${detail.name} ? Tous les versements et le remboursement éventuel seront supprimés.`}
+              >
+                Annuler tout le règlement
+              </ConfirmSubmit>
+            </>
+          )}
+        </ActionForm>
       )}
     </div>
   )
@@ -396,21 +426,25 @@ function SectionRemboursement({ detail }: { detail: DemandeDetail }) {
           Aucun remboursement. À utiliser p. ex. après le retrait de places déjà réglées.
         </p>
       )}
-      <form action={rembourserAction} className={styles.detailActionForm}>
-        <Hidden detail={detail} />
-        <input
-          type="text"
-          name="montant"
-          inputMode="decimal"
-          placeholder="€ remboursés"
-          aria-label="Montant remboursé en euros"
-          defaultValue={detail.refundCents ? (detail.refundCents / 100).toFixed(2).replace('.', ',') : ''}
-        />
-        <MotifRemboursement initial={detail.refundReason} />
-        <button type="submit" className={styles.btn}>
-          Enregistrer le remboursement
-        </button>
-      </form>
+      <ActionForm action={rembourserAction}>
+        {() => (
+          <>
+            <Hidden detail={detail} />
+            <input
+              type="text"
+              name="montant"
+              inputMode="decimal"
+              placeholder="€ remboursés"
+              aria-label="Montant remboursé en euros"
+              defaultValue={detail.refundCents ? (detail.refundCents / 100).toFixed(2).replace('.', ',') : ''}
+            />
+            <MotifRemboursement initial={detail.refundReason} />
+            <button type="submit" className={styles.btn}>
+              Enregistrer le remboursement
+            </button>
+          </>
+        )}
+      </ActionForm>
     </div>
   )
 }
@@ -447,89 +481,113 @@ function SectionGestion({ detail }: { detail: DemandeDetail }) {
               Imprimer les billets ↗
             </Link>
           ) : (
-            <form action={renvoyerBilletsAction} className={styles.detailActionForm}>
-              <Hidden detail={detail} />
-              {detail.paid ? (
-                <button type="submit" className={styles.btn}>
-                  Renvoyer les billets
-                </button>
-              ) : (
-                <ConfirmSubmit
-                  className={styles.btn}
-                  message={`Aucun paiement enregistré pour ${detail.name}. Envoyer quand même les billets ?`}
-                >
-                  Envoyer les billets
-                </ConfirmSubmit>
+            <ActionForm action={renvoyerBilletsAction}>
+              {() => (
+                <>
+                  <Hidden detail={detail} />
+                  {detail.paid ? (
+                    <button type="submit" className={styles.btn}>
+                      Renvoyer les billets
+                    </button>
+                  ) : (
+                    <ConfirmSubmit
+                      className={styles.btn}
+                      message={`Aucun paiement enregistré pour ${detail.name}. Envoyer quand même les billets ?`}
+                    >
+                      Envoyer les billets
+                    </ConfirmSubmit>
+                  )}
+                </>
               )}
-            </form>
+            </ActionForm>
           ))}
 
-        <form action={basculerRemiseAction} className={styles.detailActionForm}>
-          <Hidden detail={detail} />
-          <button type="submit" className={styles.btn}>
-            {detail.ticketMode === 'papier' ? '📧 Passer en e-billet' : '🖨️ Passer en papier'}
-          </button>
-        </form>
+        <ActionForm action={basculerRemiseAction}>
+          {() => (
+            <>
+              <Hidden detail={detail} />
+              <button type="submit" className={styles.btn}>
+                {detail.ticketMode === 'papier' ? '📧 Passer en e-billet' : '🖨️ Passer en papier'}
+              </button>
+            </>
+          )}
+        </ActionForm>
 
         {detail.status === 'pending' && (
-          <form action={prolongerAction} className={styles.detailActionForm}>
-            <Hidden detail={detail} />
-            <button type="submit" className={styles.btn}>
-              Prolonger (+14 j)
-            </button>
-          </form>
+          <ActionForm action={prolongerAction}>
+            {() => (
+              <>
+                <Hidden detail={detail} />
+                <button type="submit" className={styles.btn}>
+                  Prolonger (+14 j)
+                </button>
+              </>
+            )}
+          </ActionForm>
         )}
       </div>
 
-      <form action={rectifierPlacesAction} className={styles.detailActionForm}>
-        <Hidden detail={detail} />
-        <label className={styles.detailInline}>
-          Rectifier le nombre de places
-          <input
-            type="number"
-            name="places"
-            min={1}
-            max={MAX_PARTY_SIZE}
-            defaultValue={detail.partySize}
-            aria-label="Nombre de places"
-          />
-        </label>
-        <button type="submit" className={styles.btn}>
-          Rectifier
-        </button>
-      </form>
+      <ActionForm action={rectifierPlacesAction}>
+        {() => (
+          <>
+            <Hidden detail={detail} />
+            <label className={styles.detailInline}>
+              Rectifier le nombre de places
+              <input
+                type="number"
+                name="places"
+                min={1}
+                max={MAX_PARTY_SIZE}
+                defaultValue={detail.partySize}
+                aria-label="Nombre de places"
+              />
+            </label>
+            <button type="submit" className={styles.btn}>
+              Rectifier
+            </button>
+          </>
+        )}
+      </ActionForm>
 
-      <form action={definirPlacesOffertesAction} className={styles.detailActionForm}>
-        <Hidden detail={detail} />
-        <label className={styles.detailInline}>
-          Places offertes (gratuites)
-          <input
-            type="number"
-            name="freeSeats"
-            min={0}
-            max={detail.partySize}
-            defaultValue={detail.freeSeats}
-            aria-label="Places offertes"
-          />
-        </label>
-        <button type="submit" className={styles.btn}>
-          Enregistrer
-        </button>
-      </form>
+      <ActionForm action={definirPlacesOffertesAction}>
+        {() => (
+          <>
+            <Hidden detail={detail} />
+            <label className={styles.detailInline}>
+              Places offertes (gratuites)
+              <input
+                type="number"
+                name="freeSeats"
+                min={0}
+                max={detail.partySize}
+                defaultValue={detail.freeSeats}
+                aria-label="Places offertes"
+              />
+            </label>
+            <button type="submit" className={styles.btn}>
+              Enregistrer
+            </button>
+          </>
+        )}
+      </ActionForm>
 
-      <form action={annulerAction} className={styles.detailActionForm}>
-        <Hidden detail={detail} />
-        <ConfirmSubmit
-          className={styles.btnDanger}
-          message={`Annuler la demande de ${detail.name} (${detail.partySize} place(s)) ? Les billets éventuels seront invalidés.${
-            detail.paid
-              ? ' Les versements enregistrés seront retirés de la caisse — gère le remboursement à la famille séparément.'
-              : ''
-          }`}
-        >
-          Annuler la demande
-        </ConfirmSubmit>
-      </form>
+      <ActionForm action={annulerAction}>
+        {() => (
+          <>
+            <Hidden detail={detail} />
+            <ConfirmSubmit
+              className={styles.btnDanger}
+              message={`Annuler la demande de ${detail.name} (${detail.partySize} place(s)) ? Les billets éventuels seront invalidés.${
+                detail.paid
+                  ? ' Les versements enregistrés seront retirés de la caisse — gère le remboursement à la famille séparément.'
+                  : ''
+              }`}
+            >
+              Annuler la demande
+            </ConfirmSubmit>
+          </>
+        )}
+      </ActionForm>
     </div>
   )
 }
@@ -582,20 +640,24 @@ function DetailContent({ detail }: { detail: DemandeDetail }) {
 
       <div className={styles.detailBloc}>
         <h3 className={styles.detailTitre}>Note interne</h3>
-        <form action={annoterAction} className={styles.detailNoteForm}>
-          <Hidden detail={detail} />
-          <input
-            type="text"
-            name="annotation"
-            maxLength={300}
-            defaultValue={detail.adminNotes ?? ''}
-            placeholder="chèque n°…, PMR, contexte…"
-            className={styles.detailNoteInput}
-          />
-          <button type="submit" className={styles.btn}>
-            Enregistrer
-          </button>
-        </form>
+        <ActionForm action={annoterAction} className={styles.detailNoteForm}>
+          {() => (
+            <>
+              <Hidden detail={detail} />
+              <input
+                type="text"
+                name="annotation"
+                maxLength={300}
+                defaultValue={detail.adminNotes ?? ''}
+                placeholder="chèque n°…, PMR, contexte…"
+                className={styles.detailNoteInput}
+              />
+              <button type="submit" className={styles.btn}>
+                Enregistrer
+              </button>
+            </>
+          )}
+        </ActionForm>
       </div>
 
       <div className={styles.detailBloc}>
