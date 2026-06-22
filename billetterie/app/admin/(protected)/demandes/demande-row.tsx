@@ -230,8 +230,8 @@ function dateAujourdHui(): string {
 
 // « Ajouter un versement ». Remonté par sa `key` (= nb de versements, cf.
 // SectionPaiement) après chaque ajout réussi → champs vidés et montant
-// pré-rempli au nouveau reste dû. Pour un CHÈQUE : champ « Date de paiement »
-// pré-rempli au jour (modifiable si dépôt différé), pas de n° de chèque.
+// pré-rempli au nouveau reste dû. Champ « Date de paiement » pré-rempli au jour
+// (modifiable si dépôt différé). Pas de n° de chèque.
 function AjouterVersementForm({
   detail,
   presetMontant,
@@ -239,20 +239,14 @@ function AjouterVersementForm({
   detail: DemandeDetail
   presetMontant: string
 }) {
-  const [methode, setMethode] = useState('cheque')
   // Date du jour figée à l'ouverture du formulaire (remonté à chaque ajout).
-  const [dateChq] = useState(dateAujourdHui)
+  const [dateVersement] = useState(dateAujourdHui)
   return (
     <ActionForm action={ajouterPaiementAction}>
       {(pending) => (
         <>
           <Hidden detail={detail} />
-          <select
-            name="methode"
-            aria-label="Mode de règlement"
-            value={methode}
-            onChange={(e) => setMethode(e.target.value)}
-          >
+          <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
             <option value="cheque">Chèque</option>
             <option value="especes">Espèces</option>
             <option value="autre">Autre</option>
@@ -265,18 +259,16 @@ function AjouterVersementForm({
             aria-label="Montant du versement en euros"
             defaultValue={presetMontant}
           />
-          {methode === 'cheque' && (
-            <label className={styles.detailInline}>
-              Date de paiement
-              <input
-                type="date"
-                name="depositOn"
-                defaultValue={dateChq}
-                aria-label="Date de paiement (dépôt du chèque)"
-                title="Date de dépôt du chèque — pré-remplie au jour, modifiable si dépôt différé"
-              />
-            </label>
-          )}
+          <label className={styles.detailInline}>
+            Date de paiement
+            <input
+              type="date"
+              name="depositOn"
+              defaultValue={dateVersement}
+              aria-label="Date de paiement"
+              title="Date du paiement (dépôt pour un chèque) — pré-remplie au jour, modifiable"
+            />
+          </label>
           <button type="submit" className={styles.btn} disabled={pending}>
             {pending ? 'Enregistrement…' : 'Ajouter le versement'}
           </button>
