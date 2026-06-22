@@ -26,7 +26,11 @@ import {
 import { logBookingEvent } from '@/lib/admin/events'
 import { euros } from '@/lib/admin/money'
 import { getTicketPriceCents } from '@/lib/admin/pricing'
-import { MOTIF_AUTRE } from '@/lib/admin/refund-motifs'
+import {
+  MOTIF_AUTRE,
+  MOTIF_PLACES_RETIREES,
+  MOTIF_PLACES_RETIREES_SEP,
+} from '@/lib/admin/refund-motifs'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -48,6 +52,7 @@ const referenceSchema = z.string().trim().max(60)
 // Date de dépôt d'un chèque : valeur d'un <input type="date"> (AAAA-MM-JJ).
 const depositSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const freeSeatsSchema = z.coerce.number().int().min(0).max(MAX_PARTY_SIZE)
+const placesRetireesSchema = z.coerce.number().int().min(1).max(MAX_PARTY_SIZE)
 
 // Date « jour » (sans heure) en français, fuseau Paris — pour l'historique.
 const dateJourFr = new Intl.DateTimeFormat('fr-FR', {
@@ -106,20 +111,29 @@ function lireId(formData: FormData): string {
   return parsed.data
 }
 
+// État renvoyé à la popup (useActionState) : la popup RESTE OUVERTE, on affiche
+// un message inline au lieu de rediriger (sinon la navigation fermerait la popup).
+export type VersementState = { ok?: string; error?: string }
+
 // Enregistre UN versement (espèces / chèque, éventuellement échelonné). Méthode
-// + montant requis ; date de dépôt et référence facultatives (chèques). Cas
-// courant — une demande en attente réglée d'un coup → on enchaîne le placement.
-export async function ajouterPaiementAction(formData: FormData): Promise<void> {
+// + montant requis ; date de dépôt et référence facultatives (chèques). Renvoie
+// un état (pas de redirect) pour que la popup reste ouverte : on enchaîne ainsi
+// plusieurs chèques sans rouvrir la demande à chaque fois. La liste/caisse sont
+// rafraîchies par revalidatePath.
+export async function ajouterPaiementAction(
+  _prev: VersementState,
+  formData: FormData,
+): Promise<VersementState> {
   const { email } = await requireAdmin()
-  const id = lireId(formData)
+  const idParsed = idSchema.safeParse(formData.get('id'))
+  if (!idParsed.success) return { error: 'Identifiant invalide.' }
+  const id = idParsed.data
 
   const methode = methodeSchema.safeParse(formData.get('methode'))
-  if (!methode.success) {
-    redirect(urlListe(formData.get('retour'), 'err', 'Mode de règlement invalide.'))
-  }
+  if (!methode.success) return { error: 'Mode de règlement invalide.' }
   const montant = montantSchema.safeParse(formData.get('montant'))
   if (!montant.success || montant.data <= 0) {
-    redirect(urlListe(formData.get('retour'), 'err', 'Montant invalide (renseignez un montant supérieur à 0).'))
+    return { error: 'Montant invalide (renseignez un montant supérieur à 0).' }
   }
 
   // Date de dépôt (chèque échelonné) : facultative. Stockée à midi UTC pour
@@ -128,14 +142,12 @@ export async function ajouterPaiementAction(formData: FormData): Promise<void> {
   let depositOn: Date | null = null
   if (typeof depBrut === 'string' && depBrut.trim() !== '') {
     const d = depositSchema.safeParse(depBrut.trim())
-    if (!d.success) {
-      redirect(urlListe(formData.get('retour'), 'err', 'Date de dépôt invalide.'))
-    }
+    if (!d.success) return { error: 'Date de dépôt invalide.' }
     const dt = new Date(`${d.data}T12:00:00.000Z`)
     // Round-trip : rejette les dates impossibles (« 2026-06-31 » roulerait au
     // 01/07, « 2026-99-99 » donnerait Invalid Date) que la regex laisse passer.
     if (Number.isNaN(dt.getTime()) || dt.toISOString().slice(0, 10) !== d.data) {
-      redirect(urlListe(formData.get('retour'), 'err', 'Date de dépôt invalide.'))
+      return { error: 'Date de dépôt invalide.' }
     }
     depositOn = dt
   }
@@ -157,7 +169,7 @@ export async function ajouterPaiementAction(formData: FormData): Promise<void> {
       unitPrice,
     )
   } catch (error) {
-    redirect(urlListe(formData.get('retour'), 'err', messageErreur(error)))
+    return { error: messageErreur(error) }
   }
 
   const detail =
@@ -171,19 +183,12 @@ export async function ajouterPaiementAction(formData: FormData): Promise<void> {
   await logBookingEvent(id, 'payment_added', email, detail)
   revalidatePath('/admin/demandes')
   revalidatePath('/admin')
-  // Cas courant : une demande en attente réglée intégralement en une fois → on
-  // enchaîne sur l'écran de placement (préserve l'ancien flux « marquer payée »).
-  // Acompte ou demande déjà « à placer »/placée → on reste sur la liste.
-  if (res.etaitPending && res.nowSoldee && !res.etaitPlace) {
-    redirect(`/admin/placement/${id}`)
+  revalidatePath('/admin/stats')
+  return {
+    ok: res.nowSoldee
+      ? 'Versement enregistré — demande soldée. Vous pouvez la placer.'
+      : 'Versement enregistré (acompte).',
   }
-  redirect(
-    urlListe(
-      formData.get('retour'),
-      'ok',
-      res.nowSoldee ? 'Versement enregistré (demande soldée).' : 'Versement enregistré (acompte).',
-    ),
-  )
 }
 
 // Supprime un versement saisi par erreur (cf. lib/admin/bookings.supprimerPaiement).
@@ -319,11 +324,22 @@ export async function rembourserAction(formData: FormData): Promise<void> {
   if (!montant.success) {
     redirect(urlListe(formData.get('retour'), 'err', 'Montant de remboursement invalide.'))
   }
-  // Motif : valeur du menu déroulant, sauf « Autre… » → champ libre.
+  // Motif : valeur du menu déroulant. « Autre… » → champ libre ; « Place(s)
+  // retirée(s) » → on y joint le nombre de places (« Place(s) retirée(s) : N »).
   const choix = String(formData.get('raison') ?? '')
-  const raisonBrute = choix === MOTIF_AUTRE ? formData.get('raisonAutre') : choix
-  const raison = raisonSchema.safeParse(raisonBrute ?? '')
-  const motif = raison.success && raison.data ? raison.data : undefined
+  let motif: string | undefined
+  if (choix === MOTIF_AUTRE) {
+    const raison = raisonSchema.safeParse(formData.get('raisonAutre') ?? '')
+    motif = raison.success && raison.data ? raison.data : undefined
+  } else if (choix === MOTIF_PLACES_RETIREES) {
+    const n = placesRetireesSchema.safeParse(formData.get('placesRetirees'))
+    motif = n.success
+      ? `${MOTIF_PLACES_RETIREES}${MOTIF_PLACES_RETIREES_SEP}${n.data}`
+      : MOTIF_PLACES_RETIREES
+  } else {
+    const raison = raisonSchema.safeParse(choix)
+    motif = raison.success && raison.data ? raison.data : undefined
+  }
 
   try {
     await enregistrerRemboursement(prisma, id, { refundCents: montant.data, refundReason: motif })

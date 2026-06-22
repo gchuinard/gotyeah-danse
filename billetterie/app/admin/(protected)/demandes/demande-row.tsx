@@ -8,13 +8,18 @@
 // (mode info, large) et est rendue via portal (HTML valide : pas de <div>
 // enfant de <tr>).
 
-import { useState, type MouseEvent, type ReactNode } from 'react'
+import { useActionState, useState, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { euros, resumePaiement } from '@/lib/admin/money'
-import { MOTIF_AUTRE, REFUND_MOTIFS } from '@/lib/admin/refund-motifs'
+import {
+  MOTIF_AUTRE,
+  MOTIF_PLACES_RETIREES,
+  MOTIF_PLACES_RETIREES_SEP,
+  REFUND_MOTIFS,
+} from '@/lib/admin/refund-motifs'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
 import { ConfirmSubmit } from './confirm-submit'
 import {
@@ -29,6 +34,7 @@ import {
   rembourserAction,
   renvoyerBilletsAction,
   supprimerPaiementAction,
+  type VersementState,
 } from './actions'
 import styles from './demandes.module.css'
 
@@ -131,12 +137,27 @@ function Hidden({ detail }: { detail: DemandeDetail }) {
 }
 
 // Motif de remboursement : motifs courants en menu déroulant + « Autre… » qui
-// révèle un champ libre. Le serveur (rembourserAction) lit `raison` (ou
-// `raisonAutre` quand « Autre… » est choisi).
+// révèle un champ libre. Pour « Place(s) retirée(s) », un champ NOMBRE apparaît
+// (le serveur enregistre « Place(s) retirée(s) : N »). Le serveur
+// (rembourserAction) lit `raison`, `placesRetirees` ou `raisonAutre`.
 function MotifRemboursement({ initial }: { initial: string | null }) {
   const presets = REFUND_MOTIFS as readonly string[]
-  const initialChoix = initial ? (presets.includes(initial) ? initial : MOTIF_AUTRE) : presets[0]
-  const [choix, setChoix] = useState(initialChoix)
+  const prefixPlaces = `${MOTIF_PLACES_RETIREES}${MOTIF_PLACES_RETIREES_SEP}`
+  // Restitue le motif + le nombre depuis un refundReason déjà enregistré.
+  let initChoix: string = presets[0]
+  let initCount = ''
+  if (initial) {
+    if (initial.startsWith(prefixPlaces)) {
+      initChoix = MOTIF_PLACES_RETIREES
+      initCount = initial.slice(prefixPlaces.length).replace(/\D/g, '')
+    } else if (presets.includes(initial)) {
+      initChoix = initial
+    } else {
+      initChoix = MOTIF_AUTRE
+    }
+  }
+  const [choix, setChoix] = useState(initChoix)
+  const [count, setCount] = useState(initCount)
   return (
     <>
       <select
@@ -152,6 +173,18 @@ function MotifRemboursement({ initial }: { initial: string | null }) {
         ))}
         <option value={MOTIF_AUTRE}>Autre…</option>
       </select>
+      {choix === MOTIF_PLACES_RETIREES && (
+        <input
+          type="number"
+          name="placesRetirees"
+          min={1}
+          max={MAX_PARTY_SIZE}
+          value={count}
+          onChange={(e) => setCount(e.target.value)}
+          placeholder="nb places"
+          aria-label="Nombre de places retirées"
+        />
+      )}
       {choix === MOTIF_AUTRE && (
         <input
           type="text"
@@ -159,10 +192,60 @@ function MotifRemboursement({ initial }: { initial: string | null }) {
           maxLength={200}
           placeholder="préciser le motif"
           aria-label="Autre motif"
-          defaultValue={initial && !presets.includes(initial) ? initial : ''}
+          defaultValue={initial && !presets.includes(initial) && !initial.startsWith(prefixPlaces) ? initial : ''}
         />
       )}
     </>
+  )
+}
+
+// Formulaire « ajouter un versement » : useActionState → la popup reste ouverte
+// (feedback inline, pas de navigation). Remonté par sa `key` après chaque ajout
+// réussi (cf. SectionPaiement) → champs vidés et montant pré-rempli au nouveau
+// reste dû.
+function AjouterVersementForm({
+  detail,
+  presetMontant,
+}: {
+  detail: DemandeDetail
+  presetMontant: string
+}) {
+  const [state, formAction, pending] = useActionState(ajouterPaiementAction, {} as VersementState)
+  return (
+    <form action={formAction} className={styles.detailActionForm}>
+      <Hidden detail={detail} />
+      <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
+        <option value="cheque">Chèque</option>
+        <option value="especes">Espèces</option>
+        <option value="autre">Autre</option>
+      </select>
+      <input
+        type="text"
+        name="montant"
+        inputMode="decimal"
+        placeholder="€"
+        aria-label="Montant du versement en euros"
+        defaultValue={presetMontant}
+      />
+      <input
+        type="date"
+        name="depositOn"
+        aria-label="Date de dépôt (chèque échelonné, facultatif)"
+        title="Date de dépôt prévue (chèque échelonné) — facultatif"
+      />
+      <input
+        type="text"
+        name="reference"
+        maxLength={60}
+        placeholder="n° chèque (facultatif)"
+        aria-label="Référence du versement"
+      />
+      <button type="submit" className={styles.btn} disabled={pending}>
+        {pending ? 'Enregistrement…' : 'Ajouter le versement'}
+      </button>
+      {state.error && <p className={styles.detailWarn}>{state.error}</p>}
+      {state.ok && <p className={styles.detailOk}>{state.ok}</p>}
+    </form>
   )
 }
 
@@ -257,42 +340,18 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
         </ul>
       )}
 
-      {/* Ajouter un versement (toujours possible tant que la demande est active) */}
+      {/* Ajouter un versement : la popup RESTE OUVERTE (useActionState, pas de
+          redirect) → on enchaîne plusieurs chèques sans rouvrir la demande. La
+          clé = nb de versements : remonte le form (champs vidés, reste recalculé)
+          après chaque ajout réussi. */}
       {detail.expiree && !detail.paid ? (
         <p className={styles.detailTexte}>Demande expirée — prolongez-la avant d’encaisser.</p>
       ) : (
-        <form action={ajouterPaiementAction} className={styles.detailActionForm}>
-          <Hidden detail={detail} />
-          <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
-            <option value="cheque">Chèque</option>
-            <option value="especes">Espèces</option>
-            <option value="autre">Autre</option>
-          </select>
-          <input
-            type="text"
-            name="montant"
-            inputMode="decimal"
-            placeholder="€"
-            aria-label="Montant du versement en euros"
-            defaultValue={presetMontant}
-          />
-          <input
-            type="date"
-            name="depositOn"
-            aria-label="Date de dépôt (chèque échelonné, facultatif)"
-            title="Date de dépôt prévue (chèque échelonné) — facultatif"
-          />
-          <input
-            type="text"
-            name="reference"
-            maxLength={60}
-            placeholder="n° chèque (facultatif)"
-            aria-label="Référence du versement"
-          />
-          <button type="submit" className={styles.btn}>
-            Ajouter le versement
-          </button>
-        </form>
+        <AjouterVersementForm
+          key={detail.payments.length}
+          detail={detail}
+          presetMontant={presetMontant}
+        />
       )}
 
       {/* Remboursement (si de l'argent a été reçu) */}

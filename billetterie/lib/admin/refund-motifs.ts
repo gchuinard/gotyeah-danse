@@ -4,8 +4,14 @@
 
 export const MOTIF_AUTRE = '__autre__'
 
+// Motif « place(s) retirée(s) » : on lui associe un NOMBRE de places (champ
+// dédié dans la popup). Le motif enregistré devient « Place(s) retirée(s) : N »
+// (préfixe stable → ré-ouverture qui retrouve le motif + le nombre).
+export const MOTIF_PLACES_RETIREES = 'Place(s) retirée(s)'
+export const MOTIF_PLACES_RETIREES_SEP = ' : '
+
 export const REFUND_MOTIFS = [
-  'Place(s) retirée(s)',
+  MOTIF_PLACES_RETIREES,
   'Demande annulée',
   'Erreur de montant',
   'Geste commercial',

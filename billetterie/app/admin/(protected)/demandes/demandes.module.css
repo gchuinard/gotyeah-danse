@@ -357,6 +357,14 @@
   border: 1px solid #ecd29a;
 }
 
+/* Message de succès inline (popup) — vert sobre. */
+.detailOk {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2d5a2d;
+}
+
 /* Récap montant dans la popup paiement : dû / reçu / reste, bien lisible. */
 .montantRecap {
   margin: 0 0 0.6rem;
