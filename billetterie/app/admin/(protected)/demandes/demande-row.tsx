@@ -354,25 +354,6 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
         />
       )}
 
-      {/* Remboursement (si de l'argent a été reçu) */}
-      {r.remisCents > 0 && (
-        <form action={rembourserAction} className={styles.detailActionForm}>
-          <Hidden detail={detail} />
-          <input
-            type="text"
-            name="montant"
-            inputMode="decimal"
-            placeholder="€ remboursés"
-            aria-label="Montant remboursé en euros"
-            defaultValue={detail.refundCents ? (detail.refundCents / 100).toFixed(2).replace('.', ',') : ''}
-          />
-          <MotifRemboursement initial={detail.refundReason} />
-          <button type="submit" className={styles.btn}>
-            Enregistrer le remboursement
-          </button>
-        </form>
-      )}
-
       {/* Annuler TOUT le règlement */}
       {detail.paid && (
         <form action={annulerPaiementAction} className={styles.detailActionForm}>
@@ -385,6 +366,51 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
           </ConfirmSubmit>
         </form>
       )}
+    </div>
+  )
+}
+
+// Remboursement : BLOC SÉPARÉ du paiement (ex. places retirées après règlement).
+// N'apparaît que si de l'argent a été reçu. La caisse compte le net = reçu −
+// remboursé.
+function SectionRemboursement({ detail }: { detail: DemandeDetail }) {
+  const r = resumePaiement({
+    partySize: detail.partySize,
+    freeSeats: detail.freeSeats,
+    unitPriceCents: detail.unitPriceCents,
+    payments: detail.payments,
+    refundCents: detail.refundCents,
+  })
+  if (r.remisCents <= 0) return null
+  return (
+    <div className={styles.detailBloc}>
+      <h3 className={styles.detailTitre}>Remboursement</h3>
+      {detail.refundCents ? (
+        <p className={styles.detailTexte}>
+          Remboursé : <strong>{euros(detail.refundCents)}</strong>
+          {detail.refundReason ? ` — ${detail.refundReason}` : ''} → net en caisse{' '}
+          {euros(r.netCents)}.
+        </p>
+      ) : (
+        <p className={styles.detailTexte}>
+          Aucun remboursement. À utiliser p. ex. après le retrait de places déjà réglées.
+        </p>
+      )}
+      <form action={rembourserAction} className={styles.detailActionForm}>
+        <Hidden detail={detail} />
+        <input
+          type="text"
+          name="montant"
+          inputMode="decimal"
+          placeholder="€ remboursés"
+          aria-label="Montant remboursé en euros"
+          defaultValue={detail.refundCents ? (detail.refundCents / 100).toFixed(2).replace('.', ',') : ''}
+        />
+        <MotifRemboursement initial={detail.refundReason} />
+        <button type="submit" className={styles.btn}>
+          Enregistrer le remboursement
+        </button>
+      </form>
     </div>
   )
 }
@@ -551,6 +577,7 @@ function DetailContent({ detail }: { detail: DemandeDetail }) {
       )}
 
       {actionable && <SectionPaiement detail={detail} />}
+      {actionable && <SectionRemboursement detail={detail} />}
       {actionable && <SectionGestion detail={detail} />}
 
       <div className={styles.detailBloc}>
