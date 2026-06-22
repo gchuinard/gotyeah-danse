@@ -72,6 +72,82 @@
   color: #9a948a;
 }
 
+/* ---- Tooltip de survol d'un siège ---- */
+
+.tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: #1e1a16;
+  color: #faf7f2;
+  border-radius: 9px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(30, 26, 22, 0.32);
+  animation: tooltipIn 90ms ease-out;
+}
+
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ttTitre {
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.ttSection {
+  color: #cfc7bb;
+}
+
+.ttStatut {
+  margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.ttStatut::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.ttLibre {
+  color: #84d6a4;
+}
+
+.ttOccupe {
+  color: #f0a987;
+}
+
+.ttPmr {
+  color: #9cc2f0;
+}
+
+.ttBloque {
+  color: #cabfb2;
+}
+
+.ttNote {
+  margin-top: 0.1rem;
+  color: #cfc7bb;
+  font-style: italic;
+}
+
 /* ---- Sièges ---- */
 
 .seat {

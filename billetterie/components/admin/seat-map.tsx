@@ -60,6 +60,27 @@ function seatTitle(seat: SeatView): string {
   return title
 }
 
+// Ligne de statut du tooltip + sa teinte (pastille colorée).
+function statutTexte(seat: SeatView): string {
+  if (seat.status === 'occupe') {
+    return seat.occupant
+      ? `Occupé — ${seat.occupant}${seat.occupantPmr ? ' (famille PMR)' : ''}`
+      : 'Occupé'
+  }
+  if (isPmr(seat)) return 'Réservé PMR'
+  if (seat.status === 'bloque') {
+    return `Bloqué${seat.overrideReason ? ` — ${reasonLabel(seat.overrideReason)}` : ''}`
+  }
+  return 'Libre'
+}
+
+function statutTon(seat: SeatView): 'ttOccupe' | 'ttLibre' | 'ttPmr' | 'ttBloque' {
+  if (seat.status === 'occupe') return 'ttOccupe'
+  if (isPmr(seat)) return 'ttPmr'
+  if (seat.status === 'bloque') return 'ttBloque'
+  return 'ttLibre'
+}
+
 type Box = { x: number; y: number; w: number; h: number }
 
 export type SeatMapProps = {
@@ -147,7 +168,20 @@ export default function SeatMap({
   const box = view ?? geometry.base
 
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const wrapRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; moved: boolean; pointerId: number } | null>(null)
+
+  // Tooltip custom (survol d'un siège) : position en px relative au mapWrap,
+  // figée à l'ENTRÉE du siège (pas de re-render par mousemove → reste fluide
+  // même avec 750 sièges). `flip` : tooltip à gauche du curseur près du bord.
+  const [hover, setHover] = useState<{ seat: SeatView; x: number; y: number; flip: boolean } | null>(
+    null,
+  )
+  const tooltipPos = (e: React.MouseEvent): { x: number; y: number; flip: boolean } => {
+    const rect = wrapRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0, flip: false }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top, flip: e.clientX - rect.left > rect.width * 0.62 }
+  }
 
   const clampView = (v: Box): Box => {
     const { base } = geometry
@@ -210,6 +244,7 @@ export default function SeatMap({
     if (!drag.moved) {
       // Vrai déplacement → on bascule en pan et on capture pour suivre le
       // pointeur même hors du cadre. Le clic sera neutralisé (onClickCapture).
+      setHover(null) // pas de tooltip pendant un déplacement
       try {
         e.currentTarget.setPointerCapture(drag.pointerId)
       } catch {
@@ -259,7 +294,7 @@ export default function SeatMap({
 
   return (
     <figure className={styles.figure}>
-      <div className={styles.mapWrap}>
+      <div className={styles.mapWrap} ref={wrapRef}>
         <svg
           ref={svgRef}
           className={zoome ? `${styles.svg} ${styles.svgZoome}` : styles.svg}
@@ -325,10 +360,21 @@ export default function SeatMap({
               .join(' ')
 
             return (
-              <g key={seat.id} onClick={isClickable ? () => onSeatClick!(seat) : undefined}>
-                <circle className={classNames} cx={seat.x} cy={seat.y} r={SEAT_R}>
-                  <title>{seatTitle(seat)}</title>
-                </circle>
+              <g
+                key={seat.id}
+                onClick={isClickable ? () => onSeatClick!(seat) : undefined}
+                onMouseEnter={(e) => {
+                  if (!dragRef.current?.moved) setHover({ seat, ...tooltipPos(e) })
+                }}
+                onMouseLeave={() => setHover(null)}
+              >
+                <circle
+                  className={classNames}
+                  cx={seat.x}
+                  cy={seat.y}
+                  r={SEAT_R}
+                  aria-label={seatTitle(seat)}
+                />
                 {seat.status === 'bloque' && !pmr ? (
                   <path
                     className={styles.cross}
@@ -378,6 +424,26 @@ export default function SeatMap({
             ⟲
           </button>
         </div>
+
+        {hover && (
+          <div
+            className={styles.tooltip}
+            style={{
+              left: hover.x,
+              top: hover.y,
+              transform: `translate(${hover.flip ? 'calc(-100% - 14px)' : '14px'}, calc(-100% - 14px))`,
+            }}
+          >
+            <div className={styles.ttTitre}>
+              Rang {hover.seat.rowLabel} · Place {hover.seat.number}
+            </div>
+            <div className={styles.ttSection}>{sectionLabel(hover.seat.section)}</div>
+            <div className={`${styles.ttStatut} ${styles[statutTon(hover.seat)]}`}>
+              {statutTexte(hover.seat)}
+            </div>
+            {hover.seat.removable && <div className={styles.ttNote}>siège amovible</div>}
+          </div>
+        )}
       </div>
 
       <figcaption className={styles.legend}>
