@@ -189,9 +189,9 @@ export default function DemandeForm({
           Plus de {MAX_PARTY_SIZE} places ? Contactez-nous aux permanences de l&apos;école.
         </p>
         <p className={styles.hint}>
-          Nous essayons de regrouper au mieux les personnes d&apos;une même commande. S&apos;il
-          fallait répartir votre groupe sur deux rangs voisins (les uns devant les autres), nous le
-          ferions toujours <strong>avec vous</strong>, jamais sans vous prévenir.
+          Nous regroupons au mieux les personnes d&apos;une même commande. Il existe un{' '}
+          <strong>risque de séparation</strong> du groupe&nbsp;: le cas échéant, le placement se
+          fait <strong>avec vous</strong>, jamais sans vous prévenir.
         </p>
         <FieldError messages={errors?.partySize} />
       </div>
