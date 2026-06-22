@@ -21,16 +21,32 @@ const STATUTS = [
   { value: 'cancelled', label: 'Annulées' },
 ] as const
 
-export function FiltresDemandes({ statut, q }: { statut: string; q: string }) {
+const PAIEMENTS = [
+  { value: '', label: 'Tous' },
+  { value: 'paye', label: 'Payées' },
+  { value: 'impaye', label: 'Non payées' },
+] as const
+
+export function FiltresDemandes({
+  statut,
+  q,
+  paiement,
+}: {
+  statut: string
+  q: string
+  paiement: string
+}) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [recherche, setRecherche] = useState(q)
   const [statutChoisi, setStatutChoisi] = useState(statut)
+  const [paiementChoisi, setPaiementChoisi] = useState(paiement)
   const premierRendu = useRef(true)
 
-  const naviguer = (s: string, r: string) => {
+  const naviguer = (s: string, r: string, p: string) => {
     const params = new URLSearchParams()
     if (s) params.set('statut', s)
+    if (p) params.set('paiement', p)
     if (r.trim()) params.set('q', r.trim())
     const qs = params.toString()
     startTransition(() => router.replace('/admin/demandes' + (qs ? `?${qs}` : '')))
@@ -42,14 +58,15 @@ export function FiltresDemandes({ statut, q }: { statut: string; q: string }) {
       premierRendu.current = false
       return
     }
-    const t = setTimeout(() => naviguer(statutChoisi, recherche), 250)
+    const t = setTimeout(() => naviguer(statutChoisi, recherche, paiementChoisi), 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recherche, statutChoisi])
+  }, [recherche, statutChoisi, paiementChoisi])
 
   const reinitialiser = () => {
     setRecherche('')
     setStatutChoisi('')
+    setPaiementChoisi('')
     startTransition(() => router.replace('/admin/demandes'))
   }
 
@@ -61,6 +78,16 @@ export function FiltresDemandes({ statut, q }: { statut: string; q: string }) {
           {STATUTS.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Paiement
+        <select value={paiementChoisi} onChange={(e) => setPaiementChoisi(e.target.value)}>
+          {PAIEMENTS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
             </option>
           ))}
         </select>
@@ -84,7 +111,7 @@ export function FiltresDemandes({ statut, q }: { statut: string; q: string }) {
         ↻ Rafraîchir
       </button>
 
-      {(statutChoisi || recherche) && (
+      {(statutChoisi || recherche || paiementChoisi) && (
         <button type="button" className={styles.filtreReset} onClick={reinitialiser}>
           Réinitialiser
         </button>

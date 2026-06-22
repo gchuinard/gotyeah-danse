@@ -135,6 +135,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
 
   const params = await searchParams
   const statut = premier(params.statut)
+  const paiement = premier(params.paiement) // '' | 'paye' | 'impaye'
   const q = premier(params.q).trim()
   const ok = premier(params.ok)
   const err = premier(params.err)
@@ -144,6 +145,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   // sur la même vue après une mutation.
   const retour = new URLSearchParams()
   if (statut) retour.set('statut', statut)
+  if (paiement) retour.set('paiement', paiement)
   if (q) retour.set('q', q)
   // Filtre courant à reconduire après un placement (lien → écran → retour).
   const retourQs = retour.toString()
@@ -172,6 +174,13 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       ? { status: 'pending', expiresAt: { lte: now } }
       : statut
         ? { status: statut }
+        : {}),
+    // Filtre paiement : « payées » = un règlement existe (paidAt posé) ;
+    // « non payées » = aucun règlement. Sur la colonne paidAt (indexable).
+    ...(paiement === 'paye'
+      ? { paidAt: { not: null } }
+      : paiement === 'impaye'
+        ? { paidAt: null }
         : {}),
     ...(rechercheOR.length ? { OR: rechercheOR } : {}),
   }
@@ -225,7 +234,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       {ok && <p className={styles.bannerOk}>{ok}</p>}
       {err && <p className={styles.bannerErr}>{err}</p>}
 
-      <FiltresDemandes statut={statut} q={q} />
+      <FiltresDemandes statut={statut} q={q} paiement={paiement} />
 
       {demandes.length === 0 ? (
         <p className={styles.vide}>Aucune demande ne correspond à ces critères.</p>
