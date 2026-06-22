@@ -3,6 +3,26 @@
 Idées et corrections en attente, notées au fil de l'eau (2026-06-11).
 Aucun engagement d'ordre — prioriser à la demande.
 
+## ✅ Fait le 2026-06-22 (argent + exploitation)
+
+- [x] **Prix + montant dû + versements.** Prix unitaire global (Setting), montant
+  dû = (places − **places offertes**) × prix, règlement en **versements multiples**
+  (table `Payment`) avec **chèques échelonnés** (date de paiement). Soldée dérivée
+  (net ≥ dû). Caisse depuis les versements + **« Chèques à déposer »** par mois +
+  reste à encaisser / trop-perçu. Côté famille : montant indicatif + dû/reçu/reste.
+  Détail : voir [README](README.md).
+- [x] **Popup demandes « reste ouverte ».** Toutes les actions (versements,
+  remboursement en bloc séparé, places offertes, etc.) en `useActionState` (pas de
+  navigation). Filtre **paiement** (payées / non payées) sur la liste.
+- [x] **Détection de doublons à la création admin.** Email = blocage (lien vers la
+  demande) ; téléphone / nom = avertissement « êtes-vous sûr ? ».
+- [x] **Téléphone stocké en chiffres** (`0612345678`), affiché formaté partout —
+  recherche fiabilisée (migration des numéros existants).
+- [x] **Scan : indice** quand la personne cherchée n'a pas de billet à scanner ici
+  (non placée / autre date / annulée). Plan : hover custom, scène élargie, contour
+  des places validées zébré par rang, anciennes places en orange vif, marquage
+  « famille PMR » retiré.
+
 ## 🐛 Corrections
 
 - [x] **Calibration à l'envers + rangées manquantes + sens pair/impair.**

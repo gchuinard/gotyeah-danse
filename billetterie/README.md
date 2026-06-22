@@ -102,10 +102,11 @@ navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes (liste épurée). **Clic sur une ligne → popup « centre d'actions »** : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (montant pré-rempli = reste dû, date de dépôt + n° pour chèques) / supprimer un versement / **annuler tout le règlement** / **remboursement** (montant + motif), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
+| `/admin/demandes` | File des demandes. **Filtres** : statut, **paiement** (payées / non payées), recherche nom/email/téléphone (live). **Clic sur une ligne → popup « centre d'actions »** (reste ouverte, feedback inline) : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (date de paiement pré-remplie au jour) / supprimer un versement / **annuler tout le règlement**, bloc séparé **Remboursement** (montant + motif, nb de places pour « place retirée »), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
+| `/admin/demandes/nouvelle` | Créer une demande au back-office. **Détection de doublons** sur la même représentation : email déjà utilisé = **blocage** (lien vers la demande existante) ; téléphone ou nom = **avertissement** « êtes-vous sûr ? » avec liens (ou « créer quand même »). |
 | `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
-| `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle) |
+| `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle nom/prénom/tél/email/place). Si la personne cherchée n'a **pas de billet à scanner ici**, un **indice** explique pourquoi (non placée / payée non placée / **placée sur l'autre date** / annulée) — le scan charge pour cela un annuaire léger de toutes les demandes |
 | `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (par mode, **net = Σ versements − remboursé**, reste à encaisser, trop-perçu) + **« Chèques à déposer »** groupés par mois + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 | `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
@@ -289,12 +290,15 @@ Checklist :
 2. **Ouvrir `/admin/scan` sur les téléphones des bénévoles** AVANT de partir :
    HTTPS obligatoire pour la caméra, et il faut être connecté — la session
    admin dure **7 jours**, donc se logger la veille suffit.
-3. Le scan **fonctionne sans réseau** : le manifeste des billets est chargé au
-   départ, la validation est 100 % locale, les scans rejoignent une file de
-   synchro (miroir localStorage — **survit au refresh**) envoyée dès que le
-   réseau revient.
-4. **Saisie manuelle en secours** : recherche par nom partiel ou par place
-   (« G12 »), directement sur la page de scan.
+3. Le scan **fonctionne sans réseau** : le manifeste des billets (+ un annuaire
+   léger de toutes les demandes, pour les indices) est chargé au départ, la
+   validation est 100 % locale, les scans rejoignent une file de synchro (miroir
+   localStorage — **survit au refresh**) envoyée dès que le réseau revient.
+4. **Saisie manuelle en secours** : recherche par nom/prénom, téléphone, email
+   ou place (« G12 »), directement sur la page de scan. Si la personne n'a pas de
+   billet à scanner ici, un **indice** dit pourquoi (non placée / autre date /
+   annulée) — pense alors à la **placer** ou à **changer de représentation** dans
+   le sélecteur du scan.
 5. **Premier scan gagne** : un billet déjà scanné est refusé, impossible de le
    « dé-scanner » par la route.
 6. Le **dashboard** (`/admin`) suit les compteurs de scan en live.
