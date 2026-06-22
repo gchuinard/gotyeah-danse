@@ -308,8 +308,12 @@ export default function SeatMap({
                     : styles.libre,
               // Famille PMR déjà placée : intérieur marron, contour bleu.
               seat.status === 'occupe' && seat.occupantPmr ? styles.occupePmr : '',
-              // Zébrure : un rang sur deux, contour teinté (lecture des rangs).
+              // Zébrure : un rang sur deux, contour teinté (lecture des rangs) —
+              // sur les sièges libres ET occupés (hors PMR, qui garde son bleu).
               seat.status === 'libre' && seat.rowOrder % 2 === 1 ? styles.libreAlt : '',
+              seat.status === 'occupe' && !seat.occupantPmr && seat.rowOrder % 2 === 1
+                ? styles.occupeAlt
+                : '',
               seat.removable && seat.status !== 'bloque' ? styles.removable : '',
               previous.has(seat.id) ? styles.previous : '',
               current.has(seat.id) ? styles.current : '',

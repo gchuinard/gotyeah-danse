@@ -95,9 +95,16 @@
   stroke: #3f6fb0;
 }
 
+/* Place validée (occupée) : intérieur marron. Le CONTOUR reprend la zébrure des
+   rangs comme les sièges libres — brun par défaut, vert un rang sur deux
+   (.occupeAlt) — pour garder la lecture des rangs même sur les sièges remplis. */
 .occupe {
   fill: #5c3d2e;
-  stroke: #5c3d2e;
+  stroke: #8b5e4a;
+}
+
+.occupeAlt {
+  stroke: #2f8f7d;
 }
 
 /* Famille PMR déjà placée : intérieur marron (occupé), contour bleu épais. */
@@ -143,9 +150,10 @@
    pointillé, purement visuel — le siège reste cliquable pour le re-sélectionner.
    Défini AVANT .highlighted/.selected/.current pour qu'ils l'emportent. */
 .previous {
-  stroke: #d39a3a;
-  stroke-width: 3;
-  stroke-dasharray: 3 2;
+  stroke: #ff7a00;
+  stroke-width: 4.5;
+  stroke-dasharray: 4 2;
+  filter: drop-shadow(0 0 4px rgba(255, 122, 0, 0.9));
 }
 
 /* Suggestion mise en avant : halo + contour épais distinct. */
@@ -280,5 +288,6 @@
 
 .dotPrevious {
   background: #faf7f2;
-  border: 2px dashed #d39a3a;
+  border: 2px dashed #ff7a00;
+  box-shadow: 0 0 3px rgba(255, 122, 0, 0.9);
 }
