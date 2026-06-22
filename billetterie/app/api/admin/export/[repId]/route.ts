@@ -9,6 +9,7 @@ import { resumePaiement } from '@/lib/admin/money'
 import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { getAdminSession } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
+import { formatFrPhone } from '@/lib/public/phone'
 
 const REP_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/
 
@@ -153,7 +154,7 @@ export async function GET(
     lignes.push([
       b.name,
       b.email,
-      b.phone,
+      formatFrPhone(b.phone),
       STATUTS[b.status] ?? b.status,
       String(b.partySize),
       b.freeSeats > 0 ? String(b.freeSeats) : '',

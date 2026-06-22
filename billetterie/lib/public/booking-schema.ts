@@ -7,7 +7,7 @@
 import { z } from 'zod'
 
 import { MAX_PARTY_SIZE } from './limits'
-import { FR_PHONE_RE, formatFrPhone, normalizeFrPhone } from './phone'
+import { FR_PHONE_RE, normalizeFrPhone } from './phone'
 
 export const bookingSchema = z.object({
   representationId: z
@@ -33,13 +33,13 @@ export const bookingSchema = z.object({
     .transform((v) => v.trim().toLowerCase()),
 
   // Téléphone FR : normalisé (séparateurs, +33) puis validé 10 chiffres,
-  // stocké au format "06 12 34 56 78".
+  // STOCKÉ EN CHIFFRES ("0612345678") — l'affichage est formaté à la volée
+  // (formatFrPhone) côté admin/famille. Stockage uniforme → recherche fiable.
   phone: z
     .string('Indiquez votre numéro de téléphone.')
     .trim()
     .transform(normalizeFrPhone)
-    .refine((d) => FR_PHONE_RE.test(d), 'Numéro invalide. Format attendu : 06 12 34 56 78.')
-    .transform(formatFrPhone),
+    .refine((d) => FR_PHONE_RE.test(d), 'Numéro invalide. Format attendu : 06 12 34 56 78.'),
 
   // Coercition depuis FormData (les valeurs arrivent en string).
   partySize: z.coerce

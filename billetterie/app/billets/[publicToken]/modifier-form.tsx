@@ -37,7 +37,8 @@ type Snapshot = {
 export default function ModifierForm(props: Props) {
   const router = useRouter()
   const [name, setName] = useState(props.name)
-  const [phone, setPhone] = useState(props.phone)
+  // Téléphone stocké en chiffres → on l'affiche formaté dans le champ masqué.
+  const [phone, setPhone] = useState(formatFrPhone(props.phone))
   const [partySize, setPartySize] = useState(props.partySize)
   const [pmr, setPmr] = useState(props.pmrCount > 0)
   const [pmrCount, setPmrCount] = useState(props.pmrCount || 1)
@@ -54,7 +55,7 @@ export default function ModifierForm(props: Props) {
   // Valeurs de référence pour le « avant → après » (mises à jour à chaque save).
   const reference = useRef<Snapshot>({
     name: props.name,
-    phone: props.phone,
+    phone: formatFrPhone(props.phone),
     partySize: props.partySize,
     pmrCount: props.pmrCount,
     pmrCompanions: props.pmrCompanions,

@@ -278,7 +278,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                   id: d.id,
                   name: d.name,
                   email: d.email,
-                  phone: d.phone,
+                  phone: formatFrPhone(d.phone),
                   partySize: d.partySize,
                   freeSeats: d.freeSeats,
                   unitPriceCents,
@@ -354,7 +354,7 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     </td>
                     <td>
                       <span className={styles.contact}>{d.email}</span>
-                      <span className={styles.contact}>{d.phone}</span>
+                      <span className={styles.contact}>{formatFrPhone(d.phone)}</span>
                     </td>
                     <td className={styles.nombre}>{d.partySize}</td>
                     <td>

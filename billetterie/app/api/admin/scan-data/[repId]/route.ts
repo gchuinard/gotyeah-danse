@@ -21,20 +21,35 @@ export async function GET(
 
   const { repId } = await params
 
-  const tickets = await prisma.ticket.findMany({
-    where: { representationId: repId },
-    select: {
-      qrToken: true,
-      scannedAt: true,
-      booking: { select: { name: true, phone: true, email: true } },
-      seat: {
-        select: {
-          number: true,
-          row: { select: { label: true, section: { select: { name: true } } } },
+  // Annuaire : TOUTES les demandes (toutes représentations, tous statuts), pour
+  // indiquer au scan « cette personne existe mais n'est pas scannable ici »
+  // (non placée, autre date, annulée). Léger : nom / contact / statut / rep.
+  const [tickets, annuaire] = await Promise.all([
+    prisma.ticket.findMany({
+      where: { representationId: repId },
+      select: {
+        qrToken: true,
+        scannedAt: true,
+        booking: { select: { name: true, phone: true, email: true } },
+        seat: {
+          select: {
+            number: true,
+            row: { select: { label: true, section: { select: { name: true } } } },
+          },
         },
       },
-    },
-  })
+    }),
+    prisma.booking.findMany({
+      select: {
+        name: true,
+        phone: true,
+        email: true,
+        status: true,
+        representation: { select: { title: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ])
 
   return Response.json(
     {
@@ -47,6 +62,13 @@ export async function GET(
         phone: t.booking.phone,
         email: t.booking.email,
         scannedAt: t.scannedAt ? t.scannedAt.toISOString() : null,
+      })),
+      directory: annuaire.map((b) => ({
+        name: b.name,
+        phone: b.phone,
+        email: b.email,
+        status: b.status,
+        repTitle: b.representation.title,
       })),
       ts: Date.now(),
     },

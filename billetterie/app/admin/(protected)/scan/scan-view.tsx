@@ -34,6 +34,34 @@ type TicketInfo = {
   scannedAt: string | null // ISO — vérité locale (peut précéder la base)
 }
 
+// Annuaire : toutes les demandes (toutes reps / statuts), pour l'indice quand le
+// manifeste de CETTE rep ne contient pas la personne cherchée.
+type DirEntry = {
+  name: string
+  phone: string
+  email: string
+  status: string
+  repTitle: string
+}
+
+// Pourquoi une personne de l'annuaire n'est pas scannable ici.
+function indiceStatut(d: DirEntry): string {
+  switch (d.status) {
+    case 'pending':
+      return `en attente (non réglée, non placée) — ${d.repTitle}`
+    case 'paid':
+      return `réglée mais pas encore placée — ${d.repTitle}`
+    case 'placed':
+      return `placée sur « ${d.repTitle} » (autre date)`
+    case 'cancelled':
+      return `demande annulée — ${d.repTitle}`
+    case 'expired':
+      return `demande expirée — ${d.repTitle}`
+    default:
+      return d.repTitle
+  }
+}
+
 type QueueEntry = { qrToken: string; scannedAt: string }
 
 type PanelState =
@@ -114,6 +142,8 @@ export default function ScanView({ representations, repId }: Props) {
   // de la caméra (créés une fois au démarrage du scan, donc closures figées).
   const [tickets, setTickets] = useState<Map<string, TicketInfo> | null>(null)
   const ticketsRef = useRef<Map<string, TicketInfo> | null>(null)
+  // Annuaire (toutes les demandes) chargé avec le manifeste, pour les indices.
+  const [directory, setDirectory] = useState<DirEntry[]>([])
   const applyTickets = useCallback((next: Map<string, TicketInfo>) => {
     ticketsRef.current = next
     setTickets(next)
@@ -242,7 +272,8 @@ export default function ScanView({ representations, repId }: Props) {
         return
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = (await res.json()) as { tickets: TicketInfo[] }
+      const data = (await res.json()) as { tickets: TicketInfo[]; directory?: DirEntry[] }
+      setDirectory(data.directory ?? [])
       const map = new Map(data.tickets.map((t) => [t.qrToken, t]))
       // Les scans locaux pas encore synchronisés priment sur un scannedAt
       // null venu du serveur (sinon on re-validerait un billet déjà passé).
@@ -462,6 +493,40 @@ export default function ScanView({ representations, repId }: Props) {
     return found
   }, [tickets, query, field])
 
+  // Indices : quand le manifeste de CETTE rep ne donne rien, on cherche la
+  // personne dans l'annuaire global (autres reps, non placées, annulées) pour
+  // expliquer pourquoi elle n'est pas scannable ici. Pas pour « place ».
+  const hints = useMemo(() => {
+    if (results.length > 0) return []
+    const q = query.trim()
+    if (q.length < 2 || field === 'place') return []
+    const nq = normalize(q)
+    const qDigits = q.replace(/\D/g, '')
+    const out: DirEntry[] = []
+    for (const d of directory) {
+      let match = false
+      switch (field) {
+        case 'nom':
+          match = normalize(splitName(d.name).last).includes(nq)
+          break
+        case 'prenom':
+          match = normalize(splitName(d.name).first).includes(nq)
+          break
+        case 'tel':
+          match = qDigits.length >= 2 && d.phone.replace(/\D/g, '').includes(qDigits)
+          break
+        case 'email':
+          match = normalize(d.email).includes(nq)
+          break
+      }
+      if (match) {
+        out.push(d)
+        if (out.length >= 10) break
+      }
+    }
+    return out
+  }, [results.length, directory, query, field])
+
   // --- Compteurs.
   const scannedCount = useMemo(() => {
     if (!tickets) return 0
@@ -602,7 +667,21 @@ export default function ScanView({ representations, repId }: Props) {
         />
         {query.trim().length >= 2 && (
           <ul className={styles.results}>
-            {results.length === 0 && <li className={styles.noResult}>Aucun billet trouvé.</li>}
+            {results.length === 0 && (
+              <li className={styles.noResult}>
+                Aucun billet à scanner ici.
+                {hints.length > 0 && (
+                  <ul className={styles.hints}>
+                    {hints.map((h, i) => (
+                      <li key={i} className={styles.hint}>
+                        <span className={styles.hintName}>{h.name}</span>
+                        <span className={styles.hintMeta}>{indiceStatut(h)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            )}
             {results.map((t) => (
               <li key={t.qrToken} className={styles.result}>
                 <div className={styles.resultInfo}>

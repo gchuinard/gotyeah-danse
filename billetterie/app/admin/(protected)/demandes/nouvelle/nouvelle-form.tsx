@@ -39,7 +39,7 @@ function CandidatLien({ c }: { c: DoublonCandidat }) {
       target="_blank"
       rel="noopener"
     >
-      {c.name} — {c.phone} — {STATUT_LABELS[c.status] ?? c.status} ({RAISON_LABELS[c.raison]}) ↗
+      {c.name} — {formatFrPhone(c.phone)} — {STATUT_LABELS[c.status] ?? c.status} ({RAISON_LABELS[c.raison]}) ↗
     </a>
   )
 }

@@ -2,7 +2,7 @@
 //
 // Le schéma reçoit des valeurs issues de FormData : tout arrive en string,
 // d'où les tests de coercition (partySize notamment). Le téléphone est
-// normalisé puis reformaté en "06 12 34 56 78".
+// normalisé et STOCKÉ EN CHIFFRES "0612345678" (l'affichage est formaté ailleurs).
 
 import { describe, expect, it } from 'vitest'
 
@@ -44,18 +44,18 @@ describe('bookingSchema — cas valide', () => {
     expect(result.data.notes).toBeUndefined()
   })
 
-  it('trim prénom/nom et reformate le téléphone', () => {
+  it('trim prénom/nom et normalise le téléphone en chiffres', () => {
     const result = bookingSchema.safeParse({
       ...demandeValide,
       firstName: '  Jean  ',
       lastName: '  Dupont  ',
-      phone: ' 0612345678 ',
+      phone: ' 06 12 34 56 78 ',
     })
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.firstName).toBe('Jean')
     expect(result.data.lastName).toBe('Dupont')
-    expect(result.data.phone).toBe('06 12 34 56 78')
+    expect(result.data.phone).toBe('0612345678')
   })
 })
 
@@ -118,16 +118,16 @@ describe('bookingSchema — phone', () => {
     expect(result.success).toBe(false)
   })
 
-  it('normalise des chiffres collés en "06 12 34 56 78"', () => {
-    const result = bookingSchema.safeParse({ ...demandeValide, phone: '0612345678' })
+  it('normalise un format espacé en chiffres "0612345678"', () => {
+    const result = bookingSchema.safeParse({ ...demandeValide, phone: '06 12 34 56 78' })
     expect(result.success).toBe(true)
-    if (result.success) expect(result.data.phone).toBe('06 12 34 56 78')
+    if (result.success) expect(result.data.phone).toBe('0612345678')
   })
 
-  it('accepte et normalise le format international (+33 . -)', () => {
+  it('accepte et normalise le format international (+33 . -) en chiffres', () => {
     const result = bookingSchema.safeParse({ ...demandeValide, phone: '+33.6-12 34 56 78' })
     expect(result.success).toBe(true)
-    if (result.success) expect(result.data.phone).toBe('06 12 34 56 78')
+    if (result.success) expect(result.data.phone).toBe('0612345678')
   })
 })
 
