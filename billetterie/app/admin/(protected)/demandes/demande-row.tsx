@@ -221,9 +221,17 @@ function ActionForm({
   )
 }
 
+// Date du jour au format AAAA-MM-JJ (heure LOCALE = fuseau de l'admin, Paris).
+function dateAujourdHui(): string {
+  const d = new Date()
+  const deux = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}`
+}
+
 // « Ajouter un versement ». Remonté par sa `key` (= nb de versements, cf.
 // SectionPaiement) après chaque ajout réussi → champs vidés et montant
-// pré-rempli au nouveau reste dû.
+// pré-rempli au nouveau reste dû. Pour un CHÈQUE : champ « Date de paiement »
+// pré-rempli au jour (modifiable si dépôt différé), pas de n° de chèque.
 function AjouterVersementForm({
   detail,
   presetMontant,
@@ -231,12 +239,20 @@ function AjouterVersementForm({
   detail: DemandeDetail
   presetMontant: string
 }) {
+  const [methode, setMethode] = useState('cheque')
+  // Date du jour figée à l'ouverture du formulaire (remonté à chaque ajout).
+  const [dateChq] = useState(dateAujourdHui)
   return (
     <ActionForm action={ajouterPaiementAction}>
       {(pending) => (
         <>
           <Hidden detail={detail} />
-          <select name="methode" aria-label="Mode de règlement" defaultValue="cheque">
+          <select
+            name="methode"
+            aria-label="Mode de règlement"
+            value={methode}
+            onChange={(e) => setMethode(e.target.value)}
+          >
             <option value="cheque">Chèque</option>
             <option value="especes">Espèces</option>
             <option value="autre">Autre</option>
@@ -249,19 +265,18 @@ function AjouterVersementForm({
             aria-label="Montant du versement en euros"
             defaultValue={presetMontant}
           />
-          <input
-            type="date"
-            name="depositOn"
-            aria-label="Date de dépôt (chèque échelonné, facultatif)"
-            title="Date de dépôt prévue (chèque échelonné) — facultatif"
-          />
-          <input
-            type="text"
-            name="reference"
-            maxLength={60}
-            placeholder="n° chèque (facultatif)"
-            aria-label="Référence du versement"
-          />
+          {methode === 'cheque' && (
+            <label className={styles.detailInline}>
+              Date de paiement
+              <input
+                type="date"
+                name="depositOn"
+                defaultValue={dateChq}
+                aria-label="Date de paiement (dépôt du chèque)"
+                title="Date de dépôt du chèque — pré-remplie au jour, modifiable si dépôt différé"
+              />
+            </label>
+          )}
           <button type="submit" className={styles.btn} disabled={pending}>
             {pending ? 'Enregistrement…' : 'Ajouter le versement'}
           </button>
