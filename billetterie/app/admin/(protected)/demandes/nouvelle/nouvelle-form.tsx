@@ -6,6 +6,7 @@
 
 import { useActionState, useState } from 'react'
 
+import type { DoublonCandidat } from '@/lib/booking/creer'
 import { PARTY_SIZES } from '@/lib/public/limits'
 import { formatFrPhone } from '@/lib/public/phone'
 
@@ -13,6 +14,35 @@ import { creerDemandeAdmin, type NouvelleDemandeState } from './actions'
 import styles from './nouvelle.module.css'
 
 const initialState: NouvelleDemandeState = { ok: false }
+
+const STATUT_LABELS: Record<string, string> = {
+  pending: 'en attente',
+  paid: 'à placer',
+  placed: 'placée',
+  cancelled: 'annulée',
+  expired: 'expirée',
+}
+
+const RAISON_LABELS: Record<DoublonCandidat['raison'], string> = {
+  email: 'même email',
+  telephone: 'même téléphone',
+  nom: 'même nom',
+}
+
+// Lien vers la demande existante (liste filtrée sur son email) — ouvre un onglet
+// pour consulter/gérer sans perdre la saisie en cours.
+function CandidatLien({ c }: { c: DoublonCandidat }) {
+  return (
+    <a
+      className={styles.doublonLien}
+      href={`/admin/demandes?q=${encodeURIComponent(c.email)}`}
+      target="_blank"
+      rel="noopener"
+    >
+      {c.name} — {c.phone} — {STATUT_LABELS[c.status] ?? c.status} ({RAISON_LABELS[c.raison]}) ↗
+    </a>
+  )
+}
 
 // Libellés FR pour nommer les champs en erreur dans le message global.
 const FIELD_LABELS: Record<string, string> = {
@@ -227,6 +257,38 @@ export default function NouvelleDemandeForm({
             ? `À corriger : ${champsEnErreur.join(', ')}.`
             : state.error}
         </p>
+      )}
+
+      {/* Doublon BLOQUANT par email : pas de création possible. */}
+      {state.emailMatch && (
+        <div className={`${styles.doublonBloc} ${styles.doublonBloque}`} role="alert">
+          <p className={styles.doublonTitre}>⛔ Une demande existe déjà pour cet email.</p>
+          <CandidatLien c={state.emailMatch} />
+          <p className={styles.doublonNote}>
+            Impossible d’en créer une seconde — ouvrez la demande existante pour la gérer (changer le
+            nombre de places, encaisser, etc.).
+          </p>
+        </div>
+      )}
+
+      {/* Doublons PROBABLES (téléphone / nom) : avertissement, création forçable. */}
+      {state.doublons && state.doublons.length > 0 && (
+        <div className={styles.doublonBloc} role="alert">
+          <p className={styles.doublonTitre}>
+            ⚠️ Une demande existe peut-être déjà. Êtes-vous sûr que ce n’est pas l’une de
+            celles-ci&nbsp;?
+          </p>
+          <ul className={styles.doublonListe}>
+            {state.doublons.map((c) => (
+              <li key={c.publicToken}>
+                <CandidatLien c={c} />
+              </li>
+            ))}
+          </ul>
+          <button type="submit" name="force" value="1" className={styles.forceBtn} disabled={pending}>
+            {pending ? 'Création…' : 'Non, créer quand même'}
+          </button>
+        </div>
       )}
 
       <button type="submit" className={styles.submit} disabled={pending}>

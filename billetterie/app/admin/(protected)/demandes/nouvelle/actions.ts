@@ -10,13 +10,21 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { creerBookingEnAttente } from '@/lib/booking/creer'
+import {
+  chercherDoublonsDemande,
+  creerBookingEnAttente,
+  type DoublonCandidat,
+} from '@/lib/booking/creer'
 import { bookingSchema, type BookingInput } from '@/lib/public/booking-schema'
 
 export type NouvelleDemandeState = {
   ok: boolean
   error?: string
   fieldErrors?: { [K in keyof BookingInput]?: string[] }
+  // Doublon bloquant par email (pas de création possible).
+  emailMatch?: DoublonCandidat
+  // Doublons probables (téléphone / nom) — avertissement, création « forçable ».
+  doublons?: DoublonCandidat[]
 }
 
 export async function creerDemandeAdmin(
@@ -44,6 +52,21 @@ export async function creerDemandeAdmin(
     }
   }
   const demande = parsed.data
+  // « Créer quand même » : passe outre les avertissements téléphone/nom — mais
+  // JAMAIS le blocage email (un email = une seule demande).
+  const force = formData.get('force') === '1'
+
+  const { emailMatch, autres } = await chercherDoublonsDemande(demande.representationId, {
+    email: demande.email,
+    phone: demande.phone,
+    lastName: demande.lastName,
+  })
+  if (emailMatch) {
+    return { ok: false, emailMatch }
+  }
+  if (!force && autres.length > 0) {
+    return { ok: false, doublons: autres }
+  }
 
   const result = await creerBookingEnAttente({
     representationId: demande.representationId,

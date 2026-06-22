@@ -130,3 +130,58 @@ export async function creerBookingEnAttente(
 
   return { booking: result.booking, representationTitle: result.representation.title }
 }
+
+// Détection de doublons à la création back-office. Sur la MÊME représentation et
+// parmi les demandes ACTIVES (pending non expirée / paid / placed) :
+//  - email  → correspondance BLOQUANTE (une seule demande par email, cf. la
+//             même règle côté public) ;
+//  - téléphone, puis nom de famille (contient) → simples AVERTISSEMENTS
+//    (« êtes-vous sûr ? »), l'admin reste libre de créer quand même.
+// L'email est prioritaire, puis le téléphone, puis le nom (jamais en double).
+export type DoublonCandidat = {
+  publicToken: string
+  name: string
+  email: string
+  phone: string
+  status: string
+  raison: 'email' | 'telephone' | 'nom'
+}
+
+export async function chercherDoublonsDemande(
+  representationId: string,
+  champs: { email: string; phone: string; lastName: string },
+): Promise<{ emailMatch: DoublonCandidat | null; autres: DoublonCandidat[] }> {
+  const now = new Date()
+  const actifs = await prisma.booking.findMany({
+    where: {
+      representationId,
+      OR: [
+        { status: 'pending', OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+        { status: { in: ['paid', 'placed'] } },
+      ],
+    },
+    select: { publicToken: true, name: true, email: true, phone: true, status: true },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const email = champs.email.trim().toLowerCase()
+  const phoneDigits = champs.phone.replace(/\D/g, '')
+  const lastName = champs.lastName.trim().toLowerCase()
+
+  let emailMatch: DoublonCandidat | null = null
+  const autres: DoublonCandidat[] = []
+  for (const b of actifs) {
+    if (b.email.trim().toLowerCase() === email) {
+      emailMatch ??= { ...b, raison: 'email' }
+      continue
+    }
+    if (phoneDigits && b.phone.replace(/\D/g, '') === phoneDigits) {
+      autres.push({ ...b, raison: 'telephone' })
+      continue
+    }
+    if (lastName && b.name.toLowerCase().includes(lastName)) {
+      autres.push({ ...b, raison: 'nom' })
+    }
+  }
+  return { emailMatch, autres }
+}

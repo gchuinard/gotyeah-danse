@@ -155,6 +155,68 @@
   padding: 0.6rem 0.8rem;
 }
 
+/* Avertissement / blocage doublon. */
+.doublonBloc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  background: #fbf3df;
+  border: 1px solid #ecd29a;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+}
+
+.doublonBloque {
+  background: #fbeae8;
+  border-color: #f3c5c0;
+}
+
+.doublonTitre {
+  margin: 0;
+  font-weight: 700;
+  color: #8a5a00;
+}
+
+.doublonBloque .doublonTitre {
+  color: #b3261e;
+}
+
+.doublonNote {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #7a7068;
+}
+
+.doublonListe {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.doublonLien {
+  color: var(--terre);
+  font-weight: 600;
+}
+
+.forceBtn {
+  align-self: flex-start;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  background: #fff;
+  color: #8a5a00;
+  border: 1px solid #ecd29a;
+  cursor: pointer;
+}
+
+.forceBtn:hover:not(:disabled) {
+  background: #f7eccf;
+}
+
 .submit {
   font: inherit;
   font-weight: 600;
