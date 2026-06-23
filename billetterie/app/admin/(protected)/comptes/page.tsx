@@ -169,7 +169,7 @@ export default async function ComptesPage({
         </form>
         <p className={styles.hint}>
           Le compte se connecte avec son email + un code reçu par email (comme les super-admins). Le
-          rôle <strong>{roleLabel('scan')}</strong> n&rsquo;a pas de compte : il passe par le PIN
+          rôle <strong>{roleLabel('scan')}</strong>{' '}n&rsquo;a pas de compte : il passe par le PIN
           ci-dessous.
         </p>
       </section>

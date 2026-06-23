@@ -184,7 +184,7 @@ export default async function RepresentationsPage({
           </button>
         </form>
         <p className={styles.hint}>
-          La représentation est créée <strong>fermée</strong> : elle n&rsquo;apparaît sur le
+          La représentation est créée <strong>fermée</strong>{' '}: elle n&rsquo;apparaît sur le
           formulaire public qu&rsquo;une fois les réservations ouvertes.
         </p>
       </section>
