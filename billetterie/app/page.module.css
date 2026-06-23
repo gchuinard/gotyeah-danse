@@ -1,4 +1,5 @@
-/* Page d'accueil publique — mobile-first, sobre et chaleureux. */
+/* Page d'accueil publique — mobile-first, sobre et chaleureux.
+   Sur grand écran : deux colonnes (formulaire à gauche, FAQ à droite). */
 
 .page {
   width: 100%;
@@ -35,10 +36,22 @@
   color: var(--terre-2);
 }
 
-.main {
+/* Mise en page : empilée par défaut (mobile), deux colonnes ≥ 920px. */
+.layout {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.colForm {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.colFaq {
+  min-width: 0;
 }
 
 /* Encart « comment ça marche » */
@@ -99,5 +112,28 @@
 
   .formCard {
     padding: 24px;
+  }
+}
+
+/* Deux colonnes : le formulaire à gauche, la FAQ à droite. Le conteneur
+   s'élargit ; les colonnes se partagent la largeur à parts égales et
+   s'alignent en haut (la FAQ ne s'étire pas à la hauteur du formulaire). */
+@media (min-width: 920px) {
+  .page {
+    max-width: 1040px;
+  }
+
+  .layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .colForm {
+    flex: 1 1 0;
+  }
+
+  .colFaq {
+    flex: 1 1 0;
   }
 }

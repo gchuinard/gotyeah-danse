@@ -3,6 +3,9 @@
 // Server component : charge les représentations ouvertes et leur jauge depuis
 // la DB, ne propose que celles où il reste de la place. La lecture DB doit
 // être faite à chaque requête → rendu dynamique forcé (pas de cache statique).
+//
+// Mise en page : deux colonnes sur grand écran — le formulaire à gauche, la
+// FAQ à droite ; empilées sur mobile (la FAQ passe sous le formulaire).
 
 import { getTicketPriceCents } from '@/lib/admin/pricing'
 import { prisma } from '@/lib/db'
@@ -11,6 +14,7 @@ import { turnstileEnabled, turnstileSiteKey } from '@/lib/public/turnstile'
 
 import AccesForm from './demande/acces-form'
 import DemandeForm from './demande/demande-form'
+import Faq from './demande/faq'
 import Onglets from './demande/onglets'
 import styles from './page.module.css'
 
@@ -43,44 +47,50 @@ export default async function Home() {
         <p className={styles.subtitle}>École de danse Desha-Moulin</p>
       </header>
 
-      <main className={styles.main}>
-        <section className={styles.steps} aria-label="Comment ça marche">
-          <h2 className={styles.stepsTitle}>Comment ça marche ?</h2>
-          <ol className={styles.stepsList}>
-            <li>
-              <strong>Vous demandez vos places</strong> : indiquez le nombre de places souhaité.
-            </li>
-            <li>
-              <strong>Vous réglez aux permanences</strong> de l&apos;école (chèque ou espèces)
-              sous 14 jours.
-            </li>
-            <li>
-              <strong>L&apos;équipe attribue les sièges</strong> et vous recevez vos billets par
-              email.
-            </li>
-          </ol>
-        </section>
+      <div className={styles.layout}>
+        <div className={styles.colForm}>
+          <section className={styles.steps} aria-label="Comment ça marche">
+            <h2 className={styles.stepsTitle}>Comment ça marche ?</h2>
+            <ol className={styles.stepsList}>
+              <li>
+                <strong>Vous demandez vos places</strong> : indiquez le nombre de places souhaité.
+              </li>
+              <li>
+                <strong>Vous réglez aux permanences</strong> de l&apos;école (chèque ou espèces)
+                sous 14 jours.
+              </li>
+              <li>
+                <strong>L&apos;équipe attribue les sièges</strong> et vous recevez vos billets par
+                email.
+              </li>
+            </ol>
+          </section>
 
-        <section className={styles.formCard} aria-label="Demande de places">
-          <Onglets
-            nouvelle={
-              representationId ? (
-                <DemandeForm
-                  representationId={representationId}
-                  turnstileSiteKey={siteKey}
-                  formRenderedAt={formRenderedAt}
-                  unitPriceCents={unitPriceCents}
-                />
-              ) : (
-                <p className={styles.complet}>
-                  Les demandes de places ne sont pas ouvertes pour le moment.
-                </p>
-              )
-            }
-            acces={<AccesForm />}
-          />
-        </section>
-      </main>
+          <section className={styles.formCard} aria-label="Demande de places">
+            <Onglets
+              nouvelle={
+                representationId ? (
+                  <DemandeForm
+                    representationId={representationId}
+                    turnstileSiteKey={siteKey}
+                    formRenderedAt={formRenderedAt}
+                    unitPriceCents={unitPriceCents}
+                  />
+                ) : (
+                  <p className={styles.complet}>
+                    Les demandes de places ne sont pas ouvertes pour le moment.
+                  </p>
+                )
+              }
+              acces={<AccesForm />}
+            />
+          </section>
+        </div>
+
+        <aside className={styles.colFaq}>
+          <Faq />
+        </aside>
+      </div>
     </div>
   )
 }
