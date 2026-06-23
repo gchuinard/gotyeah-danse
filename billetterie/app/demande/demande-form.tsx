@@ -190,7 +190,7 @@ export default function DemandeForm({
         </p>
         <p className={styles.hint}>
           Nous regroupons au mieux les personnes d&apos;une même commande. Il existe un{' '}
-          <strong>risque de séparation</strong> du groupe&nbsp;: le cas échéant, le placement se
+          <strong>risque de séparation</strong>{' '}du groupe&nbsp;: le cas échéant, le placement se
           fait <strong>avec vous</strong>, jamais sans vous prévenir.
         </p>
         <FieldError messages={errors?.partySize} />

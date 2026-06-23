@@ -8,6 +8,12 @@
 // Les réponses suivent les règles métier verrouillées : pas de paiement en
 // ligne, sièges attribués à la main, billets par email + QR. À garder à jour
 // si ces règles changent.
+//
+// ⚠️ Piège SWC/Turbopack : un nœud de texte JSX qui contient une entité HTML
+// (&nbsp;, &apos;…) voit son espace de TÊTE rogné. Un espace juste après une
+// balise inline (« </strong> texte… &nbsp;: ») serait donc perdu → on écrit le
+// séparateur en {' '} pour le garantir. Même précaution dans page.tsx
+// (« Comment ça marche ») et demande-form.tsx (message de regroupement).
 
 import type { ReactNode } from 'react'
 
@@ -24,7 +30,7 @@ const QUESTIONS: Question[] = [
     a: (
       <>
         Il n’y a <strong>pas de paiement en ligne</strong>. Vous réglez directement à l’école, en
-        espèces ou par chèque, lors des permanences — <strong>sous 14 jours</strong> après votre
+        espèces ou par chèque, lors des permanences — <strong>sous 14 jours</strong>{' '}après votre
         demande. Le règlement en plusieurs fois (chèques échelonnés) est possible&nbsp;: parlez-en à
         l’équipe.
       </>
@@ -73,7 +79,7 @@ const QUESTIONS: Question[] = [
     q: 'Une personne à mobilité réduite vient avec nous ?',
     a: (
       <>
-        Activez l’option <strong>« personne à mobilité réduite (PMR / fauteuil) »</strong> dans le
+        Activez l’option <strong>« personne à mobilité réduite (PMR / fauteuil) »</strong>{' '}dans le
         formulaire&nbsp;: un emplacement adapté est réservé pour chaque personne concernée, et les
         accompagnants sont installés juste à côté.
       </>

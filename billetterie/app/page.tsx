@@ -56,7 +56,7 @@ export default async function Home() {
                 <strong>Vous demandez vos places</strong> : indiquez le nombre de places souhaité.
               </li>
               <li>
-                <strong>Vous réglez aux permanences</strong> de l&apos;école (chèque ou espèces)
+                <strong>Vous réglez aux permanences</strong>{' '}de l&apos;école (chèque ou espèces)
                 sous 14 jours.
               </li>
               <li>
