@@ -107,10 +107,20 @@
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
-.lineAxis {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.25rem;
-  font-size: 0.78rem;
-  color: var(--gris-chd);
+/* Quadrillage : lignes horizontales (valeurs) un peu plus marquées que les
+   verticales (dates). Traits fins quel que soit le zoom du SVG. */
+.lineGrid {
+  stroke: #e3d8c8;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.lineGridV {
+  stroke: #efe7da;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.lineYLabel,
+.lineXLabel {
+  fill: var(--gris-chd);
+  font-size: 12px;
 }
