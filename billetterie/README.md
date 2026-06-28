@@ -103,15 +103,15 @@ navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
 
 | URL | Quoi |
 | --- | --- |
-| `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0). Mise en page **2 colonnes** sur grand écran (≥ 920 px) — formulaire à gauche, **FAQ** à droite (accordéon `<details>` natif, 10 questions) ; empilé sur mobile |
+| `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0). Nombre de places + **dont enfants** (tarif réduit) → **montant indicatif ventilé** (adultes/enfants). Mise en page **2 colonnes** sur grand écran (≥ 920 px) — formulaire à gauche, **FAQ** à droite (accordéon `<details>` natif, 10 questions) ; empilé sur mobile |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
 | `/admin/demandes` | File des demandes. **Filtres** : statut, **paiement** (payées / non payées), recherche nom/email/téléphone (live). **Clic sur une ligne → popup « centre d'actions »** (reste ouverte, feedback inline) : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (date de paiement pré-remplie au jour) / supprimer un versement / **annuler tout le règlement**, bloc séparé **Remboursement** (montant + motif, nb de places pour « place retirée »), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
 | `/admin/demandes/nouvelle` | Créer une demande au back-office. **Détection de doublons** sur la même représentation : email déjà utilisé = **blocage** (lien vers la demande existante) ; téléphone ou nom = **avertissement** « êtes-vous sûr ? » avec liens (ou « créer quand même »). |
-| `/admin/placement/<bookingId>` | Suggestions de placement + ajustement manuel, émission des billets |
+| `/admin/placement/<bookingId>` | Suggestions de placement (fenêtres même rangée d'abord, blocs en remplissage) + ajustement manuel **plafonné à `partySize`** (pas de sur-sélection ; désélectionner pour échanger), émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
 | `/admin/scan` | Scan des billets le soir J (caméra + saisie manuelle nom/prénom/tél/email/place). Si la personne cherchée n'a **pas de billet à scanner ici**, un **indice** explique pourquoi (non placée / payée non placée / **placée sur l'autre date** / annulée) — le scan charge pour cela un annuaire léger de toutes les demandes |
-| `/admin/stats` | Mini-stats par représentation + **réconciliation de caisse** (par mode, **net = Σ versements − remboursé**, reste à encaisser, trop-perçu) + **« Chèques à déposer »** groupés par mois + **bilan d'organisation** (météo, buvette proposé/vendu/prix, notes pour l'an prochain) |
+| `/admin/stats` | **Vue d'ensemble — comparaison par année** (tableau + graphes : billets, recette billetterie, recette buvette) puis **détail par représentation** en blocs **repliables** (`<details>`, pliés par défaut). Par représentation : graphes SVG inline (jauge de remplissage, barres adultes/enfants, **courbe des demandes dans le temps** avec quadrillage / axes / info-bulle, caisse par mode, recette buvette par boisson), **réconciliation de caisse** (net = Σ versements − remboursé, reste à encaisser, trop-perçu), **« Chèques à déposer »** par mois, **bilan d'organisation** (météo, buvette, notes pour l'an prochain) |
 | `/admin/calibration` | Superposition plan généré / scan de la fiche technique |
 | `/admin/salles/nouvelle` | **Créer une salle** : relevé en notation compacte + aperçu live → JSON multi-salles |
 | `/admin/comptes` | **(super-admin)** Gérer les comptes admin (ajout / rôle / suppression) + le **PIN du mode scan** |
@@ -143,11 +143,14 @@ l'export CSV.
 
 ## L'algorithme de placement
 
-Le moteur **actif par défaut** est `lib/placement/custom.ts` (fenêtres + blocs,
-scores statiques, malus des restes anti-orphelins). La baseline
-(`lib/placement/baseline.ts`) est **volontairement naïve** — première fenêtre
-libre depuis la scène (rangs Y/X) — et ne sert que d'**étalon** au simulateur :
-`PLACEMENT_IMPL=baseline` y revient explicitement.
+Le moteur **actif par défaut** est `lib/placement/custom.ts` : qualité au
+**score moyen par siège**, **anti-orphelins** (malus des restes) + pénalité de
+**fragmentation** + retenue de **zone**. La sélection privilégie la **même
+rangée** (fenêtres sur rangées distinctes d'abord) ; les **blocs** verticaux ne
+viennent qu'« le cas échéant », et y privilégient le **confort** (anti-orphelin
+pondéré, `POIDS_ORPHELIN_BLOC`). La baseline (`lib/placement/baseline.ts`) est
+**volontairement naïve** — première fenêtre libre depuis la scène (rangs Y/X) —
+et ne sert que d'**étalon** au simulateur : `PLACEMENT_IMPL=baseline` y revient.
 Le harnais : `pnpm test` (5 invariants) et le simulateur Monte Carlo seedé,
 `pnpm simulate --impl=baseline --runs=200 --seed=42` vs `--impl=custom` — même
 seed, mêmes soirées de vente, comparaison à conditions identiques. Spec

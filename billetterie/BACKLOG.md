@@ -3,6 +3,36 @@
 Idées et corrections en attente, notées au fil de l'eau (2026-06-11).
 Aucun engagement d'ordre — prioriser à la demande.
 
+## ✅ Fait le 2026-06-29 (tarifs enfant + stats + placement)
+
+- [x] **Tarifs adulte / enfant.** Le prix unique global devient **deux tarifs
+  globaux** (Setting `ticket_price_adult_cents` / `ticket_price_child_cents` ;
+  l'ancien `ticket_price_cents` lu en repli comme tarif adulte). `Booking.childCount`
+  (migration `add_child_count`) ; adultes = partySize − childCount. Montant dû =
+  adultes×prixA + enfantsPayants×prixE, **places offertes déduites des enfants
+  d'abord**. Déclaré sur le **formulaire public** (sélecteur « dont enfants » +
+  montant indicatif ventilé), ajustable en admin (popup). Diffusé partout
+  (liste, popup, caisse, export CSV colonnes Adultes/Enfants, page famille).
+  Calcul dans `lib/admin/money.ts` (`montantDuCents`/`resumePaiement`/`placesPayantes`).
+- [x] **Placement — « même rangée d'abord ».** La sélection propose d'abord des
+  **fenêtres** (groupe sur une rangée) sur des rangées **distinctes** ; les
+  **blocs** (remplissage vertical) ne viennent qu'« le cas échéant ». Quand un
+  bloc est nécessaire, l'anti-orphelin y est **pondéré plus faiblement**
+  (`POIDS_ORPHELIN_BLOC`) → on privilégie le confort de la famille. Qualité au
+  **score moyen par siège**, pénalité de **fragmentation**, retenue de **zone**.
+  custom = défaut réel du runtime (doc/templates corrigés). Voir `PLACEMENT.md`.
+- [x] **Placement — plafond de sélection.** On ne peut plus sélectionner plus de
+  `partySize` sièges (avant : possible mais « Valider » grisé). Désélection OK
+  pour échanger ; sièges non sélectionnés non cliquables au plafond
+  (`SeatMap` prop `lockUnselected`).
+- [x] **/admin/stats — vue d'ensemble + graphes.** **Comparaison par année** en
+  tête (tableau + 3 graphes : billets, recette billetterie, recette buvette),
+  puis **détail par représentation** en blocs **repliables** (`<details>`, pliés
+  par défaut). Graphes SVG/CSS inline (zéro dépendance, `charts.tsx`) : jauge de
+  remplissage, barres adultes/enfants, **courbe des demandes dans le temps**
+  (quadrillage, axes valeurs/dates, info-bulle au survol), caisse par mode,
+  recette buvette par boisson. Cartes de tailles variées (courbe/caisse larges).
+
 ## ✅ Fait le 2026-06-24 (page publique)
 
 - [x] **Page publique en 2 colonnes.** Sur grand écran (≥ 920 px), le formulaire
