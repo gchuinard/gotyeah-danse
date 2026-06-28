@@ -6,8 +6,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { totauxBuvette } from '@/lib/admin/buvette'
-import { euros, resumePaiement } from '@/lib/admin/money'
+import { invendusLigne, recetteLigneCents, totauxBuvette } from '@/lib/admin/buvette'
+import { euros, placesPayantes, resumePaiement } from '@/lib/admin/money'
 import { getTicketPrices } from '@/lib/admin/pricing'
 import { MOMENTS, SKY_OPTIONS, parseWeatherReadings } from '@/lib/admin/weather'
 import { requireAdmin } from '@/lib/auth/require-admin'
@@ -15,6 +15,7 @@ import { prisma } from '@/lib/db'
 
 import { ajouterBuvetteAction, enregistrerBilanAction } from './actions'
 import { BuvetteRow } from './buvette-row'
+import { BarChart, Jauge, LineChart, type Barre } from './charts'
 import styles from './stats.module.css'
 
 export const metadata: Metadata = { title: 'Statistiques — Billetterie admin' }
@@ -45,6 +46,13 @@ const jourCourt = new Intl.DateTimeFormat('fr-FR', {
   timeZone: 'Europe/Paris',
   day: '2-digit',
   month: '2-digit',
+})
+// Clé de tri d'un jour (AAAA-MM-JJ en heure de Paris) — courbe des demandes.
+const cleJour = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Paris',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
 })
 // Clé de tri d'un mois (AAAA-MM en heure de Paris) indépendante de la locale.
 const cleMois = new Intl.DateTimeFormat('en-CA', {
@@ -79,6 +87,7 @@ export default async function StatsPage() {
             refundCents: true,
             name: true,
             paidAt: true,
+            createdAt: true,
             payments: {
               select: { method: true, amountCents: true, depositOn: true },
             },
@@ -103,11 +112,23 @@ export default async function StatsPage() {
       let demandesSansMontant = 0 // héritage : payées sans montant saisi
       // Chèques avec une date de dépôt prévue, groupés par mois.
       const cheques: { name: string; amountCents: number; depositOn: Date }[] = []
+      // Découpage tarifaire (places payantes) sur les demandes actives.
+      let adultesTotal = 0
+      let enfantsTotal = 0
+      let offertesTotal = 0
+      // Cumul des places demandées par jour (montée des ventes) — demandes actives.
+      const placesParJour = new Map<string, number>()
 
       for (const b of bookings) {
         parStatut.set(b.status, (parStatut.get(b.status) ?? 0) + 1)
         if (['pending', 'paid', 'placed'].includes(b.status)) {
           parTaille.set(b.partySize, (parTaille.get(b.partySize) ?? 0) + 1)
+          const pp = placesPayantes(b.partySize, b.childCount, b.freeSeats)
+          adultesTotal += pp.adultes
+          enfantsTotal += pp.enfants
+          offertesTotal += Math.min(Math.max(0, b.freeSeats), b.partySize)
+          const jour = cleJour.format(b.createdAt)
+          placesParJour.set(jour, (placesParJour.get(jour) ?? 0) + b.partySize)
         }
         // L'argent ne compte que pour les demandes ACTIVES réglées (paid/placed).
         // Une demande annulée a déjà ses versements purgés (annulerDemande), ce
@@ -161,6 +182,26 @@ export default async function StatsPage() {
       }
       const passee = rep.startsAt < now
 
+      // Courbe cumulative des places demandées (jour par jour, chronologique).
+      let cumul = 0
+      const ventePoints = [...placesParJour.entries()]
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+        .map(([jour, places]) => {
+          cumul += places
+          // jour = "AAAA-MM-JJ" → libellé "JJ/MM".
+          const [, m, d] = jour.split('-')
+          return { label: `${d}/${m}`, value: cumul }
+        })
+
+      // Barres buvette : recette par article (+ stock restant en indice).
+      const buvetteBars: Barre[] = buvette
+        .map((it) => ({
+          label: it.label,
+          value: recetteLigneCents(it),
+          hint: `${invendusLigne(it)} en stock`,
+        }))
+        .sort((a, b) => b.value - a.value)
+
       return {
         rep,
         capacite,
@@ -170,6 +211,10 @@ export default async function StatsPage() {
         noShows: passee ? billets - scannes : null,
         parStatut,
         parTaille,
+        adultesTotal,
+        enfantsTotal,
+        offertesTotal,
+        ventePoints,
         caisse,
         totalRecu,
         rembourseCents,
@@ -179,6 +224,7 @@ export default async function StatsPage() {
         demandesSansMontant,
         chequesMois: [...chequesParMois.values()],
         buvette,
+        buvetteBars,
         buvetteTotaux: totauxBuvette(buvette),
       }
     }),
@@ -205,12 +251,15 @@ export default async function StatsPage() {
               <p className={styles.gros}>
                 {s.billets} / {s.capacite} <small>({s.remplissage} %)</small>
               </p>
-              <p className={styles.detail}>billets émis / sièges actifs</p>
+              <Jauge value={s.billets} max={s.capacite} caption="billets émis / sièges actifs" />
               {s.noShows !== null && (
-                <p className={styles.detail}>
-                  Entrées scannées : <strong>{s.scannes}</strong> — no-shows :{' '}
-                  <strong>{s.noShows}</strong>
-                </p>
+                <>
+                  <p className={styles.detail}>
+                    Entrées scannées : <strong>{s.scannes}</strong> — no-shows :{' '}
+                    <strong>{s.noShows}</strong>
+                  </p>
+                  <Jauge value={s.scannes} max={s.billets} caption="entrées scannées / billets émis" />
+                </>
               )}
             </div>
 
@@ -252,24 +301,54 @@ export default async function StatsPage() {
             </div>
 
             <div className={styles.carte}>
+              <h3>Adultes / enfants</h3>
+              {s.adultesTotal + s.enfantsTotal + s.offertesTotal === 0 ? (
+                <p className={styles.detail}>Aucune place active.</p>
+              ) : (
+                <BarChart
+                  data={[
+                    { label: 'Adultes', value: s.adultesTotal, ton: 'a' },
+                    { label: 'Enfants', value: s.enfantsTotal, ton: 'c' },
+                    ...(s.offertesTotal > 0
+                      ? ([{ label: 'Offertes', value: s.offertesTotal, ton: 'b' }] as Barre[])
+                      : []),
+                  ]}
+                  format={(v) => `${v} place${v > 1 ? 's' : ''}`}
+                />
+              )}
+              <p className={styles.detail}>places payantes par tarif (offertes exclues du dû)</p>
+            </div>
+
+            <div className={styles.carte}>
+              <h3>Demandes dans le temps</h3>
+              {s.ventePoints.length === 0 ? (
+                <p className={styles.detail}>Aucune demande active.</p>
+              ) : (
+                <LineChart points={s.ventePoints} format={(v) => `${v} places`} />
+              )}
+              <p className={styles.detail}>cumul des places demandées, jour par jour</p>
+            </div>
+
+            <div className={styles.carte}>
               <h3>Caisse</h3>
               {s.caisse.size === 0 ? (
                 <p className={styles.detail}>Aucun versement enregistré.</p>
               ) : (
                 <>
-                  <ul className={styles.liste}>
-                    {[...s.caisse.entries()].map(([methode, ligne]) => (
-                      <li key={methode}>
-                        {METHODE_LABELS[methode] ?? methode} : <strong>{euros(ligne.total)}</strong>{' '}
-                        ({ligne.nb} versement{ligne.nb > 1 ? 's' : ''})
-                      </li>
-                    ))}
-                    {s.rembourseCents > 0 && (
-                      <li>
-                        Remboursé : <strong>− {euros(s.rembourseCents)}</strong>
-                      </li>
-                    )}
-                  </ul>
+                  <BarChart
+                    data={[...s.caisse.entries()].map(([methode, ligne]) => ({
+                      label: METHODE_LABELS[methode] ?? methode,
+                      value: ligne.total,
+                      hint: `${ligne.nb} vers.`,
+                      ton: methode === 'cheque' ? 'a' : methode === 'especes' ? 'b' : 'c',
+                    }))}
+                    format={euros}
+                  />
+                  {s.rembourseCents > 0 && (
+                    <p className={styles.detail}>
+                      Remboursé : <strong>− {euros(s.rembourseCents)}</strong>
+                    </p>
+                  )}
                   <p className={styles.totalCaisse}>Total net : {euros(s.totalCaisse)}</p>
                 </>
               )}
@@ -426,14 +505,20 @@ export default async function StatsPage() {
             </div>
 
             {s.buvette.length > 0 && (
-              <p className={styles.buvetteTotal}>
-                Recette : <strong>{euros(s.buvetteTotaux.recetteCents)}</strong> · Achats :{' '}
-                <strong>{euros(s.buvetteTotaux.coutCents)}</strong> · Balance :{' '}
-                <strong className={s.buvetteTotaux.balanceCents < 0 ? styles.buvetteNeg : undefined}>
-                  {euros(s.buvetteTotaux.balanceCents)}
-                </strong>{' '}
-                · {s.buvetteTotaux.venduTotal} vendus
-              </p>
+              <>
+                <p className={styles.buvetteTotal}>
+                  Recette : <strong>{euros(s.buvetteTotaux.recetteCents)}</strong> · Achats :{' '}
+                  <strong>{euros(s.buvetteTotaux.coutCents)}</strong> · Balance :{' '}
+                  <strong className={s.buvetteTotaux.balanceCents < 0 ? styles.buvetteNeg : undefined}>
+                    {euros(s.buvetteTotaux.balanceCents)}
+                  </strong>{' '}
+                  · {s.buvetteTotaux.venduTotal} vendus
+                </p>
+                <div className={styles.buvetteGraph}>
+                  <h5 className={styles.buvetteGraphTitre}>Recette par boisson (stock restant en indice)</h5>
+                  <BarChart data={s.buvetteBars} format={euros} />
+                </div>
+              </>
             )}
           </div>
         </section>

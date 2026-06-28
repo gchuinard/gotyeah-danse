@@ -1,0 +1,117 @@
+/* Graphes légers de /admin/stats — SVG/CSS inline, palette du site. */
+
+.chartCaption {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--gris-chd);
+}
+
+/* ── Jauge (barre de progression) ───────────────────────────────────── */
+.jauge {
+  margin-top: 0.4rem;
+}
+.jaugeTrack {
+  position: relative;
+  height: 1.5rem;
+  background: #f2ece3;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.jaugeFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--terre-2), var(--terre));
+  border-radius: 999px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+.jaugePct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--encre);
+}
+
+/* ── Barres horizontales ────────────────────────────────────────────── */
+.barChart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.barLabel {
+  font-size: 0.82rem;
+  color: var(--gris-chd);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.barTrack {
+  background: #f2ece3;
+  border-radius: 999px;
+  height: 0.85rem;
+  overflow: hidden;
+}
+.barFill {
+  display: block;
+  height: 100%;
+  background: var(--terre-2);
+  border-radius: 999px;
+  min-width: 2px;
+}
+.ton_a {
+  background: var(--terre);
+}
+.ton_b {
+  background: var(--terre-2);
+}
+.ton_c {
+  background: var(--rose);
+}
+.barValue {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--encre);
+  white-space: nowrap;
+}
+.barHint {
+  font-weight: 400;
+  color: var(--gris-chd);
+}
+
+/* ── Courbe (cumul des demandes) ────────────────────────────────────── */
+.lineChart {
+  margin-top: 0.4rem;
+}
+.lineSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.lineArea {
+  fill: rgba(139, 94, 74, 0.14); /* terre-2 translucide */
+}
+.linePath {
+  stroke: var(--terre);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.lineAxis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--gris-chd);
+}
