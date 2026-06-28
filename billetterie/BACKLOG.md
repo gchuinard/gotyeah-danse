@@ -3,6 +3,21 @@
 Idées et corrections en attente, notées au fil de l'eau (2026-06-11).
 Aucun engagement d'ordre — prioriser à la demande.
 
+## ✅ Fait le 2026-06-24 (page publique)
+
+- [x] **Page publique en 2 colonnes.** Sur grand écran (≥ 920 px), le formulaire
+  de demande à gauche et une **FAQ** à droite ; empilé sur mobile (la FAQ passe
+  sous le formulaire). FAQ = server component, accordéon `<details>` natif (zéro
+  JS), 10 questions calées sur les règles métier. Nouveau `app/demande/faq.tsx`
+  (+ `faq.module.css`) ; `app/page.tsx` / `page.module.css` restructurés.
+- [x] **Fix « mots collés » (espaces JSX mangés).** Sous Turbopack/SWC, un nœud
+  de texte JSX contenant une entité HTML (`&nbsp;`, `&apos;`, `&rsquo;`…) perd
+  son **espace de tête** → l'espace après une balise inline est supprimé
+  (« 14 joursaprès », « permanencesde l'école », « séparationdu groupe »). Corrigé
+  en écrivant ces séparateurs en `{' '}` — page publique (FAQ, `page.tsx`,
+  `demande-form.tsx`) **et** admin (`comptes`, `representations`). Voir le
+  commentaire d'avertissement en tête de `app/demande/faq.tsx`.
+
 ## ✅ Fait le 2026-06-22 (argent + exploitation)
 
 - [x] **Prix + montant dû + versements.** Prix unitaire global (Setting), montant
