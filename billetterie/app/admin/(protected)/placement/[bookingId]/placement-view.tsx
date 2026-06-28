@@ -61,9 +61,11 @@ export default function PlacementView({
   )
 
   const toggleSeat = (seat: SeatView) => {
-    setSelection((prev) =>
-      prev.includes(seat.id) ? prev.filter((id) => id !== seat.id) : [...prev, seat.id],
-    )
+    setSelection((prev) => {
+      if (prev.includes(seat.id)) return prev.filter((id) => id !== seat.id) // déselection : toujours OK
+      if (prev.length >= partySize) return prev // plafond atteint : on n'ajoute plus
+      return [...prev, seat.id]
+    })
   }
 
   const applySuggestion = (index: number) => {
@@ -90,6 +92,7 @@ export default function PlacementView({
           currentIds={mode === 'deplacement' ? currentIds : undefined}
           previousIds={previousIds}
           onSeatClick={toggleSeat}
+          lockUnselected={selection.length >= partySize}
           clickPmr
           caption={
             mode === 'deplacement'
@@ -170,9 +173,14 @@ export default function PlacementView({
                 ? 'Valider ce placement'
                 : 'Valider le déplacement'}
           </button>
-          {selection.length !== partySize && (
+          {selection.length < partySize && (
             <p className={styles.panelHint}>
               Sélectionnez exactement {partySize} place{partySize > 1 ? 's' : ''} pour valider.
+            </p>
+          )}
+          {selection.length === partySize && (
+            <p className={styles.panelHint}>
+              Plafond atteint — désélectionnez une place pour en changer.
             </p>
           )}
 

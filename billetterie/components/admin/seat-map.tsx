@@ -98,6 +98,10 @@ export type SeatMapProps = {
   // Placement : autorise aussi le clic sur les sièges « réservé PMR » — ils
   // sont mis de côté pour les familles PMR, donc sélectionnables à la main.
   clickPmr?: boolean
+  // Placement : plafond de sélection atteint → on ne peut plus AJOUTER de
+  // siège. Les sièges NON sélectionnés deviennent non cliquables (il faut en
+  // désélectionner un pour en changer). Les sélectionnés restent cliquables.
+  lockUnselected?: boolean
   // Lignes de repère (debug) dessinées sous les sièges, en coordonnées du plan
   // — ex. axes radiaux des allées dans le créateur de salle.
   guides?: { x1: number; y1: number; x2: number; y2: number }[]
@@ -114,6 +118,7 @@ export default function SeatMap({
   clickBlocked = false,
   clickAll = false,
   clickPmr = false,
+  lockUnselected = false,
   guides,
   caption,
 }: SeatMapProps) {
@@ -279,6 +284,9 @@ export default function SeatMap({
 
   const clickable = (seat: SeatView): boolean => {
     if (!onSeatClick) return false
+    // Plafond de sélection atteint : on ne peut plus AJOUTER, seulement retirer
+    // un siège déjà sélectionné (qui, lui, reste cliquable).
+    if (lockUnselected && !selected.has(seat.id)) return false
     if (clickAll) return seat.status !== 'occupe'
     if (seat.status === 'libre') return true
     if (current.has(seat.id)) return true
