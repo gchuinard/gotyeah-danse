@@ -16,14 +16,19 @@
 //   - une pénalité de FRAGMENTATION : couper le milieu d'un grand run (deux
 //     restes non vides) gâche une rangée rare, même sans créer d'orphelin ;
 //   - pour les blocs : un coût par rangée supplémentaire + un malus si une
-//     rangée ne reçoit qu'UN siège (esseulé devant/derrière) ;
+//     rangée ne reçoit qu'UN siège (esseulé devant/derrière) ; l'anti-orphelin
+//     y est pondéré plus faiblement (POIDS_ORPHELIN_BLOC) — un bloc de secours
+//     privilégie le confort de la famille à la chasse aux miettes ;
 //   - une retenue de ZONE : tant que la salle se remplit, on déprécie les
 //     mauvaises places (fosse / bords) pour ne pas les distribuer trop tôt.
 //
-// SÉLECTION — au lieu des 3 meilleurs (souvent quasi-jumeaux), on compose 3
-// profils : ① la meilleure option, ② une alternative GÉOGRAPHIQUE (autre
-// section ou rang nettement différent), ③ une alternative de FORME (bloc si
-// les deux premières sont des fenêtres, ou l'inverse). Vrai choix pour l'admin.
+// SÉLECTION — priorité absolue à la MÊME RANGÉE. On propose d'abord des
+// FENÊTRES (le groupe entier sur une seule rangée), sur des rangées DISTINCTES
+// pour offrir un vrai choix (rangée X / Y / Z plutôt que la même décalée). Les
+// BLOCS (remplissage vertical sur 2+ rangs) ne viennent qu'« LE CAS ÉCHÉANT » :
+// pour compléter quand il n'y a pas assez de fenêtres distinctes, ou quand le
+// groupe ne tient sur aucune rangée. On ne retrie jamais par qualité après coup
+// (sinon un bloc mieux noté repasserait devant une fenêtre — ce qu'on refuse).
 //
 // Fonction PURE et déterministe (on reconstruit l'ordre d'entrée, aucun
 // Math.random ni horloge ; départage par ids triés).
@@ -40,6 +45,12 @@ const MAX_RANGEES_BLOC = 8
 const FRAG_CAP = 6 // pénalité max pour avoir scindé le milieu d'un run
 const MALUS_RANGEE_SUP = 6 // par rangée d'un bloc au-delà de la première
 const MALUS_PETIT_MORCEAU = 15 // une rangée du bloc ne reçoit qu'un seul siège
+// Un bloc est un REMPLISSAGE de secours : on y pondère l'anti-orphelin plus
+// faiblement que pour une fenêtre, pour PRIVILÉGIER LE CONFORT de la famille
+// placée (de bonnes places) quitte à laisser un siège isolé. 0 = confort pur ;
+// 1 = anti-orphelin plein (comme les fenêtres). À 0,5 : il faut un gain de
+// confort > ~15 pts pour accepter d'éparpiller un siège.
+const POIDS_ORPHELIN_BLOC = 0.5
 const ZONE_PIVOT = 45 // en-dessous de ce score moyen, place « médiocre »
 const ZONE_W = 0.5 // poids de la retenue de zone (s'efface quand la salle se remplit)
 
@@ -206,7 +217,7 @@ function meilleurBloc(rangsRuns: Run[][], n: number, occupation: number, out: Ca
       const scoreMoyen = score / n
       const qualite =
         scoreMoyen -
-        restes -
+        POIDS_ORPHELIN_BLOC * restes -
         malusPetit -
         MALUS_RANGEE_SUP * (K - 1) -
         malusZone(scoreMoyen, occupation)
@@ -282,40 +293,39 @@ export const suggestPlacement: PlacementFn = (seats, partySize) => {
     return cx < cy ? -1 : cx > cy ? 1 : 0
   })
 
-  // 3 suggestions DIVERSES. Un candidat est « distinct » s'il ne recouvre pas
-  // déjà la moitié des sièges d'une suggestion retenue.
+  // Un candidat est « distinct » s'il ne recouvre pas déjà la moitié des sièges
+  // d'une suggestion retenue (évite deux propositions quasi-jumelles).
   const seuil = Math.ceil(partySize / 2)
   const distinct = (c: Candidat, prises: Candidat[]) => {
     const ids = new Set(c.seats.map((s) => s.id))
     return !prises.some((d) => d.seats.filter((s) => ids.has(s.id)).length >= seuil)
   }
-  const choisies: Candidat[] = [candidats[0]] // ① la meilleure option
 
-  // ② alternative géographique : autre section, ou rang nettement différent.
-  const geoDiff = (c: Candidat, ref: Candidat) =>
-    c.section !== ref.section || Math.abs(c.rowOrder - ref.rowOrder) >= 3
-  const slot2 =
-    candidats.find((c) => distinct(c, choisies) && geoDiff(c, choisies[0])) ??
-    candidats.find((c) => distinct(c, choisies))
-  if (slot2) choisies.push(slot2)
+  const fenetresCand = candidats.filter((c) => c.type === 'fenetre')
+  const blocsCand = candidats.filter((c) => c.type === 'bloc')
 
-  // ③ alternative de forme : fenêtre vs bloc, sinon le meilleur encore distinct.
-  if (choisies.length < 3) {
-    const typesPris = new Set(choisies.map((c) => c.type))
-    const slot3 =
-      candidats.find((c) => distinct(c, choisies) && !typesPris.has(c.type)) ??
-      candidats.find((c) => distinct(c, choisies))
-    if (slot3) choisies.push(slot3)
+  // Fenêtres ordonnées : une par rangée DISTINCTE d'abord (rangée X/Y/Z, un vrai
+  // choix), puis les fenêtres restantes (mêmes rangées, décalées). Les blocs
+  // arrivent après — donc seulement « le cas échéant ».
+  const fenetresOrdonnees: Candidat[] = []
+  const dejaVu = new Set<Candidat>()
+  const rangsPris = new Set<string>()
+  for (const c of fenetresCand) {
+    const rowId = c.seats[0].rowId
+    if (rangsPris.has(rowId)) continue
+    fenetresOrdonnees.push(c)
+    dejaVu.add(c)
+    rangsPris.add(rowId)
   }
+  for (const c of fenetresCand) if (!dejaVu.has(c)) fenetresOrdonnees.push(c)
 
-  // Ordonnées meilleure → moins bonne (invariant 1) : la ① reste en tête (elle
-  // est le maximum global), on trie les alternatives par qualité.
-  choisies.sort((x, y) => {
-    if (y.qualite !== x.qualite) return y.qualite - x.qualite
-    const cx = cle(x)
-    const cy = cle(y)
-    return cx < cy ? -1 : cx > cy ? 1 : 0
-  })
+  // Fenêtres (rangées distinctes en tête) PUIS blocs : on garde les 3 premières
+  // suggestions distinctes dans cet ordre — la « même rangée » prime toujours.
+  const choisies: Candidat[] = []
+  for (const c of [...fenetresOrdonnees, ...blocsCand]) {
+    if (choisies.length === 3) break
+    if (distinct(c, choisies)) choisies.push(c)
+  }
 
   return choisies.map((c): Suggestion => {
     const somme = c.seats.reduce((sum, s) => sum + s.score, 0)
