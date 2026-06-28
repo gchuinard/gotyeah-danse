@@ -90,6 +90,7 @@
 
 /* ── Courbe (cumul des demandes) ────────────────────────────────────── */
 .lineChart {
+  position: relative;
   margin-top: 0.4rem;
 }
 .lineSvg {
@@ -126,9 +127,55 @@
 }
 .linePoint {
   fill: var(--terre);
+  transition: r 0.1s ease;
 }
-/* Cible de survol large et transparente : porte l'info-bulle <title>. */
-.linePointHit {
+/* Repère vertical animé au survol. */
+.lineHover {
+  stroke: var(--terre-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+/* Bande de survol pleine hauteur (transparente) — toute la colonne répond. */
+.lineBande {
   fill: transparent;
-  cursor: pointer;
+  cursor: crosshair;
+}
+/* Info-bulle flottante (composant client). */
+.lineTip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  background: var(--encre);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 9px 5px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  box-shadow: 0 2px 8px rgba(30, 26, 22, 0.25);
+  z-index: 10;
+}
+.lineTip strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+.lineTip span {
+  opacity: 0.7;
+  font-size: 0.74rem;
+}
+/* Petite flèche en bas de l'info-bulle. */
+.lineTip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--encre);
 }

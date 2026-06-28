@@ -15,7 +15,8 @@ import { prisma } from '@/lib/db'
 
 import { ajouterBuvetteAction, enregistrerBilanAction } from './actions'
 import { BuvetteRow } from './buvette-row'
-import { BarChart, Jauge, LineChart, type Barre } from './charts'
+import { BarChart, Jauge, type Barre } from './charts'
+import { LineChart } from './line-chart'
 import styles from './stats.module.css'
 
 export const metadata: Metadata = { title: 'Statistiques — Billetterie admin' }
