@@ -38,6 +38,47 @@
   gap: 0.8rem;
 }
 
+/* Titre de section (« Détail par représentation ») entre la vue globale et le détail. */
+.sectionTitre {
+  font-size: 1.2rem;
+  color: var(--terre);
+  margin: 2.4rem 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #e8ddd0;
+}
+
+/* Tableau de comparaison année par année. */
+.tableWrap {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: #fff;
+  border: 1px solid #e8ddd0;
+}
+.compareTable th,
+.compareTable td {
+  padding: 0.5rem 0.7rem;
+  text-align: right;
+  border-bottom: 1px solid #f2ece3;
+  white-space: nowrap;
+}
+.compareTable th:first-child,
+.compareTable td:first-child {
+  text-align: left;
+}
+.compareTable thead th {
+  background: #fbf7f1;
+  color: var(--terre-2);
+  font-weight: 600;
+}
+.compareTable tbody tr:hover {
+  background: #fbf7f1;
+}
+
 .carte {
   background: #fff;
   border: 1px solid #e8ddd0;

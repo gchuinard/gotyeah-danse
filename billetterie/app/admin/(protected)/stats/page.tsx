@@ -54,6 +54,8 @@ const cleJour = new Intl.DateTimeFormat('en-CA', {
   month: '2-digit',
   day: '2-digit',
 })
+// Année (heure de Paris) — regroupement de la vue d'ensemble (1 édition/an).
+const anneeFmt = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric' })
 // Clé de tri d'un mois (AAAA-MM en heure de Paris) indépendante de la locale.
 const cleMois = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Europe/Paris',
@@ -230,9 +232,139 @@ export default async function StatsPage() {
     }),
   )
 
+  // ── Vue d'ensemble : agrégation par ANNÉE (1 édition/an → comparaison
+  // d'une année à l'autre). Dérivée des stats par représentation ci-dessus.
+  const ACTIFS = ['pending', 'paid', 'placed'] as const
+  const parAnneeMap = new Map<
+    string,
+    {
+      annee: string
+      reps: number
+      capacite: number
+      billets: number
+      scannes: number
+      demandesActives: number
+      adultes: number
+      enfants: number
+      offertes: number
+      recetteBillets: number // caisse nette billetterie
+      buvetteRecette: number
+      buvetteBalance: number
+    }
+  >()
+  for (const s of stats) {
+    const annee = anneeFmt.format(s.rep.startsAt)
+    const a = parAnneeMap.get(annee) ?? {
+      annee,
+      reps: 0,
+      capacite: 0,
+      billets: 0,
+      scannes: 0,
+      demandesActives: 0,
+      adultes: 0,
+      enfants: 0,
+      offertes: 0,
+      recetteBillets: 0,
+      buvetteRecette: 0,
+      buvetteBalance: 0,
+    }
+    a.reps += 1
+    a.capacite += s.capacite
+    a.billets += s.billets
+    a.scannes += s.scannes
+    a.demandesActives += ACTIFS.reduce((n, st) => n + (s.parStatut.get(st) ?? 0), 0)
+    a.adultes += s.adultesTotal
+    a.enfants += s.enfantsTotal
+    a.offertes += s.offertesTotal
+    a.recetteBillets += s.totalCaisse
+    a.buvetteRecette += s.buvetteTotaux.recetteCents
+    a.buvetteBalance += s.buvetteTotaux.balanceCents
+    parAnneeMap.set(annee, a)
+  }
+  // Années récentes en premier.
+  const parAnnee = [...parAnneeMap.values()].sort((x, y) => (x.annee < y.annee ? 1 : -1))
+  // Pour les graphes : années en ordre chronologique (gauche → droite).
+  const parAnneeChrono = [...parAnnee].reverse()
+
   return (
     <main className={styles.page}>
       <h1>Statistiques</h1>
+
+      <section className={styles.bloc}>
+        <header className={styles.blocHeader}>
+          <h2>Vue d’ensemble — comparaison par année</h2>
+        </header>
+        {parAnnee.length === 0 ? (
+          <p className={styles.detail}>Aucune représentation enregistrée.</p>
+        ) : (
+          <>
+            <div className={styles.tableWrap}>
+              <table className={styles.compareTable}>
+                <thead>
+                  <tr>
+                    <th>Année</th>
+                    <th>Soirées</th>
+                    <th>Billets</th>
+                    <th>Remplissage</th>
+                    <th>Demandes</th>
+                    <th>Adultes</th>
+                    <th>Enfants</th>
+                    <th>Recette billets</th>
+                    <th>Recette buvette</th>
+                    <th>Balance buvette</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parAnnee.map((a) => (
+                    <tr key={a.annee}>
+                      <td>
+                        <strong>{a.annee}</strong>
+                      </td>
+                      <td>{a.reps}</td>
+                      <td>{a.billets}</td>
+                      <td>{a.capacite > 0 ? `${Math.round((a.billets / a.capacite) * 100)} %` : '—'}</td>
+                      <td>{a.demandesActives}</td>
+                      <td>{a.adultes}</td>
+                      <td>{a.enfants}</td>
+                      <td>{euros(a.recetteBillets)}</td>
+                      <td>{euros(a.buvetteRecette)}</td>
+                      <td className={a.buvetteBalance < 0 ? styles.buvetteNeg : undefined}>
+                        {euros(a.buvetteBalance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className={styles.grille}>
+              <div className={styles.carte}>
+                <h3>Billets émis par année</h3>
+                <BarChart
+                  data={parAnneeChrono.map((a) => ({ label: a.annee, value: a.billets, ton: 'a' }))}
+                  format={(v) => `${v}`}
+                />
+              </div>
+              <div className={styles.carte}>
+                <h3>Recette billetterie par année</h3>
+                <BarChart
+                  data={parAnneeChrono.map((a) => ({ label: a.annee, value: a.recetteBillets, ton: 'b' }))}
+                  format={euros}
+                />
+              </div>
+              <div className={styles.carte}>
+                <h3>Recette buvette par année</h3>
+                <BarChart
+                  data={parAnneeChrono.map((a) => ({ label: a.annee, value: a.buvetteRecette, ton: 'c' }))}
+                  format={euros}
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+
+      <h2 className={styles.sectionTitre}>Détail par représentation</h2>
 
       {stats.map(({ rep, ...s }) => {
         const meteo = parseWeatherReadings(rep.weatherReadings)
