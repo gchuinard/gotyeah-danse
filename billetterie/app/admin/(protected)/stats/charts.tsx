@@ -138,6 +138,16 @@ export function LineChart({
         ))}
         <path d={aire} className={styles.lineArea} />
         <path d={trace} className={styles.linePath} fill="none" />
+        {/* Points + info-bulle native (survol) donnant la valeur exacte. La
+            grande cible transparente facilite le survol ; <title> = tooltip. */}
+        {points.map((p, i) => (
+          <g key={`pt${i}`}>
+            <circle cx={x(i)} cy={y(p.value)} r={2.6} className={styles.linePoint} />
+            <circle cx={x(i)} cy={y(p.value)} r={9} className={styles.linePointHit}>
+              <title>{`${p.label} · ${format(p.value)}`}</title>
+            </circle>
+          </g>
+        ))}
       </svg>
     </div>
   )
