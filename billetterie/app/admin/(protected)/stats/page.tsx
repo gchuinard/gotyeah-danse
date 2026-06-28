@@ -369,13 +369,16 @@ export default async function StatsPage() {
       {stats.map(({ rep, ...s }) => {
         const meteo = parseWeatherReadings(rep.weatherReadings)
         return (
-        <section key={rep.id} className={styles.bloc}>
-          <header className={styles.blocHeader}>
-            <h2>{rep.title}</h2>
+        <details key={rep.id} className={styles.bloc}>
+          <summary className={styles.blocSummary}>
+            <span className={styles.blocTitre}>{rep.title}</span>
             <span className={styles.date}>
               {dateHeureFr.format(rep.startsAt).replace(/(\d{1,2}):(\d{2})/, '$1h$2')}
             </span>
-          </header>
+            <span className={styles.summaryMeta}>
+              {s.billets}/{s.capacite} billets · {s.remplissage} %
+            </span>
+          </summary>
 
           <div className={styles.grille}>
             <div className={styles.carte}>
@@ -653,7 +656,7 @@ export default async function StatsPage() {
               </>
             )}
           </div>
-        </section>
+        </details>
         )
       })}
     </main>

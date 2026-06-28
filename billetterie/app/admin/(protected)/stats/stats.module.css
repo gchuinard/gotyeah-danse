@@ -32,6 +32,58 @@
   color: var(--gris-chd);
 }
 
+/* Bloc représentation repliable (<details>, plié par défaut). La vue d'ensemble
+   reste une <section>, donc ces règles (details.bloc) ne l'affectent pas. */
+details.bloc {
+  border: 1px solid #e8ddd0;
+  border-radius: 10px;
+  background: #fff;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.blocSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.blocSummary::-webkit-details-marker {
+  display: none;
+}
+.blocSummary::before {
+  content: '▸';
+  align-self: center;
+  color: var(--terre-2);
+  font-size: 0.9rem;
+  transition: transform 0.15s ease;
+}
+details[open] > .blocSummary::before {
+  transform: rotate(90deg);
+}
+.blocSummary:hover {
+  background: #fbf7f1;
+}
+.blocTitre {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--terre);
+}
+.summaryMeta {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--gris-chd);
+}
+details.bloc > .grille {
+  padding: 0.2rem 1.1rem 0;
+}
+details.bloc > .bilan {
+  margin: 1rem 1.1rem 1.1rem;
+}
+
 .grille {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
