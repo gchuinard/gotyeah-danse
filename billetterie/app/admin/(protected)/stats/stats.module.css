@@ -86,8 +86,21 @@ details.bloc > .bilan {
 
 .grille {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 0.8rem;
+  /* Remplit les trous laissés par les cartes larges (span 2). */
+  grid-auto-flow: dense;
+}
+
+/* Carte large : occupe 2 colonnes quand la grille en a au moins 2 — pour les
+   graphes qui respirent mal en colonne étroite (courbe, barres). */
+.carteLarge {
+  grid-column: span 2;
+}
+@media (max-width: 520px) {
+  .carteLarge {
+    grid-column: auto;
+  }
 }
 
 /* Titre de section (« Détail par représentation ») entre la vue globale et le détail. */

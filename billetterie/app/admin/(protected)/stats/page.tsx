@@ -454,7 +454,7 @@ export default async function StatsPage() {
               <p className={styles.detail}>places payantes par tarif (offertes exclues du dû)</p>
             </div>
 
-            <div className={styles.carte}>
+            <div className={`${styles.carte} ${styles.carteLarge}`}>
               <h3>Demandes dans le temps</h3>
               {s.ventePoints.length === 0 ? (
                 <p className={styles.detail}>Aucune demande active.</p>
@@ -464,7 +464,7 @@ export default async function StatsPage() {
               <p className={styles.detail}>cumul des places demandées, jour par jour</p>
             </div>
 
-            <div className={styles.carte}>
+            <div className={`${styles.carte} ${styles.carteLarge}`}>
               <h3>Caisse</h3>
               {s.caisse.size === 0 ? (
                 <p className={styles.detail}>Aucun versement enregistré.</p>
