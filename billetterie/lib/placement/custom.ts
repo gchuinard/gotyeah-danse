@@ -1,18 +1,32 @@
 // Moteur de placement « intelligent » — voir PLACEMENT.md.
 //
-// Deux familles de candidats, on garde les 3 meilleurs (et distincts) :
+// Deux familles de candidats, on garde les 3 meilleurs (et DIVERS) :
 //  - FENÊTRES : `partySize` sièges contigus sur UNE rangée (cas idéal) ;
 //  - BLOCS : le groupe réparti sur K rangées ADJACENTES de la même section
 //    (rowOrder consécutifs), chaque rangée contiguë, toutes alignées sur la
 //    même colonne de départ → un bloc vertical d'un seul tenant (les uns
 //    devant les autres). Ex. 6 = 3+3 sur 2 rangs, 15 = 5+5+5 sur 3 rangs.
-//    Plus le bloc compte de rangées, plus il est pénalisé (on préfère
-//    regrouper sur peu de rangs).
 //
-// Qualité = somme des SCORES STATIQUES − malus des « restes » (morceaux de run
-// laissés à côté, quasi invendables en taille 1) − coût du bloc (par rangée
-// au-delà de la première). Classement par qualité ; départage déterministe par
-// ids triés. Fonction PURE et déterministe (on reconstruit l'ordre d'entrée).
+// QUALITÉ — tout est ramené au SCORE MOYEN PAR SIÈGE (0-100), pour que le
+// confort et les pénalités soient à la même échelle quelle que soit la taille
+// du groupe (sinon l'anti-orphelin, absolu, devient négligeable face à la
+// SOMME des scores d'un gros groupe). On retranche :
+//   - le malus des « restes » (morceaux de run laissés à côté ; un siège seul
+//     est quasi invendable — PLACEMENT.md §3) ;
+//   - une pénalité de FRAGMENTATION : couper le milieu d'un grand run (deux
+//     restes non vides) gâche une rangée rare, même sans créer d'orphelin ;
+//   - pour les blocs : un coût par rangée supplémentaire + un malus si une
+//     rangée ne reçoit qu'UN siège (esseulé devant/derrière) ;
+//   - une retenue de ZONE : tant que la salle se remplit, on déprécie les
+//     mauvaises places (fosse / bords) pour ne pas les distribuer trop tôt.
+//
+// SÉLECTION — au lieu des 3 meilleurs (souvent quasi-jumeaux), on compose 3
+// profils : ① la meilleure option, ② une alternative GÉOGRAPHIQUE (autre
+// section ou rang nettement différent), ③ une alternative de FORME (bloc si
+// les deux premières sont des fenêtres, ou l'inverse). Vrai choix pour l'admin.
+//
+// Fonction PURE et déterministe (on reconstruit l'ordre d'entrée, aucun
+// Math.random ni horloge ; départage par ids triés).
 
 import type { PlacementFn, SeatState, Suggestion } from './types'
 
@@ -21,6 +35,13 @@ export const implemented = true
 // Au-delà, un « bloc » deviendrait une colonne trop haute et étroite : on
 // préfère renvoyer vide (placement manuel) qu'une suggestion absurde.
 const MAX_RANGEES_BLOC = 8
+
+// Tous les curseurs ci-dessous sont en POINTS DE SCORE MOYEN (échelle 0-100).
+const FRAG_CAP = 6 // pénalité max pour avoir scindé le milieu d'un run
+const MALUS_RANGEE_SUP = 6 // par rangée d'un bloc au-delà de la première
+const MALUS_PETIT_MORCEAU = 15 // une rangée du bloc ne reçoit qu'un seul siège
+const ZONE_PIVOT = 45 // en-dessous de ce score moyen, place « médiocre »
+const ZONE_W = 0.5 // poids de la retenue de zone (s'efface quand la salle se remplit)
 
 // Malus d'un reste de run (PLACEMENT.md §3) : un siège seul est quasi
 // invendable, un reste de 4+ reste pleinement exploitable.
@@ -32,7 +53,21 @@ function malusReste(n: number): number {
   return 0
 }
 
-const MALUS_RANGEE_SUP = 12 // par rangée au-delà de la première (préfère regrouper)
+// Couper le MILIEU d'un run (un reste non vide de chaque côté) fragmente une
+// rangée même quand aucun reste n'est pénalisé (deux restes ≥ 4). On nudge donc
+// vers les BORDS : plus le plus petit reste est gros, plus on a bisecté un run
+// long → plus c'est cher (plafonné). Un placement en bord (un reste nul) = 0.
+function malusFragmentation(gauche: number, droite: number): number {
+  if (gauche <= 0 || droite <= 0) return 0
+  return Math.min(FRAG_CAP, Math.min(gauche, droite))
+}
+
+// Retenue de zone : tant que la salle n'est pas pleine (occ → 0), on déprécie
+// les suggestions à faible score moyen (fosse, bords) pour les garder pour plus
+// tard. À salle pleine (occ → 1), la retenue disparaît.
+function malusZone(scoreMoyen: number, occupation: number): number {
+  return (1 - occupation) * Math.max(0, ZONE_PIVOT - scoreMoyen) * ZONE_W
+}
 
 type Run = {
   rowId: string
@@ -43,7 +78,13 @@ type Run = {
   prefix: number[] // prefix[k] = somme des scores des k premiers sièges
 }
 
-type Candidat = { seats: SeatState[]; qualite: number }
+type Candidat = {
+  seats: SeatState[]
+  qualite: number
+  type: 'fenetre' | 'bloc'
+  section: string
+  rowOrder: number // rang le plus proche de la scène occupé par le candidat
+}
 type Intervalle = [number, number] // bornes incluses
 
 function construireRuns(seats: SeatState[]): Run[] {
@@ -98,23 +139,40 @@ function intersecter(a: Intervalle[], b: Intervalle[]): Intervalle[] {
 }
 
 // Fenêtres mono-rangée de taille n.
-function fenetres(run: Run, n: number, out: Candidat[]): void {
+function fenetres(run: Run, n: number, occupation: number, out: Candidat[]): void {
   const L = run.seats.length
   for (let p = 0; p + n <= L; p++) {
-    const qualite = sommeScore(run, p, n) - malusReste(p) - malusReste(L - (p + n))
-    out.push({ seats: run.seats.slice(p, p + n), qualite })
+    const gauche = p
+    const droite = L - (p + n)
+    const scoreMoyen = sommeScore(run, p, n) / n
+    const qualite =
+      scoreMoyen -
+      malusReste(gauche) -
+      malusReste(droite) -
+      malusFragmentation(gauche, droite) -
+      malusZone(scoreMoyen, occupation)
+    out.push({
+      seats: run.seats.slice(p, p + n),
+      qualite,
+      type: 'fenetre',
+      section: run.section,
+      rowOrder: run.rowOrder,
+    })
   }
 }
 
 // Meilleur bloc du groupe sur K rangées adjacentes (rangsRuns[i] = runs de la
 // i-ème rangée). Répartition équilibrée, toutes les fenêtres démarrent à la
 // même colonne c → bloc vertical d'un seul tenant.
-function meilleurBloc(rangsRuns: Run[][], n: number, out: Candidat[]): void {
+function meilleurBloc(rangsRuns: Run[][], n: number, occupation: number, out: Candidat[]): void {
   const K = rangsRuns.length
   const base = Math.floor(n / K)
   if (base < 1) return // une rangée recevrait 0 siège : K trop grand pour n
   const extra = n % K
   const parts = rangsRuns.map((_, i) => base + (i < extra ? 1 : 0))
+  // Une rangée n'accueillant qu'un seul siège laisse quelqu'un esseulé sur son
+  // rang (devant/derrière les autres) — on le décourage sans l'interdire.
+  const malusPetit = parts.some((p) => p === 1) ? MALUS_PETIT_MORCEAU : 0
 
   // Colonnes de départ valides pour CHAQUE rangée (union de ses runs), puis
   // intersection : une colonne c où toutes les rangées peuvent poser leur part.
@@ -145,8 +203,22 @@ function meilleurBloc(rangsRuns: Run[][], n: number, out: Candidat[]): void {
         score += sommeScore(run, p, parts[i])
         restes += malusReste(p) + malusReste(run.seats.length - (p + parts[i]))
       }
-      const qualite = score - restes - MALUS_RANGEE_SUP * (K - 1)
-      if (!best || qualite > best.qualite) best = { seats, qualite }
+      const scoreMoyen = score / n
+      const qualite =
+        scoreMoyen -
+        restes -
+        malusPetit -
+        MALUS_RANGEE_SUP * (K - 1) -
+        malusZone(scoreMoyen, occupation)
+      if (!best || qualite > best.qualite) {
+        best = {
+          seats,
+          qualite,
+          type: 'bloc',
+          section: rangsRuns[0][0].section,
+          rowOrder: Math.min(...rangsRuns.map((r) => r[0].rowOrder)),
+        }
+      }
     }
   }
   if (best) out.push(best)
@@ -155,12 +227,17 @@ function meilleurBloc(rangsRuns: Run[][], n: number, out: Candidat[]): void {
 export const suggestPlacement: PlacementFn = (seats, partySize) => {
   if (!Number.isInteger(partySize) || partySize < 1) return []
 
+  // Taux d'occupation de la salle (sièges actifs) — pilote la retenue de zone.
+  // Compté sur l'entrée brute : pur et indépendant de l'ordre.
+  const total = seats.length
+  const occupation = total > 0 ? seats.reduce((n, s) => n + (s.free ? 0 : 1), 0) / total : 0
+
   const runs = construireRuns(seats)
   const candidats: Candidat[] = []
 
   // Fenêtres mono-rangée.
   for (const run of runs) {
-    if (run.seats.length >= partySize) fenetres(run, partySize, candidats)
+    if (run.seats.length >= partySize) fenetres(run, partySize, occupation, candidats)
   }
 
   // Blocs sur K rangées adjacentes (K ≥ 2) de la même section.
@@ -185,7 +262,7 @@ export const suggestPlacement: PlacementFn = (seats, partySize) => {
         const liste = runsParRang.get(`${section}:${o0 + k}`)
         if (!liste) break
         rangsRuns.push(liste)
-        if (rangsRuns.length >= 2) meilleurBloc(rangsRuns, partySize, candidats)
+        if (rangsRuns.length >= 2) meilleurBloc(rangsRuns, partySize, occupation, candidats)
       }
     }
   }
@@ -205,19 +282,43 @@ export const suggestPlacement: PlacementFn = (seats, partySize) => {
     return cx < cy ? -1 : cx > cy ? 1 : 0
   })
 
-  // 3 suggestions DISTINCTES : on écarte un candidat qui recouvre trop une
-  // suggestion déjà retenue (≥ la moitié de ses sièges) — un vrai choix.
-  const choisies: Candidat[] = []
+  // 3 suggestions DIVERSES. Un candidat est « distinct » s'il ne recouvre pas
+  // déjà la moitié des sièges d'une suggestion retenue.
   const seuil = Math.ceil(partySize / 2)
-  for (const c of candidats) {
-    if (choisies.length === 3) break
+  const distinct = (c: Candidat, prises: Candidat[]) => {
     const ids = new Set(c.seats.map((s) => s.id))
-    const recouvre = choisies.some((d) => d.seats.filter((s) => ids.has(s.id)).length >= seuil)
-    if (!recouvre) choisies.push(c)
+    return !prises.some((d) => d.seats.filter((s) => ids.has(s.id)).length >= seuil)
+  }
+  const choisies: Candidat[] = [candidats[0]] // ① la meilleure option
+
+  // ② alternative géographique : autre section, ou rang nettement différent.
+  const geoDiff = (c: Candidat, ref: Candidat) =>
+    c.section !== ref.section || Math.abs(c.rowOrder - ref.rowOrder) >= 3
+  const slot2 =
+    candidats.find((c) => distinct(c, choisies) && geoDiff(c, choisies[0])) ??
+    candidats.find((c) => distinct(c, choisies))
+  if (slot2) choisies.push(slot2)
+
+  // ③ alternative de forme : fenêtre vs bloc, sinon le meilleur encore distinct.
+  if (choisies.length < 3) {
+    const typesPris = new Set(choisies.map((c) => c.type))
+    const slot3 =
+      candidats.find((c) => distinct(c, choisies) && !typesPris.has(c.type)) ??
+      candidats.find((c) => distinct(c, choisies))
+    if (slot3) choisies.push(slot3)
   }
 
+  // Ordonnées meilleure → moins bonne (invariant 1) : la ① reste en tête (elle
+  // est le maximum global), on trie les alternatives par qualité.
+  choisies.sort((x, y) => {
+    if (y.qualite !== x.qualite) return y.qualite - x.qualite
+    const cx = cle(x)
+    const cy = cle(y)
+    return cx < cy ? -1 : cx > cy ? 1 : 0
+  })
+
   return choisies.map((c): Suggestion => {
-    const total = c.seats.reduce((sum, s) => sum + s.score, 0)
-    return { seatIds: c.seats.map((s) => s.id), score: Math.round(total / c.seats.length) }
+    const somme = c.seats.reduce((sum, s) => sum + s.score, 0)
+    return { seatIds: c.seats.map((s) => s.id), score: Math.round(somme / c.seats.length) }
   })
 }

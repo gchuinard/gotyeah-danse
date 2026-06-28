@@ -51,7 +51,7 @@ Dans `.env` :
 | `APP_BASE_URL` | URL publique, utilisée dans les liens des emails |
 | `BREVO_API_KEY` | Sans clé, les emails sont simplement loggés en console (parfait en dev) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | Expéditeur des emails |
-| `PLACEMENT_IMPL` | `baseline` (défaut) ou `custom` |
+| `PLACEMENT_IMPL` | `custom` (défaut, moteur intelligent) ou `baseline` (étalon naïf) |
 | `VENUE_ID` | Salle active : charge `config/venues/<id>.json` (défaut : Bergerac intégré) |
 | `ADMIN_EMAILS` | **Super-admins « garantis »** (anti-lockout), emails séparés par des virgules. Les autres comptes se gèrent dans `/admin/comptes` |
 | `SESSION_SECRET` | Signature des cookies admin — générer : `openssl rand -hex 32` |
@@ -99,7 +99,7 @@ navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
 
 | URL | Quoi |
 | --- | --- |
-| `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0) |
+| `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0). Mise en page **2 colonnes** sur grand écran (≥ 920 px) — formulaire à gauche, **FAQ** à droite (accordéon `<details>` natif, 10 questions) ; empilé sur mobile |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
 | `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
 | `/admin/demandes` | File des demandes. **Filtres** : statut, **paiement** (payées / non payées), recherche nom/email/téléphone (live). **Clic sur une ligne → popup « centre d'actions »** (reste ouverte, feedback inline) : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (date de paiement pré-remplie au jour) / supprimer un versement / **annuler tout le règlement**, bloc séparé **Remboursement** (montant + motif, nb de places pour « place retirée »), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
@@ -139,9 +139,11 @@ l'export CSV.
 
 ## L'algorithme de placement
 
-La baseline (`lib/placement/baseline.ts`) est **volontairement naïve** : première
-fenêtre libre depuis la scène (rangs Y/X). `lib/placement/custom.ts` est le terrain de jeu
-du dev : passer `implemented` à `true`, activer avec `PLACEMENT_IMPL=custom`.
+Le moteur **actif par défaut** est `lib/placement/custom.ts` (fenêtres + blocs,
+scores statiques, malus des restes anti-orphelins). La baseline
+(`lib/placement/baseline.ts`) est **volontairement naïve** — première fenêtre
+libre depuis la scène (rangs Y/X) — et ne sert que d'**étalon** au simulateur :
+`PLACEMENT_IMPL=baseline` y revient explicitement.
 Le harnais : `pnpm test` (5 invariants) et le simulateur Monte Carlo seedé,
 `pnpm simulate --impl=baseline --runs=200 --seed=42` vs `--impl=custom` — même
 seed, mêmes soirées de vente, comparaison à conditions identiques. Spec
@@ -342,7 +344,7 @@ Checklist :
 | `BREVO_API_KEY` | optionnel (emails + codes → console) | **requis** (sinon aucun email ne part, login impossible) |
 | `EMAIL_SENDER_NAME` / `EMAIL_SENDER_ADDRESS` | expéditeur | idem |
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | optionnel (CAPTCHA désactivé) | recommandé (anti-bot du formulaire public) |
-| `PLACEMENT_IMPL` | `baseline` (défaut) \| `custom` | idem |
+| `PLACEMENT_IMPL` | `custom` (défaut) \| `baseline` | idem |
 | `VENUE_ID` | optionnel — salle JSON de `config/venues/` | idem (re-seeder après changement) |
 | `NODE_ENV` | — | `production` (coupe la démo du seed) |
 

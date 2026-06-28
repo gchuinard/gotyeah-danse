@@ -1,6 +1,6 @@
 // Point d'entrée du placement : choisit l'implémentation via paramètre
 // explicite (simulateur, tests) ou via la variable d'env PLACEMENT_IMPL
-// (appli). Défaut : baseline.
+// (appli). Défaut : custom (le moteur intelligent) — voir getPlacement.
 
 import { suggestPlacement as baseline } from './baseline'
 import { implemented as customImplemented, suggestPlacement as custom } from './custom'

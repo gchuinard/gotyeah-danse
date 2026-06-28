@@ -44,7 +44,7 @@ Pour activer ton implémentation :
 2. lance l'appli ou le simulateur avec `PLACEMENT_IMPL=custom`.
 
 Le switch est dans `lib/placement/index.ts` (`getPlacement`) ; défaut :
-`baseline`.
+`custom`. `PLACEMENT_IMPL=baseline` revient explicitement à l'étalon naïf.
 
 ## 2. Le contrat
 
