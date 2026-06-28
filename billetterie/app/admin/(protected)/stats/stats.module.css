@@ -334,10 +334,11 @@ details.bloc > .bilan {
      (vide dans l'en-tête, boutons dans les lignes), ce qui élargissait la 1re
      colonne flexible de l'en-tête et décalait tout d'une colonne. Largeur fixe. */
   /* 8 colonnes : Article | Acheté | P.achat | Vendu | P.vente | Recette | Balance | actions */
-  grid-template-columns: minmax(104px, 2fr) 56px 84px 56px 84px 80px 86px 92px;
-  gap: 0.4rem;
+  /* Colonnes élargies pour que les nombres à 3 chiffres / montants tiennent. */
+  grid-template-columns: minmax(110px, 2fr) 72px 100px 72px 100px 100px 104px 92px;
+  gap: 0.45rem;
   align-items: center;
-  min-width: 720px;
+  min-width: 820px;
   padding: 0.25rem 0;
 }
 
