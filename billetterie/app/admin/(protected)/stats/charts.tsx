@@ -2,6 +2,8 @@
 // avec l'esprit du projet). Composants SERVEUR purs : ils ne reçoivent que des
 // données déjà calculées et n'ont aucune interactivité.
 
+import type { CSSProperties } from 'react'
+
 import styles from './charts.module.css'
 
 // Jauge de remplissage (barre de progression value/max).
@@ -28,14 +30,25 @@ export function Jauge({
 
 export type Barre = { label: string; value: number; hint?: string; ton?: 'a' | 'b' | 'c' }
 
-// Barres horizontales, normalisées sur la plus grande valeur.
-export function BarChart({ data, format }: { data: Barre[]; format: (v: number) => string }) {
+// Barres horizontales, normalisées sur la plus grande valeur. `labelWidth`
+// règle la largeur de la colonne des libellés (défaut 5.5rem) — utile pour des
+// noms longs (ex. boissons de la buvette).
+export function BarChart({
+  data,
+  format,
+  labelWidth,
+}: {
+  data: Barre[]
+  format: (v: number) => string
+  labelWidth?: string
+}) {
   const max = Math.max(1, ...data.map((d) => d.value))
   return (
     <div
       className={styles.barChart}
       role="img"
       aria-label={data.map((d) => `${d.label} : ${format(d.value)}`).join(', ')}
+      style={labelWidth ? ({ '--bar-label-w': labelWidth } as CSSProperties) : undefined}
     >
       {data.map((d) => (
         <div key={d.label} className={styles.barRow}>

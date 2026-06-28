@@ -651,7 +651,7 @@ export default async function StatsPage() {
                 </p>
                 <div className={styles.buvetteGraph}>
                   <h5 className={styles.buvetteGraphTitre}>Recette par boisson (stock restant en indice)</h5>
-                  <BarChart data={s.buvetteBars} format={euros} />
+                  <BarChart data={s.buvetteBars} format={euros} labelWidth="11rem" />
                 </div>
               </>
             )}
