@@ -3,8 +3,10 @@
 // centre d'actions, la caisse (/admin/stats), l'export CSV et la page de suivi
 // côté famille. Tout est en centimes, en nombres entiers.
 //
-// Modèle : une demande a `partySize` places dont `freeSeats` offertes ; au prix
-// unitaire global `unitPriceCents`, le montant DÛ = (partySize − freeSeats) × prix.
+// Modèle : une demande a `partySize` places, dont `childCount` ENFANTS (le reste
+// = adultes) et `freeSeats` offertes. Aux deux tarifs globaux (adulte / enfant),
+// le montant DÛ = adultesPayants × prixAdulte + enfantsPayants × prixEnfant, les
+// places offertes étant déduites des ENFANTS d'abord, puis des adultes.
 // Elle reçoit un ou plusieurs versements (espèces / chèques) ; le total REÇU en
 // est la somme. La caisse compte le NET = reçu − remboursé. La demande est
 // SOLDÉE quand le net atteint le dû (les chèques comptent dès leur remise, peu
@@ -12,16 +14,45 @@
 
 export type PaymentLite = { method: string; amountCents: number }
 
-// Montant dû en centimes, ou null si le prix unitaire n'est pas défini.
-export function montantDuCents(
+export type MontantDuArgs = {
+  partySize: number
+  childCount: number
+  freeSeats: number
+  adultPriceCents: number | null
+  childPriceCents: number | null
+}
+
+// Décompose une demande en places PAYANTES adultes / enfants après déduction des
+// places offertes (sur les enfants d'abord, puis les adultes). Pur, sans prix.
+export function placesPayantes(
   partySize: number,
+  childCount: number,
   freeSeats: number,
-  unitPriceCents: number | null,
-): number | null {
-  if (unitPriceCents == null) return null
+): { adultes: number; enfants: number } {
+  const enfants = Math.min(Math.max(0, Math.trunc(childCount)), partySize)
+  const adultes = partySize - enfants
   const offertes = Math.min(Math.max(0, Math.trunc(freeSeats)), partySize)
-  const payantes = Math.max(0, partySize - offertes)
-  return payantes * unitPriceCents
+  const enfantsPayants = Math.max(0, enfants - offertes)
+  const offertesRestantes = Math.max(0, offertes - enfants)
+  const adultesPayants = Math.max(0, adultes - offertesRestantes)
+  return { adultes: adultesPayants, enfants: enfantsPayants }
+}
+
+// Montant dû en centimes, ou null si un tarif NÉCESSAIRE n'est pas défini
+// (on ne devine jamais un prix). 0 place payante d'une catégorie → ce tarif
+// n'est pas requis. Tout offert → 0 (et non null).
+export function montantDuCents(args: MontantDuArgs): number | null {
+  const { adultes, enfants } = placesPayantes(args.partySize, args.childCount, args.freeSeats)
+  let total = 0
+  if (adultes > 0) {
+    if (args.adultPriceCents == null) return null
+    total += adultes * args.adultPriceCents
+  }
+  if (enfants > 0) {
+    if (args.childPriceCents == null) return null
+    total += enfants * args.childPriceCents
+  }
+  return total
 }
 
 export function totalRemisCents(payments: readonly PaymentLite[]): number {
@@ -40,12 +71,14 @@ export type ResumePaiement = {
 
 export function resumePaiement(args: {
   partySize: number
+  childCount: number
   freeSeats: number
-  unitPriceCents: number | null
+  adultPriceCents: number | null
+  childPriceCents: number | null
   payments: readonly PaymentLite[]
   refundCents: number | null
 }): ResumePaiement {
-  const duCents = montantDuCents(args.partySize, args.freeSeats, args.unitPriceCents)
+  const duCents = montantDuCents(args)
   const remisCents = totalRemisCents(args.payments)
   const rembourseCents = Math.max(0, args.refundCents ?? 0)
   const netCents = remisCents - rembourseCents

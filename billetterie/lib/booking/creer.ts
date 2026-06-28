@@ -21,6 +21,7 @@ export type NouvelleDemande = {
   email: string
   phone: string
   partySize: number
+  childCount?: number // enfants parmi partySize (tarif réduit) ; reste = adultes
   notes?: string
   pmrCount?: number
   pmrCompanions?: number
@@ -81,6 +82,8 @@ export async function creerBookingEnAttente(
     const pmrCount = Math.min(Math.max(0, Math.trunc(demande.pmrCount ?? 0)), demande.partySize)
     const pmrCompanions =
       pmrCount > 0 ? Math.min(Math.max(0, demande.pmrCompanions ?? 0), demande.partySize - pmrCount) : 0
+    // Enfants bornés au groupe (le reste = adultes).
+    const childCount = Math.min(Math.max(0, Math.trunc(demande.childCount ?? 0)), demande.partySize)
 
     const booking = await tx.booking.create({
       data: {
@@ -89,6 +92,7 @@ export async function creerBookingEnAttente(
         email,
         phone: demande.phone,
         partySize: demande.partySize,
+        childCount,
         notes: demande.notes ?? null,
         pmrCount,
         pmrCompanions,

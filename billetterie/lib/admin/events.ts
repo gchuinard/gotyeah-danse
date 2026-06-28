@@ -16,6 +16,7 @@ export const ACTION_LABELS: Record<string, string> = {
   payment_removed: 'Versement supprimé',
   unpaid: 'Règlement annulé',
   free_seats: 'Places offertes modifiées',
+  child_count: 'Répartition adultes / enfants modifiée',
   placed: 'Placée',
   moved: 'Places déplacées',
   cancelled: 'Annulée',

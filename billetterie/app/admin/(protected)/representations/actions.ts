@@ -9,14 +9,14 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { euros } from '@/lib/admin/money'
-import { clearTicketPrice, setTicketPriceCents } from '@/lib/admin/pricing'
+import { setTicketPrices } from '@/lib/admin/pricing'
 import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { parisToUtc } from '@/lib/paris-time'
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
 
-// Prix unitaire en euros (« 12 », « 12,50 ») → centimes ; borné à 1000 €.
+// Prix en euros (« 12 », « 12,50 ») → centimes ; borné à 1000 €.
 const prixSchema = z
   .string()
   .trim()
@@ -24,6 +24,14 @@ const prixSchema = z
   .transform((v) => Number(v.replace(',', '.')))
   .refine((n) => Number.isFinite(n) && n >= 0 && n <= 1000)
   .transform((e) => Math.round(e * 100))
+
+// Un champ de prix : vide → null (effacer ce tarif) ; sinon centimes, ou
+// 'invalide' si le format est mauvais.
+function lirePrix(brut: FormDataEntryValue | null): number | null | 'invalide' {
+  if (typeof brut !== 'string' || brut.trim() === '') return null
+  const parsed = prixSchema.safeParse(brut)
+  return parsed.success ? parsed.data : 'invalide'
+}
 
 const formSchema = z.object({
   title: z.string().trim().min(2, 'Titre trop court').max(100),
@@ -44,20 +52,22 @@ function rafraichir() {
   revalidatePath('/') // le formulaire public liste les représentations ouvertes
 }
 
-// Fixe (ou efface) le prix unitaire global d'une place. Champ vide = effacer.
+// Fixe (ou efface) les tarifs globaux adulte / enfant. Chaque champ vide =
+// effacer ce tarif (montant dû correspondant désactivé).
 export async function definirPrixAction(formData: FormData): Promise<void> {
   await requireSuperAdmin()
-  const brut = formData.get('prix')
-  if (typeof brut === 'string' && brut.trim() === '') {
-    await clearTicketPrice(prisma)
-    rafraichir()
-    versListe('ok', 'Prix unitaire effacé (montant dû désactivé).')
+  const adulte = lirePrix(formData.get('prixAdulte'))
+  const enfant = lirePrix(formData.get('prixEnfant'))
+  if (adulte === 'invalide' || enfant === 'invalide') {
+    versListe('err', 'Prix invalide (montant en euros, entre 0 et 1000).')
   }
-  const parsed = prixSchema.safeParse(brut)
-  if (!parsed.success) versListe('err', 'Prix invalide (montant en euros, entre 0 et 1000).')
-  await setTicketPriceCents(prisma, parsed.data)
+  await setTicketPrices(prisma, { adultCents: adulte, childCents: enfant })
   rafraichir()
-  versListe('ok', `Prix unitaire fixé à ${euros(parsed.data)}.`)
+  const parts = [
+    adulte != null ? `adulte ${euros(adulte)}` : null,
+    enfant != null ? `enfant ${euros(enfant)}` : null,
+  ].filter(Boolean)
+  versListe('ok', parts.length ? `Tarifs : ${parts.join(', ')}.` : 'Tarifs effacés (montant dû désactivé).')
 }
 
 export async function creerRepresentation(formData: FormData): Promise<void> {

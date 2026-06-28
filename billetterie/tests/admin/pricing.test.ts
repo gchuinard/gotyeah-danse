@@ -1,4 +1,4 @@
-// Prix unitaire global (lib/admin/pricing) sur une DB SQLite jetable dans /tmp.
+// Tarifs adulte / enfant (lib/admin/pricing) sur une DB SQLite jetable dans /tmp.
 
 import { execSync } from 'node:child_process'
 import { rmSync } from 'node:fs'
@@ -9,10 +9,10 @@ import { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
-  clearTicketPrice,
-  getTicketPriceCents,
-  setTicketPriceCents,
-  TICKET_PRICE_KEY,
+  getTicketPrices,
+  setTicketPrices,
+  TICKET_PRICE_ADULT_KEY,
+  TICKET_PRICE_LEGACY_KEY,
 } from '@/lib/admin/pricing'
 
 const dbFile = `/tmp/billetterie-pricing-${process.pid}.db`
@@ -40,30 +40,42 @@ beforeEach(async () => {
 })
 
 describe('pricing', () => {
-  it('null tant qu’aucun prix n’est défini', async () => {
-    expect(await getTicketPriceCents(db)).toBeNull()
+  it('null tant qu’aucun tarif n’est défini', async () => {
+    expect(await getTicketPrices(db)).toEqual({ adultCents: null, childCents: null })
   })
 
   it('set puis get (upsert relançable)', async () => {
-    await setTicketPriceCents(db, 1200)
-    expect(await getTicketPriceCents(db)).toBe(1200)
-    await setTicketPriceCents(db, 1500)
-    expect(await getTicketPriceCents(db)).toBe(1500)
+    await setTicketPrices(db, { adultCents: 1200, childCents: 600 })
+    expect(await getTicketPrices(db)).toEqual({ adultCents: 1200, childCents: 600 })
+    await setTicketPrices(db, { adultCents: 1500, childCents: 800 })
+    expect(await getTicketPrices(db)).toEqual({ adultCents: 1500, childCents: 800 })
   })
 
-  it('clear remet à null', async () => {
-    await setTicketPriceCents(db, 1200)
-    await clearTicketPrice(db)
-    expect(await getTicketPriceCents(db)).toBeNull()
+  it('null sur un tarif l’efface, l’autre reste', async () => {
+    await setTicketPrices(db, { adultCents: 1200, childCents: 600 })
+    await setTicketPrices(db, { adultCents: 1200, childCents: null })
+    expect(await getTicketPrices(db)).toEqual({ adultCents: 1200, childCents: null })
+  })
+
+  it('repli : l’ancien prix unique fait office de tarif adulte', async () => {
+    await db.setting.create({ data: { key: TICKET_PRICE_LEGACY_KEY, value: '1000' } })
+    expect(await getTicketPrices(db)).toEqual({ adultCents: 1000, childCents: null })
+  })
+
+  it('enregistrer les tarifs supprime l’ancienne clé unique', async () => {
+    await db.setting.create({ data: { key: TICKET_PRICE_LEGACY_KEY, value: '1000' } })
+    await setTicketPrices(db, { adultCents: 1300, childCents: 700 })
+    expect(await db.setting.findUnique({ where: { key: TICKET_PRICE_LEGACY_KEY } })).toBeNull()
+    expect(await getTicketPrices(db)).toEqual({ adultCents: 1300, childCents: 700 })
   })
 
   it('valeur illisible en base → null (pas de prix deviné)', async () => {
-    await db.setting.create({ data: { key: TICKET_PRICE_KEY, value: 'abc' } })
-    expect(await getTicketPriceCents(db)).toBeNull()
+    await db.setting.create({ data: { key: TICKET_PRICE_ADULT_KEY, value: 'abc' } })
+    expect((await getTicketPrices(db)).adultCents).toBeNull()
   })
 
   it('refuse un prix négatif ou non entier', async () => {
-    await expect(setTicketPriceCents(db, -5)).rejects.toThrow()
-    await expect(setTicketPriceCents(db, 12.5)).rejects.toThrow()
+    await expect(setTicketPrices(db, { adultCents: -5, childCents: null })).rejects.toThrow()
+    await expect(setTicketPrices(db, { adultCents: 12.5, childCents: null })).rejects.toThrow()
   })
 })

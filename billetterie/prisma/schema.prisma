@@ -131,8 +131,15 @@ model Booking {
   status      String // pending | paid | placed | cancelled | expired
   publicToken String  @unique // UUID — accès page « mes billets »
 
+  // Répartition tarifaire : nombre d'ENFANTS parmi partySize (0..partySize) ;
+  // adultes = partySize − childCount. Deux tarifs globaux (adulte / enfant).
+  // Demandes antérieures : childCount = 0 → tout le monde au tarif adulte (= le
+  // prix unique migré). partySize reste le total (jauge / PMR / placement).
+  childCount Int @default(0)
+
   // Places offertes sur cette demande (ex. tout-petits qui dansent) : exclues
-  // du montant dû. Montant dû = (partySize − freeSeats) × prix unitaire global.
+  // du montant dû. Montant dû = adultes×prixAdulte + enfantsPayants×prixEnfant,
+  // les places offertes étant déduites des enfants d'abord, puis des adultes.
   freeSeats Int @default(0)
 
   // Règlement : un ou plusieurs versements (espèces / chèques, éventuellement

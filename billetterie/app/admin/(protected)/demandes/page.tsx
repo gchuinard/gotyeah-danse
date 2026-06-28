@@ -11,7 +11,7 @@ import Link from 'next/link'
 
 import { ACTION_LABELS } from '@/lib/admin/events'
 import { euros, resumePaiement, type ResumePaiement } from '@/lib/admin/money'
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { formatFrPhone } from '@/lib/public/phone'
@@ -186,9 +186,9 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   }
 
   // Une seule représentation par an : sert juste de cible à l'export CSV.
-  const [representation, unitPriceCents, demandes] = await Promise.all([
+  const [representation, prices, demandes] = await Promise.all([
     prisma.representation.findFirst({ orderBy: { startsAt: 'asc' }, select: { id: true } }),
-    getTicketPriceCents(prisma),
+    getTicketPrices(prisma),
     prisma.booking.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -268,8 +268,10 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                 }
                 const resume = resumePaiement({
                   partySize: d.partySize,
+                  childCount: d.childCount,
                   freeSeats: d.freeSeats,
-                  unitPriceCents,
+                  adultPriceCents: prices.adultCents,
+                  childPriceCents: prices.childCents,
                   payments: d.payments,
                   refundCents: d.refundCents,
                 })
@@ -280,8 +282,10 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                   email: d.email,
                   phone: formatFrPhone(d.phone),
                   partySize: d.partySize,
+                  childCount: d.childCount,
                   freeSeats: d.freeSeats,
-                  unitPriceCents,
+                  adultPriceCents: prices.adultCents,
+                  childPriceCents: prices.childCents,
                   status: d.status,
                   statutLabel: LIBELLES[affichage] ?? d.status,
                   expiree,

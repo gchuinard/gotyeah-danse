@@ -51,6 +51,16 @@ export const bookingSchema = z.object({
       `Maximum ${MAX_PARTY_SIZE} places par demande. Au-delà, contactez-nous aux permanences.`,
     ),
 
+  // Répartition tarifaire : nombre d'enfants parmi partySize (champ absent → 0).
+  // Borné à partySize côté création (creer.ts). Le reste = adultes.
+  childCount: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_PARTY_SIZE)
+    .optional()
+    .transform((v) => v ?? 0),
+
   // Commentaire libre (demandes particulières). Chaîne vide → undefined.
   notes: z
     .string()

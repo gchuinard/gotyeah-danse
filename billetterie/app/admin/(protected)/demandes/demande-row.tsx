@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { euros, resumePaiement } from '@/lib/admin/money'
+import { euros, placesPayantes, resumePaiement } from '@/lib/admin/money'
 import {
   MOTIF_AUTRE,
   MOTIF_PLACES_RETIREES,
@@ -28,6 +28,7 @@ import {
   annulerAction,
   annulerPaiementAction,
   basculerRemiseAction,
+  definirNombreEnfantsAction,
   definirPlacesOffertesAction,
   prolongerAction,
   rectifierPlacesAction,
@@ -52,8 +53,10 @@ export type DemandeDetail = {
   email: string
   phone: string
   partySize: number
+  childCount: number
   freeSeats: number
-  unitPriceCents: number | null
+  adultPriceCents: number | null
+  childPriceCents: number | null
   status: string // brut : pending | paid | placed | cancelled | expired
   statutLabel: string
   expiree: boolean
@@ -281,12 +284,25 @@ function AjouterVersementForm({
 function SectionPaiement({ detail }: { detail: DemandeDetail }) {
   const r = resumePaiement({
     partySize: detail.partySize,
+    childCount: detail.childCount,
     freeSeats: detail.freeSeats,
-    unitPriceCents: detail.unitPriceCents,
+    adultPriceCents: detail.adultPriceCents,
+    childPriceCents: detail.childPriceCents,
     payments: detail.payments,
     refundCents: detail.refundCents,
   })
-  const payantes = Math.max(0, detail.partySize - detail.freeSeats)
+  const { adultes, enfants } = placesPayantes(detail.partySize, detail.childCount, detail.freeSeats)
+  // Ventilation lisible du dû : « 3 ad. × 12 € + 2 enf. × 6 € ».
+  const ventil = [
+    adultes > 0 && detail.adultPriceCents != null
+      ? `${adultes} ad. × ${euros(detail.adultPriceCents)}`
+      : null,
+    enfants > 0 && detail.childPriceCents != null
+      ? `${enfants} enf. × ${euros(detail.childPriceCents)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' + ')
   // Montant pré-rempli du prochain versement = reste dû (s'il est connu et > 0).
   const presetMontant =
     r.resteCents != null && r.resteCents > 0 ? (r.resteCents / 100).toFixed(2).replace('.', ',') : ''
@@ -308,8 +324,7 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
           <>
             Montant dû : <strong>{euros(r.duCents)}</strong>{' '}
             <span className={styles.versementMeta}>
-              ({payantes} place{payantes > 1 ? 's' : ''} payante{payantes > 1 ? 's' : ''} ×{' '}
-              {euros(detail.unitPriceCents ?? 0)}
+              ({ventil || 'tout offert'}
               {detail.freeSeats > 0
                 ? `, ${detail.freeSeats} offerte${detail.freeSeats > 1 ? 's' : ''}`
                 : ''}
@@ -319,7 +334,7 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
           </>
         ) : (
           <span className={styles.versementMeta}>
-            Prix unitaire non défini — montant dû indisponible.
+            Tarif non défini — montant dû indisponible.
             <br />
           </span>
         )}
@@ -413,8 +428,10 @@ function SectionPaiement({ detail }: { detail: DemandeDetail }) {
 function SectionRemboursement({ detail }: { detail: DemandeDetail }) {
   const r = resumePaiement({
     partySize: detail.partySize,
+    childCount: detail.childCount,
     freeSeats: detail.freeSeats,
-    unitPriceCents: detail.unitPriceCents,
+    adultPriceCents: detail.adultPriceCents,
+    childPriceCents: detail.childPriceCents,
     payments: detail.payments,
     refundCents: detail.refundCents,
   })
@@ -556,6 +573,28 @@ function SectionGestion({ detail }: { detail: DemandeDetail }) {
         )}
       </ActionForm>
 
+      <ActionForm action={definirNombreEnfantsAction}>
+        {() => (
+          <>
+            <Hidden detail={detail} />
+            <label className={styles.detailInline}>
+              Dont enfants (tarif réduit)
+              <input
+                type="number"
+                name="childCount"
+                min={0}
+                max={detail.partySize}
+                defaultValue={detail.childCount}
+                aria-label="Nombre d'enfants"
+              />
+            </label>
+            <button type="submit" className={styles.btn}>
+              Enregistrer
+            </button>
+          </>
+        )}
+      </ActionForm>
+
       <ActionForm action={definirPlacesOffertesAction}>
         {() => (
           <>
@@ -611,8 +650,11 @@ function DetailContent({ detail }: { detail: DemandeDetail }) {
         </Ligne>
         <Ligne label="Places">
           {detail.partySize}
+          {detail.childCount > 0
+            ? ` (${detail.partySize - detail.childCount} adulte${detail.partySize - detail.childCount > 1 ? 's' : ''}, ${detail.childCount} enfant${detail.childCount > 1 ? 's' : ''})`
+            : ''}
           {detail.freeSeats > 0
-            ? ` (dont ${detail.freeSeats} offerte${detail.freeSeats > 1 ? 's' : ''})`
+            ? ` — dont ${detail.freeSeats} offerte${detail.freeSeats > 1 ? 's' : ''}`
             : ''}
         </Ligne>
         <Ligne label="Statut">{detail.statutLabel}</Ligne>

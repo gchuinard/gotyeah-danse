@@ -8,8 +8,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { euros, resumePaiement } from '@/lib/admin/money'
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { euros, placesPayantes, resumePaiement } from '@/lib/admin/money'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import { codeDemande } from '@/lib/booking/code'
 import { prisma } from '@/lib/db'
 import { computeJauge } from '@/lib/jauge'
@@ -80,14 +80,30 @@ export default async function BilletsPage({
   const repDate = formatDateHeure(rep.startsAt)
 
   // Récap règlement (montant dû / reçu / reste) à montrer à la famille.
-  const unitPriceCents = await getTicketPriceCents(prisma)
+  const prices = await getTicketPrices(prisma)
   const reglement = resumePaiement({
     partySize: booking.partySize,
+    childCount: booking.childCount,
     freeSeats: booking.freeSeats,
-    unitPriceCents,
+    adultPriceCents: prices.adultCents,
+    childPriceCents: prices.childCents,
     payments: booking.payments,
     refundCents: booking.refundCents,
   })
+  // Ventilation pour la famille : « 3 adultes + 2 enfants ».
+  const ventilFamille = (() => {
+    const { adultes, enfants } = placesPayantes(
+      booking.partySize,
+      booking.childCount,
+      booking.freeSeats,
+    )
+    return [
+      adultes > 0 ? `${adultes} adulte${adultes > 1 ? 's' : ''}` : null,
+      enfants > 0 ? `${enfants} enfant${enfants > 1 ? 's' : ''}` : null,
+    ]
+      .filter(Boolean)
+      .join(' + ')
+  })()
   // Acompte = un versement a été reçu mais le dû n'est pas atteint. Sert à ne
   // PAS annoncer « Paiement reçu » (intégral) quand il reste à régler.
   const acompteRecu =
@@ -131,7 +147,8 @@ export default async function BilletsPage({
               <h2 className={styles.cardTitle}>Règlement</h2>
               {reglement.duCents != null && (
                 <p className={styles.text}>
-                  Montant à régler : <strong>{euros(reglement.duCents)}</strong>.
+                  Montant à régler : <strong>{euros(reglement.duCents)}</strong>
+                  {booking.childCount > 0 && ventilFamille ? ` (${ventilFamille})` : ''}.
                 </p>
               )}
               <p className={styles.text}>

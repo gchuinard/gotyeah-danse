@@ -18,6 +18,7 @@ import {
   annulerPaiement,
   changerNombrePlaces,
   chargerBookingAvecBillets,
+  definirNombreEnfants,
   definirPlacesOffertes,
   enregistrerRemboursement,
   prolongerExpiration,
@@ -26,7 +27,7 @@ import {
 } from '@/lib/admin/bookings'
 import { logBookingEvent } from '@/lib/admin/events'
 import { euros } from '@/lib/admin/money'
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import {
   MOTIF_AUTRE,
   MOTIF_PLACES_RETIREES,
@@ -53,6 +54,7 @@ const referenceSchema = z.string().trim().max(60)
 // Date de dépôt d'un chèque : valeur d'un <input type="date"> (AAAA-MM-JJ).
 const depositSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const freeSeatsSchema = z.coerce.number().int().min(0).max(MAX_PARTY_SIZE)
+const childCountSchema = z.coerce.number().int().min(0).max(MAX_PARTY_SIZE)
 const placesRetireesSchema = z.coerce.number().int().min(1).max(MAX_PARTY_SIZE)
 
 // Date « jour » (sans heure) en français, fuseau Paris — pour l'historique.
@@ -147,7 +149,7 @@ export async function ajouterPaiementAction(
   }
   const reference = referenceSchema.safeParse(formData.get('reference') ?? '')
 
-  const unitPrice = await getTicketPriceCents(prisma)
+  const prices = await getTicketPrices(prisma)
 
   let res: Awaited<ReturnType<typeof ajouterPaiement>>
   try {
@@ -160,7 +162,7 @@ export async function ajouterPaiementAction(
         depositOn,
         reference: reference.success ? reference.data : null,
       },
-      unitPrice,
+      prices,
     )
   } catch (error) {
     return { error: messageErreur(error) }
@@ -223,6 +225,33 @@ export async function definirPlacesOffertesAction(
   await logBookingEvent(id, 'free_seats', email, `${parsed.data} place(s) offerte(s)`)
   rafraichir()
   return { ok: 'Places offertes mises à jour.' }
+}
+
+// Définit le nombre d'enfants (parmi partySize) → répartition du montant dû.
+export async function definirNombreEnfantsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const { email } = await requireAdmin()
+  const r = lireId(formData)
+  if (!('id' in r)) return r
+  const id = r.id
+  const parsed = childCountSchema.safeParse(formData.get('childCount'))
+  if (!parsed.success) return { error: "Nombre d'enfants invalide." }
+  let res: Awaited<ReturnType<typeof definirNombreEnfants>>
+  try {
+    res = await definirNombreEnfants(prisma, id, parsed.data)
+  } catch (error) {
+    return { error: messageErreur(error) }
+  }
+  await logBookingEvent(
+    id,
+    'child_count',
+    email,
+    `${res.childCount} enfant(s) / ${res.adultes} adulte(s)`,
+  )
+  rafraichir()
+  return { ok: 'Répartition adultes / enfants mise à jour.' }
 }
 
 // Annule TOUT le règlement (cf. lib/admin/bookings.annulerPaiement). « À placer »

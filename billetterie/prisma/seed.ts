@@ -7,7 +7,7 @@
 // préservé sur les sièges existants, scores ré-écrits).
 
 import { PrismaClient } from '@prisma/client'
-import { setTicketPriceCents } from '../lib/admin/pricing'
+import { setTicketPrices } from '../lib/admin/pricing'
 import { loadActiveVenueConfig } from '../lib/venue/load'
 import { syncPlan } from '../lib/venue/sync'
 
@@ -164,8 +164,8 @@ async function seedDemoBookings() {
     data: { pmrCount: 2, pmrCompanions: 2, freeSeats: 1 },
   })
 
-  // Prix unitaire de démo : 12 € la place (le montant dû en découle).
-  await setTicketPriceCents(prisma, 1200)
+  // Tarifs de démo : 12 € adulte / 6 € enfant (le montant dû en découle).
+  await setTicketPrices(prisma, { adultCents: 1200, childCents: 600 })
 
   // Versements de démo (relançables : on purge avant de recréer). Montre les
   // cas : réglé d'un coup, acompte (reste dû), et chèques échelonnés sur 3 mois.

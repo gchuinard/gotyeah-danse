@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 import { totauxBuvette } from '@/lib/admin/buvette'
 import { euros, resumePaiement } from '@/lib/admin/money'
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import { MOMENTS, SKY_OPTIONS, parseWeatherReadings } from '@/lib/admin/weather'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
@@ -57,10 +57,10 @@ export default async function StatsPage() {
   await requireAdmin()
   const now = new Date()
 
-  const [representations, totalSieges, unitPriceCents] = await Promise.all([
+  const [representations, totalSieges, prices] = await Promise.all([
     prisma.representation.findMany({ orderBy: { startsAt: 'asc' } }),
     prisma.seat.count(),
-    getTicketPriceCents(prisma),
+    getTicketPrices(prisma),
   ])
 
   const stats = await Promise.all(
@@ -74,6 +74,7 @@ export default async function StatsPage() {
           select: {
             status: true,
             partySize: true,
+            childCount: true,
             freeSeats: true,
             refundCents: true,
             name: true,
@@ -130,8 +131,10 @@ export default async function StatsPage() {
         } else {
           const r = resumePaiement({
             partySize: b.partySize,
+            childCount: b.childCount,
             freeSeats: b.freeSeats,
-            unitPriceCents,
+            adultPriceCents: prices.adultCents,
+            childPriceCents: prices.childCents,
             payments: b.payments,
             refundCents: b.refundCents,
           })

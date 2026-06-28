@@ -25,7 +25,8 @@ export default function DemandeForm({
   representationId,
   turnstileSiteKey,
   formRenderedAt,
-  unitPriceCents,
+  adultPriceCents,
+  childPriceCents,
 }: {
   // Une seule représentation par an : pas de choix, transmise en champ caché.
   representationId: string
@@ -35,8 +36,9 @@ export default function DemandeForm({
   // Heure de rendu serveur (time-trap) : base fiable, indépendante de la vitesse
   // d'hydratation et de l'horloge du client.
   formRenderedAt: number
-  // Prix unitaire global (centimes) pour le montant indicatif. null = non défini.
-  unitPriceCents?: number | null
+  // Tarifs globaux (centimes) pour le montant indicatif. null = non défini.
+  adultPriceCents?: number | null
+  childPriceCents?: number | null
 }) {
   const [state, formAction, pending] = useActionState(creerDemande, initialState)
   // Token Turnstile : tant que le widget n'a pas résolu (script CDN en cours de
@@ -63,9 +65,37 @@ export default function DemandeForm({
   const [notes, setNotes] = useState('')
   const [phone, setPhone] = useState('')
   const [partySize, setPartySize] = useState(1)
+  const [childCount, setChildCount] = useState(0)
   const [pmr, setPmr] = useState(false)
   const [pmrCount, setPmrCount] = useState(1)
   const [accompagnants, setAccompagnants] = useState(0)
+
+  // Montant indicatif : adultes × tarif adulte + enfants × tarif enfant. null si
+  // un tarif nécessaire manque (on n'affiche alors pas d'estimation).
+  const adultes = Math.max(0, partySize - childCount)
+  const estimation = ((): number | null => {
+    let total = 0
+    if (adultes > 0) {
+      if (adultPriceCents == null) return null
+      total += adultes * adultPriceCents
+    }
+    if (childCount > 0) {
+      if (childPriceCents == null) return null
+      total += childCount * childPriceCents
+    }
+    return total
+  })()
+  // Ventilation lisible : « 3 adultes × 12,00 € + 2 enfants × 6,00 € ».
+  const estimationDetail = [
+    adultes > 0 && adultPriceCents != null
+      ? `${adultes} adulte${adultes > 1 ? 's' : ''} × ${euros(adultPriceCents)}`
+      : null,
+    childCount > 0 && childPriceCents != null
+      ? `${childCount} enfant${childCount > 1 ? 's' : ''} × ${euros(childPriceCents)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' + ')
 
   // Le groupe = personnes PMR + accompagnants à coller + reste. On ne peut pas
   // avoir plus de PMR que de places, ni plus d'accompagnants que de places
@@ -165,9 +195,10 @@ export default function DemandeForm({
           aria-invalid={errors?.partySize ? true : undefined}
           onChange={(e) => {
             const n = Number(e.target.value)
-            // Si on réduit les places, on ramène PMR puis accompagnants dans la limite.
+            // Si on réduit les places, on ramène enfants, PMR puis accompagnants.
             const newPmr = Math.min(Math.max(1, pmrCount), n)
             setPartySize(n)
+            setChildCount((c) => Math.min(c, n))
             setPmrCount(newPmr)
             setAccompagnants((a) => Math.min(a, Math.max(0, n - newPmr)))
           }}
@@ -178,13 +209,6 @@ export default function DemandeForm({
             </option>
           ))}
         </select>
-        {unitPriceCents != null && (
-          <p className={styles.estimate}>
-            À régler au studio : {partySize} × {euros(unitPriceCents)} ={' '}
-            <strong>{euros(partySize * unitPriceCents)}</strong>{' '}
-            <span className={styles.estimateNote}>(montant indicatif)</span>
-          </p>
-        )}
         <p className={styles.hint}>
           Plus de {MAX_PARTY_SIZE} places ? Contactez-nous aux permanences de l&apos;école.
         </p>
@@ -194,6 +218,34 @@ export default function DemandeForm({
           fait <strong>avec vous</strong>, jamais sans vous prévenir.
         </p>
         <FieldError messages={errors?.partySize} />
+      </div>
+
+      <div className={styles.field}>
+        <label htmlFor="childCount">Dont enfants (tarif réduit)</label>
+        <select
+          id="childCount"
+          name="childCount"
+          value={childCount}
+          onChange={(e) => setChildCount(Number(e.target.value))}
+        >
+          {Array.from({ length: partySize + 1 }, (_, i) => i).map((n) => (
+            <option key={n} value={n}>
+              {n === 0 ? 'Aucun enfant' : `${n} enfant${n > 1 ? 's' : ''}`}
+            </option>
+          ))}
+        </select>
+        {estimation != null && (
+          <p className={styles.estimate}>
+            À régler au studio&nbsp;: {estimationDetail} ={' '}
+            <strong>{euros(estimation)}</strong>{' '}
+            <span className={styles.estimateNote}>(montant indicatif)</span>
+          </p>
+        )}
+        <p className={styles.hint}>
+          Nombre de places au <strong>tarif enfant</strong>{' '}— l&apos;équipe confirme à
+          l&apos;inscription au studio.
+        </p>
+        <FieldError messages={errors?.childCount} />
       </div>
 
       <fieldset className={styles.pmr}>

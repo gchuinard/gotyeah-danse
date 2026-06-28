@@ -6,7 +6,7 @@
 // proxy.ts filtre déjà /api/admin/*.
 
 import { resumePaiement } from '@/lib/admin/money'
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import { getAdminSession } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { formatFrPhone } from '@/lib/public/phone'
@@ -78,8 +78,8 @@ export async function GET(
   const representation = await prisma.representation.findUnique({ where: { id: repId } })
   if (!representation) return new Response('Introuvable', { status: 404 })
 
-  const [unitPriceCents, bookings] = await Promise.all([
-    getTicketPriceCents(prisma),
+  const [prices, bookings] = await Promise.all([
+    getTicketPrices(prisma),
     prisma.booking.findMany({
       where: { representationId: repId },
       orderBy: { createdAt: 'asc' },
@@ -111,6 +111,8 @@ export async function GET(
       'Téléphone',
       'Statut',
       'Places',
+      'Adultes',
+      'Enfants',
       'Places offertes',
       'Montant dû',
       'Payé le',
@@ -132,8 +134,10 @@ export async function GET(
     const scannes = b.tickets.filter((t) => t.scannedAt !== null).length
     const r = resumePaiement({
       partySize: b.partySize,
+      childCount: b.childCount,
       freeSeats: b.freeSeats,
-      unitPriceCents,
+      adultPriceCents: prices.adultCents,
+      childPriceCents: prices.childCents,
       payments: b.payments,
       refundCents: b.refundCents,
     })
@@ -157,6 +161,8 @@ export async function GET(
       formatFrPhone(b.phone),
       STATUTS[b.status] ?? b.status,
       String(b.partySize),
+      String(b.partySize - b.childCount),
+      String(b.childCount),
       b.freeSeats > 0 ? String(b.freeSeats) : '',
       actif ? montantCsv(r.duCents) : '',
       b.paidAt ? dateCourte.format(b.paidAt) : '',

@@ -20,10 +20,14 @@ une base SQLite, et c'est tout.
   n'envoie PAS ses billets automatiquement : l'admin le déclenche à la main
   (avec avertissement). Pratique recommandée : premier payé, premier placé —
   mais ce n'est plus imposé.
-- **Prix unique et montant dû.** Un **prix unitaire global** (réglé dans
-  `/admin/representations`, rangé dans `Setting`) donne le **montant dû** de
-  chaque demande = (places − **places offertes**) × prix. Les places offertes
-  (ex. tout-petits qui dansent) se fixent par demande.
+- **Deux tarifs (adulte / enfant) et montant dû.** Deux **tarifs globaux**
+  (réglés dans `/admin/representations`, rangés dans `Setting`) donnent le
+  **montant dû** de chaque demande = **adultes × tarif adulte + enfants ×
+  tarif enfant**. Chaque demande porte un nombre d'**enfants** (`childCount`,
+  déclaré sur le formulaire public, ajustable par l'admin) ; le reste = adultes.
+  Les **places offertes** (ex. tout-petits qui dansent) restent exclues du dû,
+  déduites **des enfants d'abord** puis des adultes. Tarif manquant pour une
+  catégorie présente → montant dû « inconnu » (l'UI dégrade proprement).
 - **Versements multiples.** Le règlement est une suite de **versements**
   (espèces / chèques), pas un montant unique : on gère les **chèques échelonnés**
   (montant + **date de dépôt** prévue). Une demande est **soldée** quand le net
@@ -316,8 +320,8 @@ Checklist :
   défaut), modifier titre et date/heure (saisies en heure de Paris), **ouvrir/
   fermer les réservations** (une représentation fermée disparaît du formulaire
   public), supprimer (bloqué dès qu'une demande existe, même annulée). C'est
-  aussi là qu'on fixe le **prix unitaire** d'une place (carte « Tarif »,
-  super-admin — champ vide = prix effacé). À faire **avant les ventes**.
+  aussi là qu'on fixe les **tarifs adulte / enfant** (carte « Tarifs »,
+  super-admin — un champ vide = ce tarif effacé). À faire **avant les ventes**.
 
 ## Référence rapide
 

@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { euros } from '@/lib/admin/money'
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { ConfirmSubmit } from '../demandes/confirm-submit'
@@ -42,14 +42,16 @@ export default async function RepresentationsPage({
   const ok = premier(params.ok)
   const err = premier(params.err)
 
-  const [reps, unitPriceCents] = await Promise.all([
+  const [reps, prices] = await Promise.all([
     prisma.representation.findMany({
       orderBy: { startsAt: 'asc' },
       include: { _count: { select: { bookings: true, tickets: true } } },
     }),
-    getTicketPriceCents(prisma),
+    getTicketPrices(prisma),
   ])
-  const prixEuros = unitPriceCents != null ? (unitPriceCents / 100).toFixed(2).replace('.', ',') : ''
+  const enEuros = (c: number | null) => (c != null ? (c / 100).toFixed(2).replace('.', ',') : '')
+  const prixAdulteEuros = enEuros(prices.adultCents)
+  const prixEnfantEuros = enEuros(prices.childCents)
 
   return (
     <main>
@@ -123,39 +125,55 @@ export default async function RepresentationsPage({
       </table>
 
       <section className={styles.createCard}>
-        <h2 className={styles.subtitle}>Tarif</h2>
+        <h2 className={styles.subtitle}>Tarifs</h2>
         <p className={styles.hint}>
-          {unitPriceCents != null ? (
+          {prices.adultCents != null || prices.childCents != null ? (
             <>
-              Prix unitaire actuel : <strong>{euros(unitPriceCents)}</strong> par place. Le montant
-              dû de chaque demande = (places − places offertes) × ce prix.
+              Tarifs actuels :{' '}
+              <strong>{prices.adultCents != null ? `adulte ${euros(prices.adultCents)}` : 'adulte —'}</strong>
+              {' · '}
+              <strong>{prices.childCents != null ? `enfant ${euros(prices.childCents)}` : 'enfant —'}</strong>
+              . Montant dû d&apos;une demande = adultes × tarif adulte + enfants × tarif enfant
+              (places offertes déduites des enfants d&apos;abord).
             </>
           ) : (
             <>
-              Aucun prix défini : les montants dus ne sont pas calculés (saisie libre des
-              versements). Fixe le prix avant les ventes.
+              Aucun tarif défini : les montants dus ne sont pas calculés (saisie libre des
+              versements). Fixe les tarifs avant les ventes.
             </>
           )}
         </p>
         <form action={definirPrixAction} className={styles.createForm}>
           <label className={styles.field}>
-            Prix par place (en euros)
+            Tarif adulte (en euros)
             <input
               className={styles.input}
               type="text"
-              name="prix"
+              name="prixAdulte"
               inputMode="decimal"
               placeholder="ex. 12"
-              defaultValue={prixEuros}
-              aria-label="Prix unitaire en euros"
+              defaultValue={prixAdulteEuros}
+              aria-label="Tarif adulte en euros"
+            />
+          </label>
+          <label className={styles.field}>
+            Tarif enfant (en euros)
+            <input
+              className={styles.input}
+              type="text"
+              name="prixEnfant"
+              inputMode="decimal"
+              placeholder="ex. 6"
+              defaultValue={prixEnfantEuros}
+              aria-label="Tarif enfant en euros"
             />
           </label>
           <button type="submit" className={styles.btnPrimary}>
-            Enregistrer le prix
+            Enregistrer les tarifs
           </button>
         </form>
         <p className={styles.hint}>
-          Laisse le champ vide puis enregistre pour effacer le prix. Un prix unique s’applique à
+          Laisse un champ vide puis enregistre pour effacer ce tarif. Les tarifs s’appliquent à
           toutes les représentations.
         </p>
       </section>

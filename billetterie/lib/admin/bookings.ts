@@ -12,6 +12,7 @@ import { randomUUID } from 'node:crypto'
 import { Prisma, type PrismaClient } from '@prisma/client'
 
 import { montantDuCents } from '@/lib/admin/money'
+import type { TicketPrices } from '@/lib/admin/pricing'
 import { PMR_REASON } from '@/lib/admin/seat-map'
 import { computeJauge } from '@/lib/jauge'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -82,7 +83,7 @@ export async function ajouterPaiement(
   db: PrismaClient,
   bookingId: string,
   versement: VersementInput,
-  unitPriceCents: number | null,
+  prices: TicketPrices,
 ): Promise<{ etaitPending: boolean; etaitPlace: boolean; nowSoldee: boolean }> {
   if (!Number.isInteger(versement.amountCents) || versement.amountCents <= 0) {
     throw new Error('Le montant du versement doit être supérieur à 0.')
@@ -125,7 +126,13 @@ export async function ajouterPaiement(
     const remis =
       booking.payments.reduce((s, p) => s + p.amountCents, 0) + versement.amountCents
     const net = remis - (booking.refundCents ?? 0)
-    const du = montantDuCents(booking.partySize, booking.freeSeats, unitPriceCents)
+    const du = montantDuCents({
+      partySize: booking.partySize,
+      childCount: booking.childCount,
+      freeSeats: booking.freeSeats,
+      adultPriceCents: prices.adultCents,
+      childPriceCents: prices.childCents,
+    })
     const nowSoldee = du == null ? true : net >= du
     return { etaitPending, etaitPlace, nowSoldee }
   })
@@ -227,6 +234,31 @@ export async function definirPlacesOffertes(
       throw new Error(`Au plus ${booking.partySize} place(s) offerte(s) sur cette demande.`)
     }
     await tx.booking.update({ where: { id: bookingId }, data: { freeSeats } })
+  })
+}
+
+// Définit le nombre d'ENFANTS d'une demande (parmi partySize) → répartition du
+// montant dû entre tarifs adulte / enfant. Borné à [0, partySize]. Retourne la
+// répartition résultante pour l'historique.
+export async function definirNombreEnfants(
+  db: PrismaClient,
+  bookingId: string,
+  childCount: number,
+): Promise<{ childCount: number; adultes: number }> {
+  if (!Number.isInteger(childCount) || childCount < 0) {
+    throw new Error("Le nombre d'enfants est invalide.")
+  }
+  return db.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new Error('Demande introuvable.')
+    if (!['pending', 'paid', 'placed'].includes(booking.status)) {
+      throw new Error('Cette demande est annulée ou expirée.')
+    }
+    if (childCount > booking.partySize) {
+      throw new Error(`Au plus ${booking.partySize} enfant(s) sur cette demande.`)
+    }
+    await tx.booking.update({ where: { id: bookingId }, data: { childCount } })
+    return { childCount, adultes: booking.partySize - childCount }
   })
 }
 
@@ -496,12 +528,13 @@ export async function changerNombrePlaces(
       await tx.ticket.deleteMany({ where: { bookingId } })
       await tx.booking.update({
         where: { id: bookingId },
-        // Places offertes bornées au nouveau total (jamais plus que partySize).
+        // Offertes ET enfants bornés au nouveau total (jamais plus que partySize).
         data: {
           partySize: nouveauNombre,
           status: 'paid',
           placedAt: null,
           freeSeats: Math.min(booking.freeSeats, nouveauNombre),
+          childCount: Math.min(booking.childCount, nouveauNombre),
         },
       })
       return { etaitPlace: true, anciensSeatIds: anciens.map((t) => t.seatId), ancienNombre }
@@ -509,7 +542,11 @@ export async function changerNombrePlaces(
 
     await tx.booking.update({
       where: { id: bookingId },
-      data: { partySize: nouveauNombre, freeSeats: Math.min(booking.freeSeats, nouveauNombre) },
+      data: {
+        partySize: nouveauNombre,
+        freeSeats: Math.min(booking.freeSeats, nouveauNombre),
+        childCount: Math.min(booking.childCount, nouveauNombre),
+      },
     })
     return { etaitPlace: false, anciensSeatIds: [], ancienNombre }
   })

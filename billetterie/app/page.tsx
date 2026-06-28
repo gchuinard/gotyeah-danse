@@ -7,7 +7,7 @@
 // Mise en page : deux colonnes sur grand écran — le formulaire à gauche, la
 // FAQ à droite ; empilées sur mobile (la FAQ passe sous le formulaire).
 
-import { getTicketPriceCents } from '@/lib/admin/pricing'
+import { getTicketPrices } from '@/lib/admin/pricing'
 import { prisma } from '@/lib/db'
 import { representationsOuvertes } from '@/lib/jauge'
 import { turnstileEnabled, turnstileSiteKey } from '@/lib/public/turnstile'
@@ -25,9 +25,9 @@ export default async function Home() {
   // reste de la place — pas de choix proposé à la famille.
   const ouvertes = await representationsOuvertes(prisma)
   const representationId = ouvertes.find((rep) => rep.jauge > 0)?.id ?? null
-  // Prix unitaire (global) : sert à afficher un montant indicatif sous le choix
-  // du nombre de places. null = non défini → on n'affiche pas de montant.
-  const unitPriceCents = await getTicketPriceCents(prisma)
+  // Tarifs (globaux) : servent au montant indicatif sous le choix des places.
+  // null = non défini → on n'affiche pas de montant.
+  const prices = await getTicketPrices(prisma)
   // On n'affiche le widget Turnstile QUE si la vérification est réellement
   // active côté serveur (clé secrète présente) : sinon, ni widget ni blocage
   // (cohérence client/serveur, pas de « fausse confiance »).
@@ -74,7 +74,8 @@ export default async function Home() {
                     representationId={representationId}
                     turnstileSiteKey={siteKey}
                     formRenderedAt={formRenderedAt}
-                    unitPriceCents={unitPriceCents}
+                    adultPriceCents={prices.adultCents}
+                    childPriceCents={prices.childCents}
                   />
                 ) : (
                   <p className={styles.complet}>
