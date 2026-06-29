@@ -34,19 +34,20 @@ Décisions arrêtées avec Gautier le 2026-06-29 (discussion).
 
 ### À construire
 
-- [ ] **Code de place lisible** `initiales + 4 chiffres` (ex. `GC1234`) avec
+- [x] **Code de place lisible** `initiales + 4 chiffres` (ex. `GC1234`) avec
   **chiffre de contrôle** intégré (faute de frappe → « code invalide »).
   Dérivable du `qrToken` (même pattern que `codeDemande`) + initiales de
   `Booking.name` → pas de migration. Unicité garantie au sein de la réservation.
   (Les initiales sont **cosmétiques** : c'est le couple email+code qui identifie.)
-- [ ] **Vue lecture seule d'UNE place** (nouvelle route, ex. `/place`) : Rang +
-  Place + QR uniquement, **zéro donnée perso, aucune action**. Réutilise le rendu
-  billet existant.
-- [ ] **Lookup d'une place par code** (analogue à `trouverDemandeParCode`),
+- [x] **Vue lecture seule d'UNE place** (route `/place`) : Rang + Place + QR
+  uniquement, **zéro donnée perso, aucune action**. Réutilise `QrFullscreen` de
+  la page billets.
+- [x] **Lookup d'une place par code** (`trouverPlaceParCode`, `lib/booking/place.ts`),
   **cadré par l'email/propriétaire** → jamais la place d'un inconnu ; au pire une
   autre place du même groupe (rattrapée par le chiffre de contrôle + le récap).
-- [ ] **Récap de confirmation** sur la vue partagée : « Place R12 · groupe de
-  Gautier » (prénom seul), pour vérifier d'un coup d'œil.
+  Testé sur DB jetable (`tests/booking/place.test.ts`).
+- [x] **Récap de confirmation** sur la vue partagée : « groupe de Gautier »
+  (prénom seul), pour vérifier d'un coup d'œil.
 - [ ] **Boutons par place dans l'espace client** : **Copier** (= le code, pour
   dicter) et **Partager** (propose **les deux** : code seul OU **lien déjà cadré**
   sur la résa, WhatsApp/SMS), avec **popups de confirmation**.

@@ -1,0 +1,143 @@
+/* Vue publique « voir ma place » — palette du site (sable / terre). */
+
+.page {
+  min-height: 100dvh;
+  background: #faf7f2;
+  padding: clamp(1.5rem, 4vw, 3rem) 1rem;
+}
+.inner {
+  max-width: 30rem;
+  margin: 0 auto;
+}
+.header {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+.kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--terre-2, #8b5e4a);
+}
+.title {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
+  color: var(--encre, #1e1a16);
+}
+.text {
+  margin: 0;
+  color: var(--gris-chd, #7a7068);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/* ── Formulaire ─────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  background: #fff;
+  border: 1px solid #e8ddd0;
+  border-radius: 14px;
+  padding: 1.3rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--encre, #1e1a16);
+}
+.field input {
+  padding: 0.6rem 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #d8cab8;
+  border-radius: 9px;
+  background: #fdfbf8;
+}
+.field input:focus {
+  outline: 2px solid var(--terre-2, #8b5e4a);
+  outline-offset: 1px;
+}
+.formError {
+  margin: 0;
+  color: #9a3b2e;
+  font-size: 0.88rem;
+}
+.submit {
+  margin-top: 0.2rem;
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--terre, #5c3d2e);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Carte « place » (résultat lecture seule) ───────────────────────── */
+.placeCard {
+  margin-top: 1.3rem;
+  background: #fff;
+  border: 1px solid #e8ddd0;
+  border-radius: 14px;
+  padding: 1.4rem;
+  text-align: center;
+}
+.placeKicker {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rose, #d4a090);
+}
+.placeTitle {
+  margin: 0 0 0.15rem;
+  font-size: 1.25rem;
+  color: var(--encre, #1e1a16);
+}
+.placeDate {
+  margin: 0 0 1rem;
+  color: var(--gris-chd, #7a7068);
+  font-size: 0.9rem;
+}
+.placeSeat {
+  display: flex;
+  justify-content: center;
+  gap: 1.6rem;
+  margin: 0 0 1.1rem;
+}
+.placeSeat div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.placeSeat dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gris-chd, #7a7068);
+}
+.placeSeat dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--terre, #5c3d2e);
+}
+.placeRecap {
+  margin: 1rem 0 0;
+  font-size: 0.88rem;
+  color: var(--gris-chd, #7a7068);
+}
+.placeRecap strong {
+  color: var(--encre, #1e1a16);
+}
