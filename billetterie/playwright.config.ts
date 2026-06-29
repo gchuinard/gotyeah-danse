@@ -11,7 +11,10 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: [['list']],
+  // Console (list) + dashboard HTML (playwright-report/) : `pnpm exec playwright
+  // show-report` l'ouvre dans le navigateur (tous les tests, vert/rouge, durées,
+  // captures + trace au clic). `open: 'never'` → pas d'ouverture auto (headless).
+  reporter: [['list'], ['html', { open: 'never' }]],
   timeout: 90_000,
   expect: { timeout: 12_000 },
   globalSetup: './e2e/global-setup.ts',

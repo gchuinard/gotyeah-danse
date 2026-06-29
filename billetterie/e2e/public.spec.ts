@@ -13,14 +13,23 @@
 //  • Tests EN SÉRIE sur base seedée MUTABLE : une création publique change la
 //    jauge et pose un doublon d'email → email UNIQUE par test qui crée.
 
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { codeDemande } from '../lib/booking/code'
 import { DEMO } from './data'
 
-// Délai pour franchir le time-trap (> MIN_FILL_MS = 2500 ms). Le champ caché
-// `ts` est figé au rendu serveur : patienter une fois avant le 1er envoi suffit.
-const ANTI_BOT_DELAY_MS = 3000
+// Neutralise le time-trap anti-bot (app/demande/actions.ts, MIN_FILL_MS = 2500)
+// de façon DÉTERMINISTE : plutôt que de parier sur un délai vs l'hydratation
+// (flaky), on force le champ caché `ts` à l'epoch → Date.now() − ts ≫ 2500, donc
+// l'envoi n'est jamais pris pour un robot. À appeler juste avant l'envoi (après
+// avoir rempli les champs ; le serveur lit la valeur du DOM à la soumission).
+async function neutraliserTimeTrap(page: Page) {
+  await page.locator('input[name="ts"]').waitFor({ state: 'attached' })
+  await page.evaluate(() => {
+    const el = document.querySelector('input[name="ts"]') as HTMLInputElement | null
+    if (el) el.value = '1'
+  })
+}
 
 test.describe('PUB — formulaire public de demande', () => {
   test('PUB-01 : une demande valide redirige vers /billets et affiche identifiant + montant', async ({
@@ -40,8 +49,8 @@ test.describe('PUB — formulaire public de demande', () => {
     await page.getByLabel('Nombre de places', { exact: true }).selectOption('2')
     await page.getByLabel('Dont enfants (tarif réduit)', { exact: true }).selectOption('1')
 
-    // Sans cette attente : faux succès du time-trap, aucune redirection.
-    await page.waitForTimeout(ANTI_BOT_DELAY_MS)
+    // Sans ça : faux succès du time-trap, aucune redirection.
+    await neutraliserTimeTrap(page)
     await page.getByRole('button', { name: 'Envoyer ma demande' }).click()
 
     await expect(page).toHaveURL(/\/billets\//)
@@ -77,8 +86,8 @@ test.describe('PUB — formulaire public de demande', () => {
     await page.getByLabel('Téléphone', { exact: true }).fill('0612345678')
     await page.getByLabel('Email', { exact: true }).fill('pas-un-email')
 
-    // Sans cette attente : le time-trap renverrait un faux succès AVANT zod.
-    await page.waitForTimeout(ANTI_BOT_DELAY_MS)
+    // Sans ça : le time-trap renverrait un faux succès AVANT zod.
+    await neutraliserTimeTrap(page)
     await page.getByRole('button', { name: 'Envoyer ma demande' }).click()
 
     // Erreur par champ (zod) + bandeau global (role="alert").
