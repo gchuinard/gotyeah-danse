@@ -137,19 +137,14 @@
   vector-effect: non-scaling-stroke;
   opacity: 0.7;
 }
-/* Bande de survol pleine hauteur (transparente) — toute la colonne répond. */
-.lineBande {
-  fill: transparent;
-  cursor: crosshair;
-}
-/* Info-bulle flottante (composant client). */
+/* Info-bulle flottante (composant client). Toujours montée, opacity 0→1. */
 .lineTip {
   position: absolute;
   transform: translate(-50%, calc(-100% - 10px));
   background: var(--encre);
   color: #fff;
   border-radius: 6px;
-  padding: 4px 9px 5px;
+  padding: 5px 10px 6px;
   font-size: 0.8rem;
   line-height: 1.35;
   white-space: nowrap;
@@ -157,16 +152,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  box-shadow: 0 2px 8px rgba(30, 26, 22, 0.25);
+  gap: 1px;
+  box-shadow: 0 3px 10px rgba(30, 26, 22, 0.22);
   z-index: 10;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.lineTip[data-visible='true'] {
+  opacity: 1;
 }
 .lineTip strong {
-  font-size: 0.92rem;
+  font-size: 0.93rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
 }
 .lineTip span {
-  opacity: 0.7;
+  opacity: 0.65;
   font-size: 0.74rem;
 }
 /* Petite flèche en bas de l'info-bulle. */

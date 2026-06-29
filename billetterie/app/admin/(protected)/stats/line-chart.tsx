@@ -1,13 +1,21 @@
 'use client'
 
-// Courbe cumulative INTERACTIVE (montée des demandes dans le temps) : quadrillage,
-// axes (valeurs à gauche, dates en bas) et info-bulle au survol. Des bandes de
-// survol pleine hauteur (une par point) rendent TOUTE la colonne survolable —
-// pas besoin de viser le point exact. Composant client (état de survol).
+// Courbe cumulative INTERACTIVE : quadrillage, axes, info-bulle au survol.
+// onMouseMove sur le SVG entier → point le plus proche calculé en JS.
+// Bulle toujours montée (opacity 0→1) : pas de flash au changement de point.
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import styles from './charts.module.css'
+
+const W = 600
+const H = 240
+const ML = 46
+const MR = 14
+const MT = 12
+const MB = 30
+const plotW = W - ML - MR
+const plotH = H - MT - MB
 
 export function LineChart({
   points,
@@ -17,16 +25,11 @@ export function LineChart({
   format: (v: number) => string
 }) {
   const [hover, setHover] = useState<number | null>(null)
+  const lastHover = useRef<number>(0)
+  if (hover !== null) lastHover.current = hover
+
   if (points.length === 0) return null
 
-  const W = 600
-  const H = 240
-  const ML = 46 // marge gauche (labels valeurs)
-  const MR = 14
-  const MT = 12
-  const MB = 30 // marge basse (labels dates)
-  const plotW = W - ML - MR
-  const plotH = H - MT - MB
   const maxV = Math.max(1, ...points.map((p) => p.value))
   const n = points.length
   const x = (i: number) => ML + (n === 1 ? plotW / 2 : (i * plotW) / (n - 1))
@@ -48,15 +51,27 @@ export function LineChart({
     .join(' ')
   const aire = `${trace} L ${x(n - 1).toFixed(1)} ${(MT + plotH).toFixed(1)} L ${x(0).toFixed(1)} ${(MT + plotH).toFixed(1)} Z`
 
-  // Bande de survol d'un point : du milieu vers le point précédent au milieu vers
-  // le suivant (toute la colonne, sur la hauteur du graphe).
-  const bande = (i: number) => {
-    const gauche = i === 0 ? ML : (x(i - 1) + x(i)) / 2
-    const droite = i === n - 1 ? W - MR : (x(i) + x(i + 1)) / 2
-    return { x: gauche, w: Math.max(0.1, droite - gauche) }
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const svgX = ((e.clientX - rect.left) / rect.width) * W
+    let nearest = 0
+    let minD = Infinity
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(x(i) - svgX)
+      if (d < minD) {
+        minD = d
+        nearest = i
+      }
+    }
+    setHover(nearest)
   }
 
   const dernier = points[n - 1]
+  const tipIdx = hover ?? lastHover.current
+  // Clamp horizontal pour rester dans la carte
+  const tipLeftPct = Math.max(5, Math.min(95, (x(tipIdx) / W) * 100))
+  const tipTopPct = (y(points[tipIdx].value) / H) * 100
+
   return (
     <div className={styles.lineChart}>
       <svg
@@ -64,8 +79,10 @@ export function LineChart({
         className={styles.lineSvg}
         role="img"
         aria-label={`Cumul ${format(dernier.value)} au ${dernier.label}`}
+        onMouseMove={handleMouseMove}
         onMouseLeave={() => setHover(null)}
       >
+        {/* Quadrillage horizontal + valeurs à gauche */}
         {yTicks.map((t, k) => (
           <g key={`y${k}`}>
             <line x1={ML} y1={t.yy} x2={W - MR} y2={t.yy} className={styles.lineGrid} />
@@ -74,6 +91,7 @@ export function LineChart({
             </text>
           </g>
         ))}
+        {/* Quadrillage vertical + dates en bas */}
         {xIdx.map((i) => (
           <g key={`x${i}`}>
             <line x1={x(i)} y1={MT} x2={x(i)} y2={MT + plotH} className={styles.lineGridV} />
@@ -86,12 +104,12 @@ export function LineChart({
         <path d={aire} className={styles.lineArea} />
         <path d={trace} className={styles.linePath} fill="none" />
 
-        {/* Repère vertical du point survolé. */}
+        {/* Repère vertical du point survolé */}
         {hover !== null && (
           <line x1={x(hover)} y1={MT} x2={x(hover)} y2={MT + plotH} className={styles.lineHover} />
         )}
 
-        {/* Points (le survolé grossit). */}
+        {/* Points (le survolé grossit) */}
         {points.map((p, i) => (
           <circle
             key={`pt${i}`}
@@ -102,32 +120,20 @@ export function LineChart({
           />
         ))}
 
-        {/* Bandes de survol pleine hauteur (transparentes), au-dessus du reste. */}
-        {points.map((p, i) => {
-          const b = bande(i)
-          return (
-            <rect
-              key={`hit${i}`}
-              x={b.x}
-              y={MT}
-              width={b.w}
-              height={plotH}
-              className={styles.lineBande}
-              onMouseEnter={() => setHover(i)}
-            />
-          )
-        })}
+        {/* Zone de capture souris — toute la surface du graphe */}
+        <rect x={ML} y={MT} width={plotW} height={plotH} fill="transparent" style={{ cursor: 'crosshair' }} />
       </svg>
 
-      {hover !== null && (
-        <div
-          className={styles.lineTip}
-          style={{ left: `${(x(hover) / W) * 100}%`, top: `${(y(points[hover].value) / H) * 100}%` }}
-        >
-          <strong>{format(points[hover].value)}</strong>
-          <span>{points[hover].label}</span>
-        </div>
-      )}
+      {/* Bulle toujours montée : opacity CSS → pas de flash au changement de point */}
+      <div
+        className={styles.lineTip}
+        data-visible={hover !== null}
+        style={{ left: `${tipLeftPct}%`, top: `${tipTopPct}%` }}
+        aria-hidden={hover === null}
+      >
+        <strong>{format(points[tipIdx].value)}</strong>
+        <span>{points[tipIdx].label}</span>
+      </div>
     </div>
   )
 }
