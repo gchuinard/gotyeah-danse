@@ -26,11 +26,14 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
   webServer: {
-    // Base fraîche → migrations → seed (démo incluse, NODE_ENV ≠ production) → dev.
-    command: `sh -c "rm -f /tmp/billetterie-e2e.db* && npx prisma migrate deploy && pnpm db:seed && pnpm exec next dev -p ${E2E_PORT}"`,
+    // Base fraîche → migrations → seed (démo incluse : seed AVANT le build, donc
+    // NODE_ENV ≠ production) → BUILD + START. On sert le build de PROD (et pas
+    // `next dev`) : pré-compilé = stable et rapide, là où `next dev` plantait sur
+    // la compile à la volée des routes sur le montage lent /mnt/c.
+    command: `sh -c "rm -f /tmp/billetterie-e2e.db* && npx prisma migrate deploy && pnpm db:seed && pnpm exec next build && pnpm exec next start -p ${E2E_PORT}"`,
     url: E2E_BASE_URL,
-    // /mnt/c (montage Windows) est lent au premier compile Next + seed.
-    timeout: 300_000,
+    // Build + seed sur /mnt/c (montage Windows lent).
+    timeout: 420_000,
     reuseExistingServer: !process.env.CI,
     env: {
       DATABASE_URL: E2E_DATABASE_URL,

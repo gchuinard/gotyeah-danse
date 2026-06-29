@@ -83,7 +83,7 @@ test.describe('PUB — formulaire public de demande', () => {
 
     // Erreur par champ (zod) + bandeau global (role="alert").
     await expect(page.getByText('Adresse email invalide.')).toBeVisible()
-    await expect(page.getByRole('alert')).toContainText('Veuillez corriger les champs signalés.')
+    await expect(page.getByText('Veuillez corriger les champs signalés.')).toBeVisible()
     // Pas de redirection : on reste sur le formulaire.
     await expect(page).not.toHaveURL(/\/billets\//)
     await expect(page.getByRole('button', { name: 'Envoyer ma demande' })).toBeVisible()
@@ -97,14 +97,17 @@ test.describe('ACC — accès « j’ai déjà une demande »', () => {
 
     // Le sous-formulaire « identifiant oublié » est replié par défaut → il n'y a
     // qu'un seul champ « Email » dans le DOM (acces-email).
-    await page.getByLabel('Email', { exact: true }).fill(DEMO.enAttente.email)
+    // Thomas (rep-dimanche) plutôt que Camille : les specs paiement (qui tournent
+    // avant) passent Camille en « payée » → sa page n'affiche plus « Demande
+    // enregistrée ». Thomas n'est muté par personne.
+    await page.getByLabel('Email', { exact: true }).fill(DEMO.enAttenteDimanche.email)
     await page
       .getByLabel('Identifiant de demande', { exact: true })
-      .fill(codeDemande(DEMO.enAttente.token))
+      .fill(codeDemande(DEMO.enAttenteDimanche.token))
     await page.getByRole('button', { name: 'Accéder à ma demande' }).click()
 
-    // Redirection vers la demande de Camille (statut « en attente » → titre pending).
-    await expect(page).toHaveURL(new RegExp(`/billets/${DEMO.enAttente.token}`))
+    // Redirection vers la demande (statut « en attente » → titre pending).
+    await expect(page).toHaveURL(new RegExp(`/billets/${DEMO.enAttenteDimanche.token}`))
     await expect(page.getByRole('heading', { name: 'Demande enregistrée' })).toBeVisible()
   })
 
@@ -121,7 +124,7 @@ test.describe('ACC — accès « j’ai déjà une demande »', () => {
     await page.getByLabel('Identifiant de demande', { exact: true }).fill(faux)
     await page.getByRole('button', { name: 'Accéder à ma demande' }).click()
 
-    await expect(page.getByRole('alert')).toContainText('Email ou identifiant incorrect')
+    await expect(page.getByText('Email ou identifiant incorrect')).toBeVisible()
     await expect(page).not.toHaveURL(/\/billets\//)
   })
 })

@@ -15,6 +15,13 @@ Chaque cas : **ID**, titre, **Préconditions**, **Étapes**, **Résultat attendu
 Priorités : **P1** = critique le soir du spectacle ou cœur d'une feature ·
 **P2** = parcours important · **P3** = confort / cosmétique.
 
+## Prérequis (une fois)
+
+Les libs système du navigateur Playwright : `sudo pnpm exec playwright install-deps chromium`
+(ou `sudo npx playwright install-deps chromium`). Sans elles, Chromium ne se
+lance pas (`libnspr4.so` manquant). `pnpm e2e` fait ensuite tout le reste
+(build, base jetable, seed, sessions forgées, tests).
+
 ## Environnement de test
 
 - **Base jetable** : SQLite dédiée (`DATABASE_URL` de test), **seedée** avant la

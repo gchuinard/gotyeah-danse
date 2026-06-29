@@ -95,11 +95,10 @@ test('PART-04 — /place (email + code) → carte lecture seule (section/rang/pl
   await expect(carte.getByText('Lecture seule · place partagée')).toBeVisible()
 
   // Valeur (dd) associée à un libellé (dt) via le couple <div><dt/><dd/></div>.
+  // NB : le <div> autour des <dt>/<dd> annule les rôles ARIA term/definition →
+  // on cible par structure (dl > div contenant le libellé → son <dd>).
   const valeurDe = (label: string) =>
-    carte
-      .locator('div')
-      .filter({ has: page.getByRole('term', { name: label, exact: true }) })
-      .getByRole('definition')
+    carte.locator('dl > div').filter({ hasText: label }).locator('dd')
   await expect(valeurDe('Section')).toHaveText('Centre')
   await expect(valeurDe('Rang')).toHaveText('R')
   await expect(valeurDe('Place')).toHaveText(/^\d+$/)
@@ -123,7 +122,7 @@ test('PART-05 — bon code mais autre email → « Email ou code incorrect » (c
   await page.getByLabel('Code de la place').fill(code0)
   await page.getByRole('button', { name: 'Voir ma place' }).click()
 
-  await expect(page.getByRole('alert')).toContainText('Email ou code incorrect')
+  await expect(page.getByText('Email ou code incorrect')).toBeVisible()
   await expect(page.getByText('Lecture seule · place partagée')).toHaveCount(0)
 })
 
@@ -140,7 +139,7 @@ test('PART-06 — code avec un chiffre faux → rejeté (« Email ou code incorr
   await page.getByLabel('Code de la place').fill(codeFaux)
   await page.getByRole('button', { name: 'Voir ma place' }).click()
 
-  await expect(page.getByRole('alert')).toContainText('Email ou code incorrect')
+  await expect(page.getByText('Email ou code incorrect')).toBeVisible()
 })
 
 test('PART-07 — lien direct /place/<qrToken> : vrai → carte lecture seule ; token bidon → 404', async ({

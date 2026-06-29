@@ -419,3 +419,11 @@
 .partageMenuItem:hover {
   background: #f2ece3;
 }
+
+/* Le bloc partage est défini APRÈS le @media print de .screenOnly : sans cette
+   règle, son `display: flex` l'emporterait (ordre source) et il s'imprimerait. */
+@media print {
+  .partage {
+    display: none;
+  }
+}

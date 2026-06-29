@@ -633,7 +633,7 @@ export default function ScanView({ representations, repId }: Props) {
       )}
 
       {/* Panneau de résultat — couleurs franches, lisible dans le noir. */}
-      <div className={styles.panelSlot} aria-live="assertive">
+      <div className={styles.panelSlot} aria-live="assertive" data-testid="scan-panel">
         {panel?.kind === 'ok' && (
           <div className={`${styles.panel} ${styles.panelOk}`}>
             <p className={styles.panelName}>{panel.ticket.name}</p>

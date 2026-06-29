@@ -24,13 +24,16 @@ const COUNTER = 'p[aria-live="polite"]'
 // Atteint l'écran de placement (émission) d'une demande depuis la liste.
 async function ouvrirPlacement(page: import('@playwright/test').Page, nom: string) {
   await page.goto('/admin/demandes')
-  await page
+  const lien = page
     .getByRole('row')
     .filter({ hasText: nom })
     // exact:true : « Placer » est une sous-chaîne de « Déplacer ».
     .getByRole('link', { name: 'Placer', exact: true })
-    .click()
-  await expect(page).toHaveURL(/\/admin\/placement\//)
+  // Attendre le rendu de la ligne avant de cliquer (1er compile /mnt/c lent),
+  // puis waitForURL (navigation explicite, sans course avec le compteur).
+  await expect(lien).toBeVisible()
+  await lien.click()
+  await page.waitForURL(/\/admin\/placement\//)
 }
 
 test('PLA-01 : l’écran de placement affiche jusqu’à 3 suggestions de partySize sièges', async ({

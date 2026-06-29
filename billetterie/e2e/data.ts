@@ -48,6 +48,14 @@ export const DEMO = {
     email: 'camille.bertrand@example.com',
     partySize: 4,
   },
+  // En attente sur rep-dimanche, JAMAIS mutée par les autres specs (≠ Camille,
+  // que les tests paiement passent en « payée »). Pour l'accès ACC-01.
+  enAttenteDimanche: {
+    token: '8b0d2f4a-6c8e-4b1d-9f3a-5c7e9b1d3f5a',
+    name: 'Thomas Lefèvre',
+    email: 'thomas.lefevre@example.com',
+    partySize: 3,
+  },
   // Payée et SOLDÉE (Julien Moreau, 2 places, 24 € espèces).
   payeeSoldee: {
     token: 'a2c4e6f8-1b3d-4f5a-9c7e-2d4f6a8b0c1e',
