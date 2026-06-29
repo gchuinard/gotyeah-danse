@@ -11,7 +11,7 @@ import { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { codePlace } from '@/lib/booking/code-place'
-import { trouverPlaceParCode } from '@/lib/booking/place'
+import { trouverPlaceParCode, vuePlaceParQrToken } from '@/lib/booking/place'
 
 const dbFile = `/tmp/billetterie-test-place-${process.pid}.db`
 const url = `file:${dbFile}`
@@ -93,5 +93,19 @@ describe('trouverPlaceParCode', () => {
   it('email ou code vide → introuvable', async () => {
     expect((await trouverPlaceParCode(db, '', codePlace(QR, NAME))).type).toBe('introuvable')
     expect((await trouverPlaceParCode(db, EMAIL, '')).type).toBe('introuvable')
+  })
+})
+
+describe('vuePlaceParQrToken', () => {
+  it('qrToken connu → la place (lien direct, sans email ni code)', async () => {
+    const vue = await vuePlaceParQrToken(db, QR)
+    expect(vue).not.toBeNull()
+    expect(vue?.rang).toBe('R')
+    expect(vue?.place).toBe(12)
+    expect(vue?.proprioPrenom).toBe('Marie')
+  })
+
+  it('qrToken inconnu → null', async () => {
+    expect(await vuePlaceParQrToken(db, 'qr-inexistant')).toBeNull()
   })
 })

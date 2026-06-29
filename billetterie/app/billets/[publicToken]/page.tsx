@@ -11,10 +11,12 @@ import { notFound } from 'next/navigation'
 import { euros, placesPayantes, resumePaiement } from '@/lib/admin/money'
 import { getTicketPrices } from '@/lib/admin/pricing'
 import { codeDemande } from '@/lib/booking/code'
+import { codePlace } from '@/lib/booking/code-place'
 import { prisma } from '@/lib/db'
 import { computeJauge } from '@/lib/jauge'
 
 import ModifierForm from './modifier-form'
+import PartagePlace from './partage-place'
 import PrintButton from './print-button'
 import QrFullscreen from './qr-fullscreen'
 import styles from './billets.module.css'
@@ -237,6 +239,13 @@ export default async function BilletsPage({
                       </div>
                     </dl>
                     <p className={styles.ticketName}>{booking.name}</p>
+                    <PartagePlace
+                      code={codePlace(t.qrToken, booking.name)}
+                      qrToken={t.qrToken}
+                      rang={t.seat.row.label}
+                      place={t.seat.number}
+                      titre={rep.title}
+                    />
                   </div>
                   {/* QR généré à la volée — n'encode que le qrToken, aucune donnée
                       personnelle. Tap → plein écran (scan facile à l'entrée). */}

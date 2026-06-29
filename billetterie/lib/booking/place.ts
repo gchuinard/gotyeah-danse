@@ -1,12 +1,12 @@
-// Lookup d'UNE place par code de partage (« GC1234 »), CADRÉ par l'email du
-// propriétaire. Pendant de lib/booking/acces.ts (qui retrouve une réservation) :
-// ici on retrouve un BILLET précis, pour la vue lecture seule partagée.
-//
-// Le cadrage par email est le vrai garde-fou : le code n'est comparé qu'aux
-// billets de cette adresse → une faute de frappe ne peut jamais désigner la
-// place d'un INCONNU (au pire une autre place du même groupe, que le chiffre de
-// contrôle écarte le plus souvent, et que le récap « groupe de … » montre).
-// Client injecté (db) → testable sur DB jetable, comme lib/auth/login-code.ts.
+// Accès à UNE place (un billet), pour la vue lecture seule partagée. Deux
+// portes :
+//   - trouverPlaceParCode(email, code) : le code court « GC1234 » dicté à une
+//     copine, CADRÉ par l'email du propriétaire (jamais la place d'un inconnu,
+//     garde-fou chiffre de contrôle) ;
+//   - vuePlaceParQrToken(qrToken) : le lien direct « tout-en-un » (le qrToken
+//     est déjà la capacité publique du QR), rien à taper.
+// Pendant de lib/booking/acces.ts (qui retrouve toute une réservation). Client
+// injecté (db) → testable sur DB jetable, comme lib/auth/login-code.ts.
 
 import type { PrismaClient } from '@prisma/client'
 
@@ -25,11 +25,41 @@ export type VuePlace = {
 
 export type PlaceResultat = { type: 'trouvee'; vue: VuePlace } | { type: 'introuvable' }
 
+// Champs lus pour bâtir une VuePlace (mêmes pour les deux portes).
+const SELECT_TICKET = {
+  qrToken: true,
+  booking: { select: { name: true } },
+  seat: {
+    select: { number: true, row: { select: { label: true, section: { select: { id: true } } } } },
+  },
+  representation: { select: { title: true, startsAt: true } },
+} as const
+
+type TicketVue = {
+  qrToken: string
+  booking: { name: string }
+  seat: { number: number; row: { label: string; section: { id: string } } }
+  representation: { title: string; startsAt: Date }
+}
+
 // Prénom = premier mot du nom complet « Prénom Nom ».
 function prenom(name: string): string {
   return name.trim().split(/\s+/)[0] ?? ''
 }
 
+function vueDepuis(t: TicketVue): VuePlace {
+  return {
+    sectionId: t.seat.row.section.id,
+    rang: t.seat.row.label,
+    place: t.seat.number,
+    qrToken: t.qrToken,
+    proprioPrenom: prenom(t.booking.name),
+    repTitre: t.representation.title,
+    repDate: t.representation.startsAt,
+  }
+}
+
+// Code court « GC1234 », CADRÉ par l'email du propriétaire.
 export async function trouverPlaceParCode(
   db: PrismaClient,
   emailRaw: string,
@@ -43,31 +73,17 @@ export async function trouverPlaceParCode(
   // Billets des réservations PLACÉES de cet email (seules à avoir un siège).
   const tickets = await db.ticket.findMany({
     where: { booking: { email, status: 'placed' } },
-    select: {
-      qrToken: true,
-      booking: { select: { name: true } },
-      seat: {
-        select: {
-          number: true,
-          row: { select: { label: true, section: { select: { id: true } } } },
-        },
-      },
-      representation: { select: { title: true, startsAt: true } },
-    },
+    select: SELECT_TICKET,
   })
   const match = tickets.find((t) => codePlace(t.qrToken, t.booking.name) === code)
-  if (!match) return { type: 'introuvable' }
+  return match ? { type: 'trouvee', vue: vueDepuis(match) } : { type: 'introuvable' }
+}
 
-  return {
-    type: 'trouvee',
-    vue: {
-      sectionId: match.seat.row.section.id,
-      rang: match.seat.row.label,
-      place: match.seat.number,
-      qrToken: match.qrToken,
-      proprioPrenom: prenom(match.booking.name),
-      repTitre: match.representation.title,
-      repDate: match.representation.startsAt,
-    },
-  }
+// Lien direct : le qrToken (déjà public via /api/qr/<token>) désigne le billet.
+export async function vuePlaceParQrToken(
+  db: PrismaClient,
+  qrToken: string,
+): Promise<VuePlace | null> {
+  const t = await db.ticket.findUnique({ where: { qrToken }, select: SELECT_TICKET })
+  return t ? vueDepuis(t) : null
 }

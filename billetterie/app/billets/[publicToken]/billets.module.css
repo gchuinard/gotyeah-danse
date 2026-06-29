@@ -342,3 +342,55 @@
     display: none;
   }
 }
+
+/* ── Partage d'une place (espace client : code + Copier / Partager) ──── */
+
+.partage {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e8ddd0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.partageLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7a7068;
+}
+
+.partageCode {
+  font-size: 1rem;
+  letter-spacing: 2px;
+  color: #5c3d2e;
+}
+
+.partageActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.partageBtn {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5c3d2e;
+  background: #f2ece3;
+  border: 1px solid #e8ddd0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.partageBtn:hover {
+  background: #e8ddd0;
+}
+
+.partageToast {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #3f7a52;
+}

@@ -11,39 +11,10 @@ import { prisma } from '@/lib/db'
 import { clientIp } from '@/lib/net/client-ip'
 import { rateLimit } from '@/lib/rate-limit'
 
-// Libellés d'affichage des sections (ids en base : gauche / centre / droite).
-const SECTION_LABELS: Record<string, string> = {
-  gauche: 'Gauche',
-  centre: 'Centre',
-  droite: 'Droite',
-}
+import { formatDateHeure, sectionLabel } from './labels'
+import type { PlaceCardData } from './place-card'
 
-// Date en français, heure de Paris. « 20:30 » → « 20h30 ».
-const dateHeureFr = (d: Date) =>
-  new Intl.DateTimeFormat('fr-FR', {
-    timeZone: 'Europe/Paris',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-    .format(d)
-    .replace(/(\d{2}):(\d{2})/, '$1h$2')
-
-// Tout sérialisable (chaînes / nombres) → sûr à renvoyer à un composant client.
-export type PlaceVue = {
-  section: string
-  rang: string
-  place: number
-  qrToken: string
-  proprioPrenom: string
-  repTitre: string
-  repDateLabel: string
-}
-
-export type PlaceState = { vue?: PlaceVue; error?: string }
+export type PlaceState = { vue?: PlaceCardData; error?: string }
 
 export async function voirPlace(_prev: PlaceState, formData: FormData): Promise<PlaceState> {
   const ip = await clientIp()
@@ -65,13 +36,13 @@ export async function voirPlace(_prev: PlaceState, formData: FormData): Promise<
   const { vue } = r
   return {
     vue: {
-      section: SECTION_LABELS[vue.sectionId] ?? vue.sectionId,
+      titre: vue.repTitre,
+      dateLabel: formatDateHeure(vue.repDate),
+      section: sectionLabel(vue.sectionId),
       rang: vue.rang,
       place: vue.place,
       qrToken: vue.qrToken,
       proprioPrenom: vue.proprioPrenom,
-      repTitre: vue.repTitre,
-      repDateLabel: dateHeureFr(vue.repDate),
     },
   }
 }

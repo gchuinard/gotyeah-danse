@@ -48,9 +48,11 @@ Décisions arrêtées avec Gautier le 2026-06-29 (discussion).
   Testé sur DB jetable (`tests/booking/place.test.ts`).
 - [x] **Récap de confirmation** sur la vue partagée : « groupe de Gautier »
   (prénom seul), pour vérifier d'un coup d'œil.
-- [ ] **Boutons par place dans l'espace client** : **Copier** (= le code, pour
-  dicter) et **Partager** (propose **les deux** : code seul OU **lien déjà cadré**
-  sur la résa, WhatsApp/SMS), avec **popups de confirmation**.
+- [x] **Boutons par place dans l'espace client** : **Copier** (= le code, pour
+  dicter) et **Partager** (partage natif : **lien direct** `/place/<qrToken>` +
+  le code en repli), avec **toasts de confirmation**. Page billets (billet placé)
+  + `partage-place.tsx` ; cible du lien = route `/place/[qrToken]` (lecture seule
+  directe, sans rien à taper).
 - [ ] **Scan optionnel** : rendre le scan **non bloquant** (comptage/indicatif —
   on laisse entrer même QR déjà scanné / hors-ligne). Touche `app/admin/scan` +
   `app/api/admin/scan/route.ts` (aujourd'hui « premier scan gagne » bloquant).
