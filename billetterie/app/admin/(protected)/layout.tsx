@@ -19,6 +19,7 @@ const NAV: { href: string; label: string; area: Area }[] = [
   { href: '/admin/calibration', label: 'Calibration', area: 'calibration' },
   { href: '/admin/salles', label: 'Salles', area: 'salles' },
   { href: '/admin/comptes', label: 'Comptes', area: 'comptes' },
+  { href: '/admin/tests', label: 'Tests', area: 'tests' },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

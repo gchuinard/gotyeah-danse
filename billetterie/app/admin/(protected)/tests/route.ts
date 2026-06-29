@@ -14,7 +14,9 @@ import { getAdminSession } from '@/lib/auth/require-admin'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  if (!(await getAdminSession())) {
+  // Super-admin uniquement (cohérent avec le lien de menu, zone « tests »).
+  const session = await getAdminSession()
+  if (session?.role !== 'super-admin') {
     return new Response('Non autorisé', { status: 401 })
   }
   try {

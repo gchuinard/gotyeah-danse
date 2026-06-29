@@ -28,6 +28,7 @@ export const AREA_ROLES = {
   salles: ['super-admin'],
   representations: ['super-admin'],
   comptes: ['super-admin'],
+  tests: ['super-admin'], // rapport E2E (/admin/tests)
 } as const satisfies Record<string, readonly Role[]>
 
 export type Area = keyof typeof AREA_ROLES
