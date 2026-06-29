@@ -1,6 +1,9 @@
 // Graphes légers de /admin/stats — SVG/CSS inline, ZÉRO dépendance (cohérent
 // avec l'esprit du projet). Composants SERVEUR purs : ils ne reçoivent que des
 // données déjà calculées et n'ont aucune interactivité.
+//
+// La courbe INTERACTIVE (info-bulle au survol) vit à part, dans `line-chart.tsx`
+// ('use client') — elle ne peut PAS recevoir de prop fonction depuis le serveur.
 
 import type { CSSProperties } from 'react'
 
@@ -65,90 +68,6 @@ export function BarChart({
           </span>
         </div>
       ))}
-    </div>
-  )
-}
-
-// Courbe cumulative (montée des demandes dans le temps) avec quadrillage,
-// valeurs en ordonnée (gauche) et dates réparties en abscisse (bas).
-export function LineChart({
-  points,
-  format,
-}: {
-  points: { label: string; value: number }[]
-  format: (v: number) => string
-}) {
-  if (points.length === 0) return null
-  const W = 600
-  const H = 240
-  const ML = 46 // marge gauche (labels valeurs)
-  const MR = 14
-  const MT = 12
-  const MB = 30 // marge basse (labels dates)
-  const plotW = W - ML - MR
-  const plotH = H - MT - MB
-  const maxV = Math.max(1, ...points.map((p) => p.value))
-  const n = points.length
-  const x = (i: number) => ML + (n === 1 ? plotW / 2 : (i * plotW) / (n - 1))
-  const y = (v: number) => MT + plotH - (v / maxV) * plotH
-
-  // Graduations Y : 4 intervalles (0 → maxV).
-  const TICKS = 4
-  const yTicks = Array.from({ length: TICKS + 1 }, (_, k) => ({
-    v: (maxV * k) / TICKS,
-    yy: y((maxV * k) / TICKS),
-  }))
-
-  // Graduations X : au plus 6 dates, réparties uniformément (la dernière incluse).
-  const pasX = Math.max(1, Math.ceil(n / 6))
-  const xIdx: number[] = []
-  for (let i = 0; i < n; i += pasX) xIdx.push(i)
-  if (xIdx[xIdx.length - 1] !== n - 1) xIdx.push(n - 1)
-
-  const trace = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`)
-    .join(' ')
-  const aire = `${trace} L ${x(n - 1).toFixed(1)} ${(MT + plotH).toFixed(1)} L ${x(0).toFixed(1)} ${(MT + plotH).toFixed(1)} Z`
-  const dernier = points[n - 1]
-  return (
-    <div className={styles.lineChart}>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className={styles.lineSvg}
-        role="img"
-        aria-label={`Cumul ${format(dernier.value)} au ${dernier.label}`}
-      >
-        {/* Quadrillage horizontal + valeurs à gauche. */}
-        {yTicks.map((t, k) => (
-          <g key={`y${k}`}>
-            <line x1={ML} y1={t.yy} x2={W - MR} y2={t.yy} className={styles.lineGrid} />
-            <text x={ML - 7} y={t.yy} className={styles.lineYLabel} textAnchor="end" dominantBaseline="middle">
-              {Math.round(t.v)}
-            </text>
-          </g>
-        ))}
-        {/* Quadrillage vertical + dates en bas. */}
-        {xIdx.map((i) => (
-          <g key={`x${i}`}>
-            <line x1={x(i)} y1={MT} x2={x(i)} y2={MT + plotH} className={styles.lineGridV} />
-            <text x={x(i)} y={MT + plotH + 18} className={styles.lineXLabel} textAnchor="middle">
-              {points[i].label}
-            </text>
-          </g>
-        ))}
-        <path d={aire} className={styles.lineArea} />
-        <path d={trace} className={styles.linePath} fill="none" />
-        {/* Points + info-bulle native (survol) donnant la valeur exacte. La
-            grande cible transparente facilite le survol ; <title> = tooltip. */}
-        {points.map((p, i) => (
-          <g key={`pt${i}`}>
-            <circle cx={x(i)} cy={y(p.value)} r={2.6} className={styles.linePoint} />
-            <circle cx={x(i)} cy={y(p.value)} r={9} className={styles.linePointHit}>
-              <title>{`${p.label} · ${format(p.value)}`}</title>
-            </circle>
-          </g>
-        ))}
-      </svg>
     </div>
   )
 }

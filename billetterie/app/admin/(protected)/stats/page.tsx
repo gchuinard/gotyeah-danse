@@ -460,7 +460,7 @@ export default async function StatsPage() {
               {s.ventePoints.length === 0 ? (
                 <p className={styles.detail}>Aucune demande active.</p>
               ) : (
-                <LineChart points={s.ventePoints} format={(v) => `${v} places`} />
+                <LineChart points={s.ventePoints} unit="places" />
               )}
               <p className={styles.detail}>cumul des places demandées, jour par jour</p>
             </div>
