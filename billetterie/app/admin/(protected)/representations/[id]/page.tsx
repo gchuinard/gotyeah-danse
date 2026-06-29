@@ -32,9 +32,9 @@ export default async function ModifierRepresentationPage({
 
       {rep._count.bookings > 0 && (
         <p className={styles.bannerWarn}>
-          {rep._count.bookings} demande(s) et {rep._count.tickets} billet(s) sont liés à cette
-          représentation. En cas de changement de date, pense à prévenir les familles (l&rsquo;appli
-          n&rsquo;envoie pas d&rsquo;email automatique pour ça).
+          {rep._count.bookings} demande(s) et {rep._count.tickets}{' '}
+          billet(s) sont liés à cette représentation. En cas de changement de date, pense à prévenir
+          les familles (l&rsquo;appli n&rsquo;envoie pas d&rsquo;email automatique pour ça).
         </p>
       )}
 
