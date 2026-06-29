@@ -12,7 +12,9 @@
     "cron": "tsx scripts/cron.ts",
     "demo:demandes": "tsx scripts/demo-demandes.ts",
     "sync:plan": "tsx scripts/sync-plan.ts",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -31,6 +33,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
