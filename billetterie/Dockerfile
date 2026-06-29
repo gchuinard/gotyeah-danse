@@ -67,6 +67,8 @@ COPY --from=build --chown=node:node /app/scripts ./scripts
 COPY --from=build --chown=node:node /app/lib ./lib
 COPY --from=build --chown=node:node /app/config ./config
 COPY --from=build --chown=node:node /app/emails ./emails
+# Rapport HTML des tests E2E (servi derrière le login à /admin/tests).
+COPY --from=build --chown=node:node /app/test-report ./test-report
 # tsconfig.json : tsx en a besoin pour résoudre l'alias @/* des scripts.
 COPY --from=build --chown=node:node \
   /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml \

@@ -14,7 +14,9 @@ export default defineConfig({
   // Console (list) + dashboard HTML (playwright-report/) : `pnpm exec playwright
   // show-report` l'ouvre dans le navigateur (tous les tests, vert/rouge, durées,
   // captures + trace au clic). `open: 'never'` → pas d'ouverture auto (headless).
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // outputFolder: 'test-report' (committé) → servi sur le site derrière le login
+  // admin à /admin/tests. `pnpm exec playwright show-report test-report` en local.
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'test-report' }]],
   timeout: 90_000,
   expect: { timeout: 12_000 },
   globalSetup: './e2e/global-setup.ts',

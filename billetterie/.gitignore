@@ -53,3 +53,7 @@ prisma/*.db-journal
 /playwright/.cache/
 /e2e/.auth/
 .last-run.json
+# Rapport HTML servi sur le site (/admin/tests) : on COMMIT le seul index.html
+# (auto-contenu), on ignore le reste (traces/attachements éventuels).
+/test-report/*
+!/test-report/index.html
