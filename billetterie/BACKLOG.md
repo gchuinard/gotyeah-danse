@@ -3,6 +3,71 @@
 Idées et corrections en attente, notées au fil de l'eau (2026-06-11).
 Aucun engagement d'ordre — prioriser à la demande.
 
+## 🎟️ Espace client & partage d'une place (à construire)
+
+Objectif : permettre à une famille de **partager une place précise** à une copine
+(billet en **lecture seule**) sans lui filer toute la réservation ni ses
+coordonnées, depuis un « espace client ». Conçu **fonctionnel d'abord** (école de
+100 élèves, pas Bercy) : sécu légère assumée, le scan devient optionnel.
+Décisions arrêtées avec Gautier le 2026-06-29 (discussion).
+
+### Déjà en place — RÉUTILISER, ne pas recoder
+
+- **Login client « email + code » : DÉJÀ FAIT.** `codeDemande(publicToken)` =
+  code lisible 6 caractères (alphabet sans I/L/O/0/1), **dérivé** du token (zéro
+  stockage, zéro migration), **déjà envoyé par email** à la création
+  (`lib/email/booking.ts`). Le flux « j'ai déjà une demande » existe : onglet
+  **Accès** sur l'accueil (`app/demande/onglets.tsx` → `app/demande/acces-form.tsx`),
+  action `trouverDemandeParCode` rate-limitée (`app/demande/actions.ts`,
+  `lib/booking/acces.ts`).
+- **Page billets = base de l'espace client.** `/billets/[publicToken]` liste déjà
+  chaque place (Section / Rang / Place), affiche le **QR** par billet (tap → plein
+  écran, `qr-fullscreen.tsx`) et l'**impression** (`print-button.tsx` ; papier déjà
+  géré via `Booking.ticketMode` `"email"|"papier"`).
+- **Jeton par place.** Chaque `Ticket` a un `qrToken` unique (QR servi par
+  `/api/qr/<qrToken>.png`) → un identifiant par siège existe déjà.
+- **Pattern « code lisible dérivé d'un token ».** `lib/booking/code.ts`
+  (sha256 → base 30) : à **recopier** pour le code de place.
+- **Mécanique OTP générique** (email + code 6 chiffres, TTL, essais, usage
+  unique) : `lib/auth/login-code.ts` + modèle `LoginCode`. Dispo si besoin, mais
+  **pas nécessaire** côté client : le `codeDemande` stable suffit.
+
+### À construire
+
+- [ ] **Code de place lisible** `initiales + 4 chiffres` (ex. `GC1234`) avec
+  **chiffre de contrôle** intégré (faute de frappe → « code invalide »).
+  Dérivable du `qrToken` (même pattern que `codeDemande`) + initiales de
+  `Booking.name` → pas de migration. Unicité garantie au sein de la réservation.
+  (Les initiales sont **cosmétiques** : c'est le couple email+code qui identifie.)
+- [ ] **Vue lecture seule d'UNE place** (nouvelle route, ex. `/place`) : Rang +
+  Place + QR uniquement, **zéro donnée perso, aucune action**. Réutilise le rendu
+  billet existant.
+- [ ] **Lookup d'une place par code** (analogue à `trouverDemandeParCode`),
+  **cadré par l'email/propriétaire** → jamais la place d'un inconnu ; au pire une
+  autre place du même groupe (rattrapée par le chiffre de contrôle + le récap).
+- [ ] **Récap de confirmation** sur la vue partagée : « Place R12 · groupe de
+  Gautier » (prénom seul), pour vérifier d'un coup d'œil.
+- [ ] **Boutons par place dans l'espace client** : **Copier** (= le code, pour
+  dicter) et **Partager** (propose **les deux** : code seul OU **lien déjà cadré**
+  sur la résa, WhatsApp/SMS), avec **popups de confirmation**.
+- [ ] **Scan optionnel** : rendre le scan **non bloquant** (comptage/indicatif —
+  on laisse entrer même QR déjà scanné / hors-ligne). Touche `app/admin/scan` +
+  `app/api/admin/scan/route.ts` (aujourd'hui « premier scan gagne » bloquant).
+- [ ] *(option, confort)* **Session client persistante** pour ne pas re-saisir le
+  code à chaque visite (aujourd'hui l'accès passe par l'URL à token, sans session —
+  déjà « bookmarkable »).
+
+### Décisions verrouillées (discussion 2026-06-29)
+
+- **Mail = périmètre.** Le code de place ne vaut qu'au sein des résas de cet email
+  → jamais la place d'un inconnu. Pas de recherche par nom (pas d'annuaire exposé).
+- **Deux codes de natures différentes.** (1) accès proprio = email + `codeDemande`
+  stable (déjà là) ; (2) partage d'une place = **code fixe affiché, dicté à la
+  copine** — surtout **pas** un code envoyé par mail (la copine n'a pas la boîte).
+- **Lecture seule** pour le partage ; **papier maintenu** pour qui préfère ; le
+  code est un **plus**, jamais imposé.
+- **Chiffre de contrôle = oui.**
+
 ## ✅ Fait le 2026-06-29 (tarifs enfant + stats + placement)
 
 - [x] **Tarifs adulte / enfant.** Le prix unique global devient **deux tarifs
