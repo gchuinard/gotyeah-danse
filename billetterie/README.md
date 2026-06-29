@@ -217,12 +217,22 @@ outils de calibration (overlay scan) restent sur la config fichier/intégrée.
 ## Tests & simulateur
 
 ```sh
-pnpm test       # vitest : invariants de placement, transactions bookings, crons
-pnpm simulate   # Monte Carlo, voir PLACEMENT.md
+pnpm test       # vitest : ~733 tests (lib/ : placement, montants, versements,
+                #          venue, booking, auth, emails…) — DB jetables dans /tmp
+pnpm e2e        # Playwright : 58 parcours UI bout en bout (+ 12 test.fixme)
+pnpm e2e:ui     # idem, mode interactif (runner graphique)
+pnpm simulate   # Monte Carlo de placement, voir PLACEMENT.md
 ```
 
 Les tests qui touchent la base utilisent des **DB SQLite jetables dans `/tmp`**
 (URL passée explicitement) — `prisma/dev.db` n'est jamais touchée.
+
+**E2E** : base jetable seedée + serveur de prod + sessions admin **forgées**
+(court-circuite l'OTP). Prérequis une fois : `sudo pnpm exec playwright
+install-deps chromium` (libs du navigateur). Le **rapport HTML** est servi sur le
+site à **`/admin/tests`** (super-admin) — régénéré par `pnpm e2e` puis commit de
+`test-report/index.html`. Périmètre, conventions et **pourquoi certains tests sont
+en `test.fixme`** : voir **[docs/cahier-de-test.md](docs/cahier-de-test.md)**.
 
 ## Déploiement sur le Raspberry Pi 5
 

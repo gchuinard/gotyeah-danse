@@ -75,6 +75,27 @@ Décisions arrêtées avec Gautier le 2026-06-29 (discussion).
   code est un **plus**, jamais imposé.
 - **Chiffre de contrôle = oui.**
 
+## ✅ Fait le 2026-06-30 (couverture de tests)
+
+- [x] **Tests unitaires/intégration (vitest)** étendus à ~tous les modules `lib/`
+  non couverts : emails (`send`/`booking`/`login`), `auth/session`, `public/phone`,
+  `booking/code|acces|creer`, `lib/jauge`, `venue/build|generate|load`,
+  `admin/seat-map|events|refund-motifs`, `auth/admin-emails`, `public/turnstile`,
+  `placement/index`. Suite : **38 fichiers / 733 tests** verts.
+- [x] **Socle E2E Playwright + parcours P1→P3** : base jetable seedée, serveur de
+  prod (`next build && next start`), **sessions forgées** par rôle (court-circuite
+  l'OTP). Specs : public/accès, demandes & paiement, placement, scan, partage,
+  stats, représentations, comptes, salles, plan, export CSV. **58 verts + 12
+  `test.fixme`** (raisons : caméra non pilotée, clic SVG, flux destructifs, données
+  absentes — détaillé dans `docs/cahier-de-test.md`, section « Tests désactivés »).
+- [x] **Rapport HTML sur le site** : `/admin/tests` (super-admin) sert
+  `test-report/index.html`. Scripts `pnpm e2e` / `pnpm e2e:ui` ; prérequis libs
+  navigateur (`sudo … playwright install-deps chromium`).
+- [x] **2 bugs trouvés par les tests, corrigés** : bloc Copier/Partager qui
+  s'imprimait sur les billets ; mots collés « 4billet(s) » sur
+  `/admin/representations/[id]` (entité `&rsquo;` → espace de tête perdu, cf. gotcha
+  CLAUDE.md espaces JSX).
+
 ## ✅ Fait le 2026-06-29 (tarifs enfant + stats + placement)
 
 - [x] **Tarifs adulte / enfant.** Le prix unique global devient **deux tarifs

@@ -6,8 +6,10 @@ transactions, codes…) — il ne les double pas : ici on teste les **flux à tr
 l'interface**, c'est-à-dire ce que vitest ne voit pas (server actions, rendu,
 navigation, état client).
 
-> Statut : **cahier validé / à coder**. Aucun test Playwright n'existe encore —
-> ce document fixe le périmètre avant la mise en place.
+> **Statut : implémenté.** vitest = **38 fichiers / 733 tests** ; E2E Playwright =
+> **58 verts + 12 `test.fixme`** (voir « Tests désactivés » plus bas). Le rapport
+> HTML est consultable sur le site : **`/admin/tests`** (super-admin). Le
+> régénérer après un changement : `pnpm e2e` puis commiter `test-report/index.html`.
 
 ## Conventions
 
@@ -234,6 +236,60 @@ Tokens démo utiles (seed dev) :
 
 ---
 
+## Tests désactivés (`test.fixme`) — pourquoi
+
+12 cas E2E sont **volontairement** en `test.fixme` : désactivés, **pas** des
+échecs (`pnpm e2e` = 58 verts, 0 rouge). Quatre raisons.
+
+### 🎥 Nécessite la caméra — `scan.spec.ts`
+
+La caméra de scan **n'est pas pilotée** (on teste par la saisie manuelle). Or les
+panneaux de doublon ne s'obtiennent que par un **re-scan caméra** : en manuel, dès
+qu'un billet est scanné, le bouton « Marquer scanné » disparaît (« Scanné à
+HH:MM ») → **aucun moyen de re-déclencher** `processToken`.
+
+- **SCAN-03b** — panneau souple « Laissez entrer » au re-scan
+- **SCAN-04b** — panneau ambre « Déjà scanné » au re-scan (mode strict)
+
+L'observable (l'état « Scanné à HH:MM », la bascule du mode strict) **est** couvert
+par SCAN-03/04. *À câbler : un faux flux `getUserMedia` réémettant un QR de démo.*
+
+### 🖱️ Clic sur le plan SVG — `placement.spec.ts`, `plan.spec.ts`
+
+Sélectionner un siège sur le plan repose sur les **classes CSS-module, hachées en
+build de prod** (`circle[class*="clickable"]` ne matche plus rien).
+
+- **PLA-03 (manuel)** — sélection siège par siège plafonnée à `partySize`
+- **PLAN-04** — cycle de blocage d'un siège *(aussi destructif, cf. ci-dessous)*
+
+*À câbler : exposer un `data-seat-*` sur le `<g>`/`<circle>` du siège.*
+
+### 💥 Destructif → casserait les specs suivants
+
+Base de test **partagée**, specs **en série, par ordre alphabétique** : ces
+actions muteraient un état dont des specs ultérieurs dépendent.
+
+- **`salles.spec.ts`** — activer une salle / réappliquer le plan / enregistrer →
+  **resync Section/Row/Seat** → casse `scan` & `placement`.
+- **`plan.spec.ts` (PLAN-04)** — cycle de blocage → crée un `SeatOverride` →
+  fausse le manifeste de `scan`.
+- **`stats.spec.ts`** — ajout d'un article buvette / enregistrement du bilan
+  météo-notes → mutent `rep-samedi` → faussent les autres assertions stats.
+- **`representations.spec.ts` (REP-05)** — suppression réelle d'une représentation
+  → destructif + modale de confirmation fragile.
+
+Le non-destructif (la page charge, l'UI est là, l'aperçu réagit) **est** couvert.
+*À câbler : une base de test réinitialisée par fichier, pas une base partagée.*
+
+### 🔒 Inatteignable / pas de donnée
+
+- **`comptes.spec.ts` (CPT-05, anti-lockout)** — l'auto-rétrogradation ne peut pas
+  se déclencher : la session forgée est couverte par `ADMIN_EMAILS` (super-admin
+  garanti), donc aucun chemin UI pour se verrouiller soi-même.
+- **`export.spec.ts` (EXP-06, injection de formule CSV)** — il faudrait une
+  réservation dont le nom commence par `= + - @` ; aucune démo n'en a, et en créer
+  une polluerait `rep-samedi` (les specs qui tournent après l'export).
+
 ## Hors périmètre (pour mémoire)
 
 - **Caméra de scan** : non pilotée (chemin manuel couvre la logique).
@@ -243,9 +299,13 @@ Tokens démo utiles (seed dev) :
 - **Anti-bot** (honeypot, time-trap, Turnstile) : couvert en unitaire / désactivé
   en dev — pas un parcours E2E.
 
-## Lots de mise en œuvre
+## Lots de mise en œuvre — ✅ fait
 
-1. **Socle** : `playwright.config.ts` + `webServer` sur base de test seedée +
-   *global-setup* qui forge les `storageState` par rôle. (le gros du travail)
-2. **P1 d'abord** : PART-*, ADM-02/03, PLA-01/02, SCAN-01→04, SEC-01, PUB-01.
-3. **P2 puis P3** au fil de l'eau.
+1. ✅ **Socle** : `playwright.config.ts` (webServer `next build && next start` sur
+   base de test seedée) + *global-setup* forgeant les `storageState` par rôle.
+2. ✅ **P1** : PART, ADM, PLA, SCAN, SEC, PUB/ACC.
+3. ✅ **P2/P3** : STAT, représentations, comptes, salles, plan, export CSV.
+4. ✅ **Unitaire (vitest)** : couverture étendue à ~tous les modules `lib/`
+   (emails, session, jauge, venue, booking, placement, phone, turnstile…).
+
+Reste : câbler les `test.fixme` ci-dessus si le besoin émerge.
