@@ -394,3 +394,28 @@
   font-weight: 600;
   color: #3f7a52;
 }
+
+/* Menu de canaux (WhatsApp / SMS / E-mail / Copier le lien…) sous « Partager ». */
+.partageMenu {
+  width: 100%;
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.partageMenuItem {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #5c3d2e;
+  background: #ffffff;
+  border: 1px solid #e8ddd0;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.partageMenuItem:hover {
+  background: #f2ece3;
+}

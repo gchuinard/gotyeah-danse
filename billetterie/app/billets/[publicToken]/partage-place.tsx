@@ -1,9 +1,12 @@
 'use client'
 
 // Partage d'UNE place depuis l'espace client (page billets, billet placé) :
-// le code court « GC1234 » + Copier (le code, pour dicter) + Partager (lien
-// direct /place/<qrToken> via le partage natif, ou copie du lien en repli).
-// Petits toasts de confirmation. Bloc écran seulement (pas à l'impression).
+//   - le code court « GC1234 » + Copier (le code, pour le dicter) ;
+//   - Partager → petit menu de canaux EXPLICITES (WhatsApp / SMS / E-mail /
+//     Copier le lien) qui marche partout, PC compris ; + le partage natif du
+//     téléphone quand il est dispo (feuille système qui liste toutes les apps).
+// Chaque canal envoie le LIEN DIRECT /place/<qrToken> (lecture seule, rien à
+// taper). Bloc écran seulement (pas à l'impression).
 
 import { useState } from 'react'
 
@@ -19,13 +22,19 @@ type Props = {
 
 export default function PartagePlace({ code, qrToken, rang, place, titre }: Props) {
   const [toast, setToast] = useState<string | null>(null)
+  const [menuOuvert, setMenuOuvert] = useState(false)
 
   const flash = (message: string) => {
     setToast(message)
     window.setTimeout(() => setToast(null), 1800)
   }
 
-  async function copier() {
+  // Lien + message bâtis au clic (origin connu côté client ; le menu n'est
+  // rendu qu'après interaction, donc jamais évalué au rendu serveur).
+  const lien = () => `${window.location.origin}/place/${qrToken}`
+  const message = () => `Ta place pour ${titre} : rang ${rang}, place ${place}.\n${lien()}`
+
+  async function copierCode() {
     try {
       await navigator.clipboard.writeText(code)
       flash('Code copié ✓')
@@ -34,28 +43,26 @@ export default function PartagePlace({ code, qrToken, rang, place, titre }: Prop
     }
   }
 
-  async function partager() {
-    const lien = `${window.location.origin}/place/${qrToken}`
-    const texte =
-      `Ta place pour ${titre} : rang ${rang}, place ${place}.\n` +
-      `Lien direct : ${lien}\n` +
-      `(ou code ${code} sur la page « Voir ma place », avec l’email de la réservation)`
-
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: 'Ta place pour le spectacle', text: texte, url: lien })
-      } catch {
-        // Partage annulé par l'utilisateur : rien à signaler.
-      }
-      return
-    }
+  async function copierLien() {
+    setMenuOuvert(false)
     try {
-      await navigator.clipboard.writeText(texte)
+      await navigator.clipboard.writeText(message())
       flash('Lien copié ✓')
     } catch {
-      flash('Partage impossible sur cet appareil')
+      flash('Copie impossible sur cet appareil')
     }
   }
+
+  async function partageNatif() {
+    setMenuOuvert(false)
+    try {
+      await navigator.share({ title: 'Ta place pour le spectacle', text: message(), url: lien() })
+    } catch {
+      // Partage annulé par l'utilisateur : rien à signaler.
+    }
+  }
+
+  const natifDispo = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   return (
     <div className={`${styles.partage} ${styles.screenOnly}`}>
@@ -63,10 +70,15 @@ export default function PartagePlace({ code, qrToken, rang, place, titre }: Prop
         Code de cette place : <strong className={styles.partageCode}>{code}</strong>
       </p>
       <div className={styles.partageActions}>
-        <button type="button" className={styles.partageBtn} onClick={copier}>
+        <button type="button" className={styles.partageBtn} onClick={copierCode}>
           Copier
         </button>
-        <button type="button" className={styles.partageBtn} onClick={partager}>
+        <button
+          type="button"
+          className={styles.partageBtn}
+          aria-expanded={menuOuvert}
+          onClick={() => setMenuOuvert((o) => !o)}
+        >
           Partager
         </button>
         {toast && (
@@ -75,6 +87,55 @@ export default function PartagePlace({ code, qrToken, rang, place, titre }: Prop
           </span>
         )}
       </div>
+
+      {menuOuvert && (
+        <div className={styles.partageMenu} role="menu">
+          {natifDispo && (
+            <button
+              type="button"
+              className={styles.partageMenuItem}
+              role="menuitem"
+              onClick={partageNatif}
+            >
+              Partage du téléphone…
+            </button>
+          )}
+          <a
+            className={styles.partageMenuItem}
+            role="menuitem"
+            href={`https://wa.me/?text=${encodeURIComponent(message())}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMenuOuvert(false)}
+          >
+            WhatsApp
+          </a>
+          <a
+            className={styles.partageMenuItem}
+            role="menuitem"
+            href={`sms:?&body=${encodeURIComponent(message())}`}
+            onClick={() => setMenuOuvert(false)}
+          >
+            SMS
+          </a>
+          <a
+            className={styles.partageMenuItem}
+            role="menuitem"
+            href={`mailto:?subject=${encodeURIComponent('Ta place pour le spectacle')}&body=${encodeURIComponent(message())}`}
+            onClick={() => setMenuOuvert(false)}
+          >
+            E-mail
+          </a>
+          <button
+            type="button"
+            className={styles.partageMenuItem}
+            role="menuitem"
+            onClick={copierLien}
+          >
+            Copier le lien
+          </button>
+        </div>
+      )}
     </div>
   )
 }
