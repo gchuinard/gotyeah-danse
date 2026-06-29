@@ -165,6 +165,49 @@
   line-height: 1.1;
 }
 
+/* « Déjà passé » en mode SOUPLE : teal « laissez entrer », distinct du vert
+   franc d'un premier scan et de l'ambre d'alerte du mode strict. */
+.panelDejaSouple {
+  background: #0f766e;
+  color: #fff;
+}
+
+/* Heure du premier passage, en note discrète sous le panneau souple. */
+.panelNote {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* --- Interrupteur « contrôle strict des doublons » --- */
+
+.strictRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.7rem;
+}
+
+.strictToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e1a16;
+  cursor: pointer;
+}
+
+.strictToggle input {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.strictHint {
+  font-size: 0.9rem;
+  color: #7a7068;
+}
+
 /* --- Caméra --- */
 
 .cameraSection {

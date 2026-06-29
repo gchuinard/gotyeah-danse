@@ -53,9 +53,13 @@ Décisions arrêtées avec Gautier le 2026-06-29 (discussion).
   le code en repli), avec **toasts de confirmation**. Page billets (billet placé)
   + `partage-place.tsx` ; cible du lien = route `/place/[qrToken]` (lecture seule
   directe, sans rien à taper).
-- [ ] **Scan optionnel** : rendre le scan **non bloquant** (comptage/indicatif —
-  on laisse entrer même QR déjà scanné / hors-ligne). Touche `app/admin/scan` +
-  `app/api/admin/scan/route.ts` (aujourd'hui « premier scan gagne » bloquant).
+- [x] **Scan optionnel** : scan **non bloquant par défaut** (mode *souple*) — un
+  billet déjà scanné affiche « Laissez entrer » (panneau teal, vibration douce,
+  heure du 1ᵉʳ passage en note) au lieu d'une alerte. Interrupteur **« Contrôle
+  strict des doublons »** (par appareil, localStorage) pour retrouver l'alerte
+  ambre + vibration d'erreur. Hors-ligne déjà non bloquant (validation locale).
+  Côté client seulement (`scan-view.tsx`) ; la route « premier scan gagne »
+  reste inchangée (elle ne sert qu'au comptage).
 - [ ] *(option, confort)* **Session client persistante** pour ne pas re-saisir le
   code à chaque visite (aujourd'hui l'accès passe par l'URL à token, sans session —
   déjà « bookmarkable »).

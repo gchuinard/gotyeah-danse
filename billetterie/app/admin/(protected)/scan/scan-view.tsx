@@ -66,7 +66,7 @@ type QueueEntry = { qrToken: string; scannedAt: string }
 
 type PanelState =
   | { kind: 'ok'; ticket: TicketInfo }
-  | { kind: 'deja'; ticket: TicketInfo }
+  | { kind: 'deja'; ticket: TicketInfo; strict: boolean }
   | { kind: 'inconnu' }
 
 type Props = {
@@ -152,6 +152,23 @@ export default function ScanView({ representations, repId }: Props) {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [sessionExpired, setSessionExpired] = useState(false)
+
+  // Contrôle strict des doublons (OFF par défaut) : en souple, un billet déjà
+  // scanné n'est PAS bloqué — le scan sert au comptage, l'humain laisse entrer.
+  // Préférence par appareil (localStorage), lue APRÈS le montage (évite tout
+  // décalage d'hydratation).
+  const [controleStrict, setControleStrict] = useState(false)
+  const toggleStrict = useCallback(() => {
+    setControleStrict((v) => {
+      const next = !v
+      try {
+        localStorage.setItem('billetterie-scan-strict', next ? '1' : '0')
+      } catch {
+        // tant pis pour la persistance
+      }
+      return next
+    })
+  }, [])
 
   // --- File de synchro : ref (vérité) + compteur d'état (indicateur).
   const queueRef = useRef<QueueEntry[]>([])
@@ -306,6 +323,12 @@ export default function ScanView({ representations, repId }: Props) {
     } catch {
       // file illisible : on repart à vide
     }
+    try {
+      // Préférence « contrôle strict » par appareil (souple par défaut).
+      if (localStorage.getItem('billetterie-scan-strict') === '1') setControleStrict(true)
+    } catch {
+      // préférence illisible : on reste en souple
+    }
     void loadTickets().then(() => void flush())
   }, [storageKey, loadTickets, flush])
 
@@ -330,10 +353,12 @@ export default function ScanView({ representations, repId }: Props) {
         return
       }
       if (ticket.scannedAt !== null) {
-        // Déjà scanné (localement ou en base) : l'heure affichée est celle
-        // du PREMIER passage — c'est l'humain qui tranche.
-        showPanel({ kind: 'deja', ticket })
-        vibrate('error')
+        // Déjà scanné (localement ou en base) : l'heure affichée est celle du
+        // PREMIER passage. En souple (défaut), ce n'est PAS un blocage — on
+        // informe et on laisse entrer ; en strict, c'est une alerte. L'humain
+        // tranche dans les deux cas.
+        showPanel({ kind: 'deja', ticket, strict: controleStrict })
+        vibrate(controleStrict ? 'error' : 'success')
         return
       }
 
@@ -350,7 +375,7 @@ export default function ScanView({ representations, repId }: Props) {
       vibrate('success')
       void flush()
     },
-    [applyTickets, persistQueue, showPanel, flush],
+    [applyTickets, persistQueue, showPanel, flush, controleStrict],
   )
 
   // Anti-rebond caméra : le même QR décodé en rafale = un seul traitement.
@@ -589,6 +614,18 @@ export default function ScanView({ representations, repId }: Props) {
         </button>
       </div>
 
+      <div className={styles.strictRow}>
+        <label className={styles.strictToggle}>
+          <input type="checkbox" checked={controleStrict} onChange={toggleStrict} />
+          <span>Contrôle strict des doublons</span>
+        </label>
+        <span className={styles.strictHint}>
+          {controleStrict
+            ? 'Un billet déjà scanné déclenche une alerte.'
+            : 'Souple : un billet déjà scanné n’est pas bloqué (le scan sert au comptage).'}
+        </span>
+      </div>
+
       {loadError && (
         <p className={styles.loadError} role="alert">
           {loadError}
@@ -603,13 +640,23 @@ export default function ScanView({ representations, repId }: Props) {
             <p className={styles.panelSeat}>{seatLabel(panel.ticket)}</p>
           </div>
         )}
-        {panel?.kind === 'deja' && (
+        {panel?.kind === 'deja' && panel.strict && (
           <div className={`${styles.panel} ${styles.panelDeja}`}>
             <p className={styles.panelHeadline}>
               Déjà scanné à {panel.ticket.scannedAt ? formatHeure(panel.ticket.scannedAt) : '—'}
             </p>
             <p className={styles.panelName}>{panel.ticket.name}</p>
             <p className={styles.panelSeat}>{seatLabel(panel.ticket)}</p>
+          </div>
+        )}
+        {panel?.kind === 'deja' && !panel.strict && (
+          <div className={`${styles.panel} ${styles.panelDejaSouple}`}>
+            <p className={styles.panelHeadline}>Laissez entrer</p>
+            <p className={styles.panelName}>{panel.ticket.name}</p>
+            <p className={styles.panelSeat}>{seatLabel(panel.ticket)}</p>
+            <p className={styles.panelNote}>
+              Déjà passé à {panel.ticket.scannedAt ? formatHeure(panel.ticket.scannedAt) : '—'}
+            </p>
           </div>
         )}
         {panel?.kind === 'inconnu' && (
