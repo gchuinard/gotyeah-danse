@@ -29,7 +29,8 @@ export default defineConfig({
     // Base fraîche → migrations → seed (démo incluse, NODE_ENV ≠ production) → dev.
     command: `sh -c "rm -f /tmp/billetterie-e2e.db* && npx prisma migrate deploy && pnpm db:seed && pnpm exec next dev -p ${E2E_PORT}"`,
     url: E2E_BASE_URL,
-    timeout: 180_000,
+    // /mnt/c (montage Windows) est lent au premier compile Next + seed.
+    timeout: 300_000,
     reuseExistingServer: !process.env.CI,
     env: {
       DATABASE_URL: E2E_DATABASE_URL,
