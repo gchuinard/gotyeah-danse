@@ -1,0 +1,56 @@
+name: E2E Billetterie
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Playwright E2E (billetterie)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: billetterie
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          cache: pnpm
+          cache-dependency-path: billetterie/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser (chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Le serveur de test démarre sur une base SQLite JETABLE (/tmp/billetterie-e2e.db,
+      # jamais la base dev/prod) : la commande webServer de playwright.config.ts gère
+      # migrate deploy + seed démo + build + start, et fournit elle-même DATABASE_URL,
+      # SESSION_SECRET, ADMIN_EMAILS, APP_BASE_URL via webServer.env. Le global-setup
+      # forge les sessions admin avec le secret codé en dur dans e2e/data.ts. Aucun
+      # secret réel n'est requis ici.
+      - name: Run E2E tests
+        run: pnpm e2e
+
+      - name: Push Allure results
+        if: ${{ always() && github.ref == 'refs/heads/main' }}
+        uses: gchuinard/gotyeah-allure/actions/push-allure-results@main
+        with:
+          site: gotyeah-danse
+          suite: billetterie
+          results-dir: billetterie/allure-results
+          ssh-host: ${{ secrets.SSH_HOST }}
+          ssh-user: ${{ secrets.SSH_USER }}
+          ssh-key: ${{ secrets.SSH_KEY }}

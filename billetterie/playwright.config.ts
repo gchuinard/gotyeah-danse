@@ -16,7 +16,7 @@ export default defineConfig({
   // captures + trace au clic). `open: 'never'` → pas d'ouverture auto (headless).
   // outputFolder: 'test-report' (committé) → servi sur le site derrière le login
   // admin à /admin/tests. `pnpm exec playwright show-report test-report` en local.
-  reporter: [['list'], ['html', { open: 'never', outputFolder: 'test-report' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'test-report' }], ['allure-playwright', { resultsDir: 'allure-results' }]],
   timeout: 90_000,
   expect: { timeout: 12_000 },
   globalSetup: './e2e/global-setup.ts',
