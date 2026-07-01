@@ -13,7 +13,10 @@
       "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline --diff-filter=D --name-only)",
       "Bash(git -C /mnt/c/Users/Orould/Desktop/GotYeahStudios/gotyeah-danse log --all --oneline -- \"**/README*\")",
       "Bash(npx prisma *)",
-      "Bash(sudo apt-get install -y poppler-utils)"
+      "Bash(sudo apt-get install -y poppler-utils)",
+      "Bash(grep -rn \"PLACEMENT_IMPL\" . --include=\"*.env*\" --include=\"*.yml\" --include=\"*.yaml\" --include=\"Dockerfile*\" --include=\"*.sh\" --include=\"*.ts\" --include=\"*.example\")",
+      "Bash(ls -la .env*)",
+      "Bash(ls -la docker-compose*.yml Dockerfile)"
     ]
   }
 }

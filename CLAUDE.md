@@ -95,5 +95,5 @@ Le script génère les variantes WebP/AVIF à plusieurs largeurs dans `images/op
   - Initiation — à partir de 6 ans
   - Classique — à partir de 8 ans
   - Modern'Jazz — à partir de 9 ans
-- **Frais d'inscription** : 16 €
+- **Frais d'inscription** : 17 €
 - **URL** : cours-danse-bergerac.fr
