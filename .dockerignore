@@ -1,6 +1,28 @@
+# --- VCS / méta ---
 .git
 .gitignore
+.github
+.claude
+.dockerignore
+
+# --- Docs / dev ---
 CLAUDE.md
-annonce.js
+README.md
 *.md
+annonce.js
+optimize-images.js
+.htmlvalidate.json
+scripts
+
+# --- Build / dépendances / config ---
 node_modules
+package.json
+package-lock.json
+docker-compose.yml
+Dockerfile
+
+# --- Appli billetterie : déployée séparément (billets.cours-danse-bergerac.fr) ---
+billetterie
+
+# NB : nginx.conf n'est PAS ignoré — il est copié explicitement vers /etc/nginx
+# par le Dockerfile (et le bloc `location ~* \.conf$` l'empêche d'être servi).
