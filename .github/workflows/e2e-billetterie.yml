@@ -44,8 +44,13 @@ jobs:
       - name: Run E2E tests
         run: pnpm e2e
 
+      # Publication du rapport : NON BLOQUANTE. Le job doit refléter l'état des
+      # TESTS, pas la joignabilité du Pi qui héberge le dashboard (secret manquant,
+      # machine éteinte, réseau…). Un échec ici laisse une annotation d'alerte
+      # mais n'échoue pas le run.
       - name: Push Allure results
         if: ${{ always() && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
         uses: gchuinard/gotyeah-allure/actions/push-allure-results@main
         with:
           site: gotyeah-danse
