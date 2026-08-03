@@ -278,9 +278,13 @@ toutes celles du 1er du mois, gardées sans limite. Il ne supprime que ses propr
 fichiers `prod-*.db.gz` — jamais les sauvegardes manuelles `backup-*`.
 
 ```sh
-# crontab -e (utilisateur pi) — 3h30 chaque nuit
-30 3 * * * /home/pi/sites/gotyeah-danse/billetterie/scripts/backup-prod.sh >> /var/log/billetterie-backup.log 2>&1
+# crontab -e (utilisateur pi) — 3h30 chaque nuit, heure système = Europe/Paris
+30 3 * * * /home/pi/sites/gotyeah-danse/billetterie/scripts/backup-prod.sh >> /home/pi/logs/billetterie-backup.log 2>&1
 ```
+
+⚠️ Le log doit pointer vers un chemin **appartenant à `pi`** (d'où `/home/pi/logs/`
+et non `/var/log/`) : si la redirection échoue, le shell de cron s'arrête **avant**
+de lancer le script et la sauvegarde ne part jamais — silencieusement.
 
 Restaurer une sauvegarde :
 
