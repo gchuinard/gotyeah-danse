@@ -26,6 +26,18 @@
   text-decoration: underline;
 }
 
+/* Accès à la vue miroir « demandes archivées » : discret, c'est une porte de
+   sortie de l'écran du quotidien, pas une action courante. */
+.lienArchives {
+  font-size: 0.85rem;
+  color: var(--gris-chd, #7a7068);
+  text-decoration: underline;
+}
+
+.lienArchives:hover {
+  color: var(--terre-2);
+}
+
 .titreActions {
   display: flex;
   align-items: center;
@@ -168,6 +180,17 @@
   background: #f6e4e0;
   border: 1px solid #c98f80;
   color: #7a2e1d;
+}
+
+/* Vue archives : bandeau d'information (neutre, pas une erreur) rappelant que
+   tout est en lecture seule. */
+.bannerArchives {
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #f2ece3;
+  border: 1px dashed #b9a48c;
+  color: #5c3d2e;
 }
 
 .filtres {

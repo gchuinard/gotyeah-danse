@@ -59,6 +59,14 @@ model Representation {
   startsAt DateTime
   isOpen   Boolean  @default(false)
 
+  // Archivage (« clôture ») d'une représentation passée — super-admin, RÉVERSIBLE.
+  // archivedAt null = active. Une rep archivée sort des écrans du quotidien et
+  // ses demandes sont GELÉES, mais RIEN n'est supprimé ni muté : stats,
+  // historique et export CSV continuent de la lire, et désarchiver restitue
+  // exactement l'état d'avant. Règle centralisée dans lib/admin/archive.ts.
+  archivedAt DateTime?
+  archivedBy String? // email du super-admin qui a archivé (audit)
+
   // Bilan d'organisation (saisi à la main après la soirée, pour l'an prochain).
   // weather         : ancienne météo en texte libre — conservée pour ne rien
   //                   perdre, plus éditée (remplacée par weatherReadings).

@@ -31,10 +31,14 @@ export function FiltresDemandes({
   statut,
   q,
   paiement,
+  archives,
 }: {
   statut: string
   q: string
   paiement: string
+  // Vue « archives » (lecture seule) : à RECONDUIRE dans l'URL à chaque
+  // changement de filtre, sinon on retomberait sur les demandes en cours.
+  archives: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -45,6 +49,7 @@ export function FiltresDemandes({
 
   const naviguer = (s: string, r: string, p: string) => {
     const params = new URLSearchParams()
+    if (archives) params.set('archives', '1')
     if (s) params.set('statut', s)
     if (p) params.set('paiement', p)
     if (r.trim()) params.set('q', r.trim())
@@ -63,11 +68,15 @@ export function FiltresDemandes({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recherche, statutChoisi, paiementChoisi])
 
+  // Réinitialiser vide les FILTRES, pas le périmètre : on reste sur la vue
+  // courante (en cours / archives).
   const reinitialiser = () => {
     setRecherche('')
     setStatutChoisi('')
     setPaiementChoisi('')
-    startTransition(() => router.replace('/admin/demandes'))
+    startTransition(() =>
+      router.replace('/admin/demandes' + (archives ? '?archives=1' : '')),
+    )
   }
 
   return (

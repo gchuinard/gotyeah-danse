@@ -1,10 +1,13 @@
-// /admin — tableau de bord : une carte par représentation (toutes, même
-// fermées). Tout est CALCULÉ (capacité, remplissage, jauge), rien de stocké.
+// /admin — tableau de bord : une carte par représentation ACTIVE (même
+// fermées ; les archivées, elles, ne sont plus du quotidien — leurs chiffres
+// restent dans /admin/stats). Tout est CALCULÉ (capacité, remplissage, jauge),
+// rien de stocké.
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import AutoRefresh from '@/components/admin/auto-refresh'
+import { REP_ACTIVE } from '@/lib/admin/archive'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { computeJauge } from '@/lib/jauge'
@@ -28,7 +31,7 @@ export default async function DashboardPage() {
 
   const now = new Date()
   const [representations, totalSieges] = await Promise.all([
-    prisma.representation.findMany({ orderBy: { startsAt: 'asc' } }),
+    prisma.representation.findMany({ where: REP_ACTIVE, orderBy: { startsAt: 'asc' } }),
     prisma.seat.count(),
   ])
 
@@ -80,6 +83,13 @@ export default async function DashboardPage() {
       {/* Soir J : les compteurs (scannés notamment) se rafraîchissent seuls. */}
       <AutoRefresh seconds={30} />
       <h1>Tableau de bord</h1>
+
+      {cartes.length === 0 && (
+        <p className={styles.vide}>
+          Aucune représentation active. Crée-en une — ou désarchive-en une — dans{' '}
+          <Link href="/admin/representations">Représentations</Link>.
+        </p>
+      )}
 
       <div className={styles.cartes}>
         {cartes.map(({ rep, ...c }) => (

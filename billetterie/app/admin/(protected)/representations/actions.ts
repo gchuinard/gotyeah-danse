@@ -1,8 +1,9 @@
 'use server'
 
 // Gestion des représentations : créer, modifier, ouvrir/fermer les
-// réservations, supprimer. Même pattern que les actions des demandes :
-// requireAdmin + zod + try/catch → message via ?ok=/?err= + revalidatePath.
+// réservations, archiver/désarchiver, supprimer. Même pattern que les actions
+// des demandes : requireAdmin + zod + try/catch → message via ?ok=/?err= +
+// revalidatePath.
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -15,6 +16,11 @@ import { prisma } from '@/lib/db'
 import { parisToUtc } from '@/lib/paris-time'
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
+
+// Refus commun aux actions qui touchent une représentation archivée (elle est
+// figée tant qu'on ne l'a pas désarchivée).
+const MESSAGE_REP_ARCHIVEE =
+  'Représentation archivée : désarchive-la d’abord pour la modifier.'
 
 // Prix en euros (« 12 », « 12,50 ») → centimes ; borné à 1000 €.
 const prixSchema = z
@@ -49,6 +55,9 @@ function rafraichir() {
   revalidatePath('/admin')
   revalidatePath('/admin/demandes') // le prix change les montants dus affichés
   revalidatePath('/admin/stats')
+  // Archiver retire aussi la représentation des sélecteurs plan / scan.
+  revalidatePath('/admin/plan')
+  revalidatePath('/admin/scan')
   revalidatePath('/') // le formulaire public liste les représentations ouvertes
 }
 
@@ -99,6 +108,12 @@ export async function modifierRepresentation(formData: FormData): Promise<void> 
   if (!id.success) versListe('err', 'Représentation introuvable.')
   if (!parsed.success) versListe('err', parsed.error.issues[0].message)
 
+  const existante = await prisma.representation.findUnique({ where: { id: id.data } })
+  if (!existante) versListe('err', 'Représentation introuvable.')
+  // Une rep archivée est figée, titre et date compris (cohérent avec le gel de
+  // ses demandes) : on la désarchive d'abord.
+  if (existante.archivedAt) versListe('err', MESSAGE_REP_ARCHIVEE)
+
   try {
     await prisma.representation.update({
       where: { id: id.data },
@@ -118,6 +133,9 @@ export async function basculerOuverture(formData: FormData): Promise<void> {
 
   const rep = await prisma.representation.findUnique({ where: { id: id.data } })
   if (!rep) versListe('err', 'Représentation introuvable.')
+  // Garde-fou : une rep archivée ne peut pas rouvrir ses ventes sans passer par
+  // le désarchivage explicite (sinon elle réapparaîtrait côté public).
+  if (rep.archivedAt) versListe('err', MESSAGE_REP_ARCHIVEE)
 
   await prisma.representation.update({
     where: { id: rep.id },
@@ -129,6 +147,53 @@ export async function basculerOuverture(formData: FormData): Promise<void> {
     rep.isOpen
       ? `Réservations fermées pour « ${rep.title} ».`
       : `Réservations ouvertes pour « ${rep.title} ».`,
+  )
+}
+
+// Archiver = clôturer la représentation : ses demandes sortent du quotidien et
+// sont gelées, mais RIEN n'est supprimé ni muté (stats, historique et export
+// CSV continuent de la servir). Réversible — cf. lib/admin/archive.ts.
+export async function archiverRepresentation(formData: FormData): Promise<void> {
+  const { email } = await requireSuperAdmin()
+  const id = idSchema.safeParse(formData.get('id'))
+  if (!id.success) versListe('err', 'Représentation introuvable.')
+
+  const rep = await prisma.representation.findUnique({ where: { id: id.data } })
+  if (!rep) versListe('err', 'Représentation introuvable.')
+  if (rep.archivedAt) versListe('err', `« ${rep.title} » est déjà archivée.`)
+
+  // Archiver FERME les réservations dans la même écriture : une représentation
+  // archivée ne peut pas rester proposée sur le formulaire public.
+  await prisma.representation.update({
+    where: { id: rep.id },
+    data: { archivedAt: new Date(), archivedBy: email, isOpen: false },
+  })
+  rafraichir()
+  versListe(
+    'ok',
+    `« ${rep.title} » archivée : ses demandes sortent des écrans du quotidien et sont gelées (rien n’est supprimé).`,
+  )
+}
+
+// Désarchiver ne ROUVRE PAS les ventes : la représentation revient simplement
+// « fermée ». Sinon un clic la republierait sur le formulaire public.
+export async function desarchiverRepresentation(formData: FormData): Promise<void> {
+  await requireSuperAdmin()
+  const id = idSchema.safeParse(formData.get('id'))
+  if (!id.success) versListe('err', 'Représentation introuvable.')
+
+  const rep = await prisma.representation.findUnique({ where: { id: id.data } })
+  if (!rep) versListe('err', 'Représentation introuvable.')
+  if (!rep.archivedAt) versListe('err', `« ${rep.title} » n’est pas archivée.`)
+
+  await prisma.representation.update({
+    where: { id: rep.id },
+    data: { archivedAt: null, archivedBy: null },
+  })
+  rafraichir()
+  versListe(
+    'ok',
+    `« ${rep.title} » désarchivée — réservations fermées, ouvre-les si tu reprends les ventes.`,
   )
 }
 
@@ -144,7 +209,7 @@ export async function supprimerRepresentation(formData: FormData): Promise<void>
   if (bookings > 0) {
     versListe(
       'err',
-      `Suppression impossible : ${bookings} demande(s) liée(s). Ferme plutôt les réservations.`,
+      `Suppression impossible : ${bookings} demande(s) liée(s). Archive plutôt la représentation — elle sort du quotidien sans rien perdre.`,
     )
   }
 

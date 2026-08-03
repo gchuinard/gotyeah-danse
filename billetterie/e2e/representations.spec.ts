@@ -3,7 +3,9 @@
 // ISOLATION (création d'une rep NEUVE à titre unique → apparaît fermée →
 // ouverture/fermeture des réservations), réglage des tarifs adulte/enfant
 // (carte « Tarifs »), lecture de la page « Modifier » d'une rep de démo
-// (route [id]) et BLOCAGE de la suppression dès qu'une demande existe.
+// (route [id]), BLOCAGE de la suppression dès qu'une demande existe, et
+// ARCHIVAGE/DÉSARCHIVAGE (REP-06 : clôture réversible — la rep sort du
+// tableau de bord et des sélecteurs plan/scan, puis revient à l'identique).
 //
 // Mécanique du produit (lue dans le markup) :
 //  • Toutes les actions sont des SERVER ACTIONS (`<form action={…}>`) qui se
@@ -137,6 +139,77 @@ test.describe('Admin — représentations (super-admin)', () => {
     await expect(lSamedi.getByRole('button', { name: 'Supprimer' })).toHaveCount(0)
     // La rep reste éditable et basculable (on ne clique pas) : repères de présence.
     await expect(lSamedi.getByRole('link', { name: 'Modifier' })).toBeVisible()
+  })
+
+  // ——— REP-06 — Archivage / désarchivage (clôture réversible) ———
+  // NON DESTRUCTIF : la rep est NEUVE (titre unique), l'archivage ne supprime
+  // ni ne mute rien, et le test la laisse désarchivée + fermée (état initial).
+  // On vérifie le cycle complet : badge, boutons, disparition des écrans du
+  // quotidien (tableau de bord, sélecteurs plan/scan), puis retour à l'état
+  // d'avant.
+  test('REP-06 — archiver une représentation la sort du quotidien, désarchiver la restaure', async ({
+    page,
+  }) => {
+    const titre = `Repr ARCHIVE E2E ${Date.now()}`
+    await page.goto('/admin/representations')
+    await page.getByLabel('Titre', { exact: true }).fill(titre)
+    await page.getByLabel('Date et heure (heure de Paris)', { exact: true }).fill('2099-08-15T20:30')
+    await page.getByRole('button', { name: 'Créer (réservations fermées)' }).click()
+
+    // État initial : active (badge « Fermées »), donc proposée partout.
+    const l = () => ligne(page, titre)
+    await expect(l().getByText('Fermées')).toBeVisible()
+    await expect(l().getByRole('button', { name: 'Archiver' })).toBeVisible()
+    await expect(l().getByText('Archivée')).toHaveCount(0)
+
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: titre })).toBeVisible()
+    await page.goto('/admin/plan')
+    await expect(page.getByRole('option', { name: new RegExp(titre) })).toHaveCount(1)
+
+    // ARCHIVER : ConfirmSubmit → ConfirmDialog (role=alertdialog) → Confirmer.
+    // Le message chiffre l'impact et rappelle que rien n'est supprimé.
+    await page.goto('/admin/representations')
+    await l().getByRole('button', { name: 'Archiver' }).click()
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText(/Rien n’est supprimé/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Confirmer' }).click()
+
+    // Redirect ?ok= : la ligne bascule sur le 3ᵉ état (ni ouverte ni fermée).
+    // Bannière ciblée sur une formule UNIQUE de la page (le mot « archivée »
+    // seul apparaît aussi dans le badge et dans le pavé d'aide → strict mode).
+    await expect(page.getByText(/sortent des écrans du quotidien/)).toBeVisible()
+    await expect(l().getByText('Archivée')).toBeVisible()
+    await expect(l().getByRole('button', { name: 'Désarchiver' })).toBeVisible()
+    await expect(l().getByRole('button', { name: 'Ouvrir' })).toHaveCount(0)
+    await expect(l().getByRole('button', { name: 'Archiver' })).toHaveCount(0)
+    // L'export reste offert : c'est la raison d'être de l'archive vs la suppression.
+    await expect(l().getByRole('link', { name: 'Export CSV' })).toBeVisible()
+
+    // Sortie des écrans du quotidien : plus de carte au tableau de bord, plus
+    // d'option dans le sélecteur du plan ni dans celui du scan.
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: titre })).toHaveCount(0)
+    await page.goto('/admin/plan')
+    await expect(page.getByRole('option', { name: new RegExp(titre) })).toHaveCount(0)
+    await page.goto('/admin/scan')
+    await expect(page.getByRole('option', { name: new RegExp(titre) })).toHaveCount(0)
+
+    // La vue miroir des demandes archivées annonce sa lecture seule.
+    await page.goto('/admin/demandes?archives=1')
+    await expect(page.getByRole('heading', { name: 'Demandes archivées' })).toBeVisible()
+    await expect(page.getByText(/lecture seule/)).toBeVisible()
+
+    // DÉSARCHIVER : retour à « Fermées » (jamais de réouverture automatique des
+    // ventes) → l'état net du test est exactement l'état de création.
+    await page.goto('/admin/representations')
+    await l().getByRole('button', { name: 'Désarchiver' }).click()
+    await expect(page.getByText(/désarchivée — réservations fermées/)).toBeVisible()
+    await expect(l().getByText('Fermées')).toBeVisible()
+    await expect(l().getByRole('button', { name: 'Ouvrir' })).toBeVisible()
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: titre })).toBeVisible()
   })
 
   // ——— REP-05 — Suppression RÉELLE d'une rep neuve (DESTRUCTIF → fixme) ———

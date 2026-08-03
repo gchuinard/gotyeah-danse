@@ -59,6 +59,10 @@ export type DemandeDetail = {
   childPriceCents: number | null
   status: string // brut : pending | paid | placed | cancelled | expired
   statutLabel: string
+  // Demande d'une représentation ARCHIVÉE : popup en lecture seule (aucune
+  // action rendue). Le serveur les refuserait de toute façon — c'est une
+  // double sécurité, pas la seule (cf. lib/admin/archive.ts).
+  figee: boolean
   expiree: boolean
   paid: boolean
   pmrCount: number
@@ -639,7 +643,9 @@ function SectionGestion({ detail }: { detail: DemandeDetail }) {
 }
 
 function DetailContent({ detail }: { detail: DemandeDetail }) {
-  const actionable = ['pending', 'paid', 'placed'].includes(detail.status)
+  // Une demande gelée (représentation archivée) reste entièrement CONSULTABLE —
+  // détail, places attribuées, historique — mais ne rend aucun formulaire.
+  const actionable = !detail.figee && ['pending', 'paid', 'placed'].includes(detail.status)
   return (
     <div className={styles.detail}>
       <div className={styles.detailGrille}>
@@ -683,30 +689,41 @@ function DetailContent({ detail }: { detail: DemandeDetail }) {
         </div>
       )}
 
+      {detail.figee && (
+        <p className={styles.detailWarn}>
+          Représentation archivée : cette demande est <strong>gelée</strong>{' '}(lecture seule).
+          Désarchive la représentation pour pouvoir la modifier.
+        </p>
+      )}
+
       {actionable && <SectionPaiement detail={detail} />}
       {actionable && <SectionRemboursement detail={detail} />}
       {actionable && <SectionGestion detail={detail} />}
 
       <div className={styles.detailBloc}>
         <h3 className={styles.detailTitre}>Note interne</h3>
-        <ActionForm action={annoterAction} className={styles.detailNoteForm}>
-          {() => (
-            <>
-              <Hidden detail={detail} />
-              <input
-                type="text"
-                name="annotation"
-                maxLength={300}
-                defaultValue={detail.adminNotes ?? ''}
-                placeholder="chèque n°…, PMR, contexte…"
-                className={styles.detailNoteInput}
-              />
-              <button type="submit" className={styles.btn}>
-                Enregistrer
-              </button>
-            </>
-          )}
-        </ActionForm>
+        {detail.figee ? (
+          <p className={styles.detailTexte}>{detail.adminNotes || 'Aucune note.'}</p>
+        ) : (
+          <ActionForm action={annoterAction} className={styles.detailNoteForm}>
+            {() => (
+              <>
+                <Hidden detail={detail} />
+                <input
+                  type="text"
+                  name="annotation"
+                  maxLength={300}
+                  defaultValue={detail.adminNotes ?? ''}
+                  placeholder="chèque n°…, PMR, contexte…"
+                  className={styles.detailNoteInput}
+                />
+                <button type="submit" className={styles.btn}>
+                  Enregistrer
+                </button>
+              </>
+            )}
+          </ActionForm>
+        )}
       </div>
 
       <div className={styles.detailBloc}>

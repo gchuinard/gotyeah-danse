@@ -51,8 +51,11 @@ export async function POST(request: Request) {
 
   // Premier scan gagne — atomique grâce à la condition scannedAt: null.
   // scannedBy = qui a scanné (prénom du bénévole ou email admin), pour l'audit.
+  // La condition sur la représentation gèle les billets d'une rep ARCHIVÉE
+  // (une synchro tardive ne doit pas venir marquer un spectacle clôturé) :
+  // elle vit DANS l'updateMany, donc le chemin nominal garde son unique requête.
   const { count } = await prisma.ticket.updateMany({
-    where: { qrToken, scannedAt: null },
+    where: { qrToken, scannedAt: null, representation: { archivedAt: null } },
     data: { scannedAt, scannedBy: session.name },
   })
   if (count === 1) {
@@ -62,13 +65,21 @@ export async function POST(request: Request) {
     )
   }
 
-  // count = 0 : soit le billet n'existe pas, soit il est déjà scanné.
+  // count = 0 : billet inexistant, déjà scanné, ou représentation archivée.
   const ticket = await prisma.ticket.findUnique({
     where: { qrToken },
-    select: { scannedAt: true },
+    select: { scannedAt: true, representation: { select: { archivedAt: true } } },
   })
   if (!ticket) {
     return Response.json({ status: 'inconnu', scannedAt: null }, { headers: NO_STORE })
+  }
+  if (ticket.representation.archivedAt) {
+    // Le client dépile l'entrée comme pour tout 200 : rien à re-synchroniser,
+    // ce billet appartient à une représentation clôturée.
+    return Response.json(
+      { status: 'archivee', scannedAt: ticket.scannedAt?.toISOString() ?? null },
+      { headers: NO_STORE },
+    )
   }
   return Response.json(
     { status: 'deja-scanne', scannedAt: ticket.scannedAt?.toISOString() ?? null },

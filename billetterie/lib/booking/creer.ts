@@ -45,7 +45,9 @@ export async function creerBookingEnAttente(
     const representation = await tx.representation.findUnique({
       where: { id: demande.representationId },
     })
-    if (!representation || !representation.isOpen) {
+    // Archivée = clôturée : plus aucune demande, même par le back-office
+    // (l'archivage ferme déjà isOpen, c'est la ceinture de sécurité).
+    if (!representation || !representation.isOpen || representation.archivedAt !== null) {
       return { ok: false as const, error: "Cette représentation n'est pas ouverte à la réservation." }
     }
 

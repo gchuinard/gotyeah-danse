@@ -105,8 +105,8 @@ navigation est filtrée selon le rôle ; chaque page/action/route le re-vérifie
 | --- | --- |
 | `/` | Formulaire public de demande de places (représentations ouvertes avec jauge > 0). Nombre de places + **dont enfants** (tarif réduit) → **montant indicatif ventilé** (adultes/enfants). Mise en page **2 colonnes** sur grand écran (≥ 920 px) — formulaire à gauche, **FAQ** à droite (accordéon `<details>` natif, 10 questions) ; empilé sur mobile |
 | `/billets/<token>` | Suivi d'une demande / billets + QR codes (lien envoyé par email) |
-| `/admin` | Dashboard (compteurs par représentation, jauge, scans en live) |
-| `/admin/demandes` | File des demandes. **Filtres** : statut, **paiement** (payées / non payées), recherche nom/email/téléphone (live). **Clic sur une ligne → popup « centre d'actions »** (reste ouverte, feedback inline) : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (date de paiement pré-remplie au jour) / supprimer un versement / **annuler tout le règlement**, bloc séparé **Remboursement** (montant + motif, nb de places pour « place retirée »), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
+| `/admin` | Dashboard (compteurs par représentation **active**, jauge, scans en live — les représentations archivées n'y figurent plus) |
+| `/admin/demandes` | File des demandes des représentations **actives** (celles d'une représentation archivée n'y sont plus — lien « Voir les N demandes archivées » → `?archives=1`, **lecture seule**). **Filtres** : statut, **paiement** (payées / non payées), recherche nom/email/téléphone (live). **Clic sur une ligne → popup « centre d'actions »** (reste ouverte, feedback inline) : détail, **historique**, note modifiable, **récap dû / reçu / reste**, et toutes les actions — **ajouter un versement** (date de paiement pré-remplie au jour) / supprimer un versement / **annuler tout le règlement**, bloc séparé **Remboursement** (montant + motif, nb de places pour « place retirée »), **places offertes**, rectifier le nombre de places, prolonger, **remise e-billet ⇄ papier**, envoyer/imprimer les billets, annuler. Chip de paiement : ✗ Non payé / ⏳ Acompte / ✓ Soldé / ↩ Remboursé. La liste ne garde que le raccourci **Placer/Déplacer**. Un **rappel** s'affiche si les places ont changé après le paiement. |
 | `/admin/demandes/nouvelle` | Créer une demande au back-office. **Détection de doublons** sur la même représentation : email déjà utilisé = **blocage** (lien vers la demande existante) ; téléphone ou nom = **avertissement** « êtes-vous sûr ? » avec liens (ou « créer quand même »). |
 | `/admin/placement/<bookingId>` | Suggestions de placement (fenêtres même rangée d'abord, blocs en remplissage) + ajustement manuel **plafonné à `partySize`** (pas de sur-sélection ; désélectionner pour échanger), émission des billets |
 | `/admin/plan` | Plan de salle interactif (zoom/déplacement, lettres de rangs, numéros) + **blocage de sièges** + bascule **fixe ↔ amovible** (⚠️ ré-initialisée par un re-seed) |
@@ -332,9 +332,25 @@ Checklist :
 - **Gérer les représentations** : `/admin/representations` — créer (fermée par
   défaut), modifier titre et date/heure (saisies en heure de Paris), **ouvrir/
   fermer les réservations** (une représentation fermée disparaît du formulaire
-  public), supprimer (bloqué dès qu'une demande existe, même annulée). C'est
-  aussi là qu'on fixe les **tarifs adulte / enfant** (carte « Tarifs »,
-  super-admin — un champ vide = ce tarif effacé). À faire **avant les ventes**.
+  public), **archiver / désarchiver** (voir ci-dessous), supprimer (bloqué dès
+  qu'une demande existe, même annulée). C'est aussi là qu'on fixe les **tarifs
+  adulte / enfant** (carte « Tarifs », super-admin — un champ vide = ce tarif
+  effacé). À faire **avant les ventes**.
+- **Clôturer une édition (archiver)** : `/admin/representations` →
+  **Archiver** (super-admin, **réversible**). Une représentation archivée
+  **sort du quotidien** — ses demandes quittent `/admin/demandes`, sa carte
+  quitte le tableau de bord, elle disparaît des sélecteurs de `/admin/plan` et
+  `/admin/scan` et du formulaire public (l'archivage ferme les réservations) —
+  et ses demandes sont **gelées** : plus aucune action possible (versement,
+  placement, annulation, envoi de billets, scan, ni modification par la
+  famille), et le **cron** cesse de les expirer et de les relancer par email.
+  **Rien n'est supprimé ni muté** : `/admin/stats` garde l'édition (avec un
+  badge « Archivée » — la comparaison par année en dépend), l'historique reste
+  intact et l'**export CSV** reste accessible depuis la ligne de la
+  représentation. Les demandes se relisent en lecture seule via
+  `/admin/demandes?archives=1`. **Désarchiver** restitue exactement l'état
+  d'avant (réservations **fermées** : on les rouvre explicitement si besoin).
+  Le message de confirmation chiffre l'impact avant de cliquer.
 
 ## Référence rapide
 

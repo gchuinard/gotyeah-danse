@@ -3,6 +3,28 @@
 Idées et corrections en attente, notées au fil de l'eau (2026-06-11).
 Aucun engagement d'ordre — prioriser à la demande.
 
+## ✅ Fait le 2026-08-03 (clôture d'une édition : archivage réversible)
+
+- [x] **Archiver / désarchiver une représentation** (super-admin, depuis
+  `/admin/representations`). `Representation.archivedAt` / `archivedBy`
+  (migration `archiver_representation`), règle centralisée dans
+  **`lib/admin/archive.ts`** (filtres `DEMANDES_ACTIVES` / `DEMANDES_ARCHIVEES`,
+  gardes `assertDemandeModifiable(ParToken)`, décompte d'impact).
+  Une rep archivée **sort du quotidien** (demandes, tableau de bord, sélecteurs
+  plan/scan, formulaire public — l'archivage ferme `isOpen`) et ses demandes
+  sont **gelées** : toutes les actions du back-office (garde posée dans
+  `lireIdModifiable`, donc impossible d'en oublier une), le placement, le scan
+  et les actions famille les refusent ; le **cron** ne les expire ni ne les
+  relance plus. **Rien n'est supprimé ni muté** → `/admin/stats` les garde
+  (badge « Archivée »), l'export CSV reste sur la ligne de la rep, les demandes
+  se relisent via `/admin/demandes?archives=1` (lecture seule), et désarchiver
+  restitue l'état d'avant (réservations fermées).
+  Décisions arrêtées avec Gautier : lecture seule plutôt que masquage total,
+  gel strict plutôt que simple masquage, **aucune** mutation automatique des
+  demandes en attente (juste un avertissement chiffré avant d'archiver).
+  Tests : `tests/admin/archive.test.ts` + cas ajoutés dans `cron` / `jauge` /
+  `creer` ; E2E `REP-06` (cycle complet archiver → absences → désarchiver).
+
 ## 🎟️ Espace client & partage d'une place (à construire)
 
 Objectif : permettre à une famille de **partager une place précise** à une copine

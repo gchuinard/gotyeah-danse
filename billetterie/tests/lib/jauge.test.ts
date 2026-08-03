@@ -277,6 +277,22 @@ describe('representationsOuvertes', () => {
     expect(await representationsOuvertes(db)).toEqual([])
   })
 
+  // Ceinture de sécurité de l'archivage : archiver ferme déjà isOpen, mais une
+  // rep archivée restée ouverte en base ne doit JAMAIS revenir côté public.
+  it('exclut les représentations ARCHIVÉES, même restées isOpen', async () => {
+    const active = await makeRep({ title: 'Active', isOpen: true })
+    const archivee = await makeRep({
+      title: 'Archivée',
+      isOpen: true,
+      archivedAt: new Date('2026-07-01T10:00:00Z'),
+      archivedBy: 'chef@ecole.fr',
+    })
+    const res = await representationsOuvertes(db)
+    expect(res).toHaveLength(1)
+    expect(res[0].id).toBe(active.id)
+    expect(res.some((r) => r.id === archivee.id)).toBe(false)
+  })
+
   it('propage le paramètre `now` au calcul de jauge', async () => {
     const rep = await makeRep({ isOpen: true })
     await makeBooking(rep.id, 'pending', 4, { expiresAt: new Date('2026-06-27T18:30:00Z') })

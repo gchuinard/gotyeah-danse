@@ -2,6 +2,10 @@
 // caisse. Tout est calculé à la volée (pas de table dédiée) : remplissage,
 // répartition des tailles de groupes, no-shows, et totaux encaissés par mode
 // de règlement (saisis au « marquer payée »).
+//
+// Les représentations ARCHIVÉES restent ici, signalées par un badge : c'est
+// exactement la raison d'être de l'archivage (vs la suppression) — la
+// comparaison par année n'aurait aucun sens sans les éditions passées.
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -373,6 +377,7 @@ export default async function StatsPage() {
         <details key={rep.id} className={styles.bloc}>
           <summary className={styles.blocSummary}>
             <span className={styles.blocTitre}>{rep.title}</span>
+            {rep.archivedAt && <span className={styles.badgeArchivee}>Archivée</span>}
             <span className={styles.date}>
               {dateHeureFr.format(rep.startsAt).replace(/(\d{1,2}):(\d{2})/, '$1h$2')}
             </span>

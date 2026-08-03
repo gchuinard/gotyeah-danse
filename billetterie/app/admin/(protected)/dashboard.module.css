@@ -17,6 +17,15 @@
   gap: 1rem;
 }
 
+/* Aucune représentation active (toutes archivées, ou base neuve). */
+.vide {
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid #e8ddd0;
+  border-radius: 10px;
+  color: var(--gris-chd, #7a7068);
+}
+
 .carte {
   display: flex;
   flex-direction: column;

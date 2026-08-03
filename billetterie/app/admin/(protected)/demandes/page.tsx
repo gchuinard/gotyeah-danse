@@ -4,11 +4,18 @@
 // searchParams (asynchrones en Next 16, GET, aucune mutation), tri
 // createdAt desc. Le statut « expirée » est AFFICHÉ dès que la date est
 // passée (status=pending mais expiresAt < maintenant), sans attendre le cron.
+//
+// ARCHIVES : par défaut la liste ne montre QUE les demandes des représentations
+// actives — c'est ce qui vide l'écran après le spectacle. `?archives=1` bascule
+// sur la vue miroir (uniquement les archivées), en LECTURE SEULE : la popup n'y
+// propose aucune action et le serveur les refuserait de toute façon (gel, cf.
+// lib/admin/archive.ts).
 
 import type { Prisma } from '@prisma/client'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { DEMANDES_ACTIVES, DEMANDES_ARCHIVEES } from '@/lib/admin/archive'
 import { ACTION_LABELS } from '@/lib/admin/events'
 import { euros, resumePaiement, type ResumePaiement } from '@/lib/admin/money'
 import { getTicketPrices } from '@/lib/admin/pricing'
@@ -137,6 +144,9 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   const statut = premier(params.statut)
   const paiement = premier(params.paiement) // '' | 'paye' | 'impaye'
   const q = premier(params.q).trim()
+  // Vue miroir « archives » : uniquement les demandes des représentations
+  // archivées, en lecture seule.
+  const archives = premier(params.archives) === '1'
   const ok = premier(params.ok)
   const err = premier(params.err)
   const now = new Date()
@@ -170,6 +180,8 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
     : []
 
   const where: Prisma.BookingWhereInput = {
+    // Périmètre d'abord : demandes des reps actives (défaut) ou archivées.
+    ...(archives ? DEMANDES_ARCHIVEES : DEMANDES_ACTIVES),
     ...(statut === 'expiree'
       ? { status: 'pending', expiresAt: { lte: now } }
       : statut
@@ -185,10 +197,16 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
     ...(rechercheOR.length ? { OR: rechercheOR } : {}),
   }
 
-  // Une seule représentation par an : sert juste de cible à l'export CSV.
-  const [representation, prices, demandes] = await Promise.all([
-    prisma.representation.findFirst({ orderBy: { startsAt: 'asc' }, select: { id: true } }),
+  // Une seule représentation ACTIVE par an : sert juste de cible à l'export CSV
+  // (l'export d'une représentation archivée se fait depuis /admin/representations).
+  const [representation, prices, nbArchivees, demandes] = await Promise.all([
+    prisma.representation.findFirst({
+      where: { archivedAt: null },
+      orderBy: { startsAt: 'asc' },
+      select: { id: true },
+    }),
     getTicketPrices(prisma),
+    prisma.booking.count({ where: DEMANDES_ARCHIVEES }),
     prisma.booking.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -218,15 +236,29 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
   return (
     <main className={styles.page}>
       <div className={styles.titre}>
-        <h1>Demandes</h1>
+        <h1>{archives ? 'Demandes archivées' : 'Demandes'}</h1>
         <div className={styles.titreActions}>
-          <Link className={styles.btnLien} href="/admin/demandes/nouvelle">
-            + Nouvelle demande
-          </Link>
-          {representation && (
-            <a className={styles.export} href={`/api/admin/export/${representation.id}`}>
-              Exporter en CSV
-            </a>
+          {archives ? (
+            <Link className={styles.btnLien} href="/admin/demandes">
+              ← Revenir aux demandes en cours
+            </Link>
+          ) : (
+            <>
+              <Link className={styles.btnLien} href="/admin/demandes/nouvelle">
+                + Nouvelle demande
+              </Link>
+              {representation && (
+                <a className={styles.export} href={`/api/admin/export/${representation.id}`}>
+                  Exporter en CSV
+                </a>
+              )}
+              {nbArchivees > 0 && (
+                <Link className={styles.lienArchives} href="/admin/demandes?archives=1">
+                  Voir les {nbArchivees} demande{nbArchivees > 1 ? 's' : ''} archivée
+                  {nbArchivees > 1 ? 's' : ''}
+                </Link>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -234,7 +266,16 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
       {ok && <p className={styles.bannerOk}>{ok}</p>}
       {err && <p className={styles.bannerErr}>{err}</p>}
 
-      <FiltresDemandes statut={statut} q={q} paiement={paiement} />
+      {archives && (
+        <p className={styles.bannerArchives}>
+          Représentations archivées — <strong>lecture seule</strong>{' '}: ces demandes sont gelées,
+          aucune action n&rsquo;est possible. Pour en modifier une, désarchive sa représentation
+          dans{' '}
+          <Link href="/admin/representations">Représentations</Link>.
+        </p>
+      )}
+
+      <FiltresDemandes statut={statut} q={q} paiement={paiement} archives={archives} />
 
       {demandes.length === 0 ? (
         <p className={styles.vide}>Aucune demande ne correspond à ces critères.</p>
@@ -288,6 +329,8 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                   childPriceCents: prices.childCents,
                   status: d.status,
                   statutLabel: LIBELLES[affichage] ?? d.status,
+                  // Vue archives = lecture seule : la popup n'affiche aucune action.
+                  figee: archives,
                   expiree,
                   paid: d.paidAt != null,
                   pmrCount: d.pmrCount,
@@ -380,15 +423,17 @@ export default async function DemandesPage({ searchParams }: { searchParams: Sea
                     <td>{d.status === 'pending' && d.expiresAt ? dateCourte.format(d.expiresAt) : '—'}</td>
                     <td>
                       <div className={styles.actions}>
-                        {(d.status === 'pending' || d.status === 'paid') && !expiree && (
-                          <Link
-                            className={styles.btnLien}
-                            href={avecRetour(`/admin/placement/${d.id}`)}
-                          >
-                            Placer
-                          </Link>
-                        )}
-                        {d.status === 'placed' && (
+                        {!archives &&
+                          (d.status === 'pending' || d.status === 'paid') &&
+                          !expiree && (
+                            <Link
+                              className={styles.btnLien}
+                              href={avecRetour(`/admin/placement/${d.id}`)}
+                            >
+                              Placer
+                            </Link>
+                          )}
+                        {!archives && d.status === 'placed' && (
                           <Link
                             className={styles.btnLien}
                             href={avecRetour(`/admin/placement/${d.id}?mode=deplacer`)}

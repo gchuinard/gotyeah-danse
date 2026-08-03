@@ -245,7 +245,9 @@ export default function ScanView({ representations, repId }: Props) {
           }
 
           const data = (await res.json()) as {
-            status: 'ok' | 'deja-scanne' | 'inconnu'
+            // 'archivee' = représentation clôturée entre-temps : rien à faire,
+            // l'entrée est simplement dépilée comme tout autre succès.
+            status: 'ok' | 'deja-scanne' | 'inconnu' | 'archivee'
             scannedAt: string | null
           }
 

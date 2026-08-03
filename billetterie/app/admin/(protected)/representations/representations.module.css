@@ -65,7 +65,8 @@
 }
 
 .badgeOpen,
-.badgeClosed {
+.badgeClosed,
+.badgeArchived {
   display: inline-block;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
@@ -81,6 +82,21 @@
 .badgeClosed {
   background: #efe9e1;
   color: #7a7068;
+}
+
+/* Archivée : ni ouverte ni fermée — un troisième état, volontairement neutre
+   (l'archive n'est pas une alerte). Le title porte la date et l'auteur. */
+.badgeArchived {
+  background: #e8ddd0;
+  color: #5c3d2e;
+  border: 1px dashed #b9a48c;
+  cursor: help;
+}
+
+/* Les lignes archivées restent lisibles mais visuellement en retrait : elles
+   sont reléguées en bas de tableau (cf. page.tsx). */
+.rowArchivee td {
+  opacity: 0.72;
 }
 
 .actions {

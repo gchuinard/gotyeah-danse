@@ -29,11 +29,13 @@ export async function computeJauge(db: Db, representationId: string, now = new D
   return seats - overrides - tickets - (holds._sum.partySize ?? 0)
 }
 
-// Représentations proposables sur le formulaire public : ouvertes, avec leur
-// jauge (le formulaire n'affiche que celles dont la jauge est > 0).
+// Représentations proposables sur le formulaire public : ouvertes ET non
+// archivées, avec leur jauge (le formulaire n'affiche que celles dont la jauge
+// est > 0). L'archivage force déjà isOpen=false ; le filtre `archivedAt` est la
+// ceinture de sécurité (édition manuelle en base, migration…).
 export async function representationsOuvertes(db: Db, now = new Date()) {
   const reps = await db.representation.findMany({
-    where: { isOpen: true },
+    where: { isOpen: true, archivedAt: null },
     orderBy: { startsAt: 'asc' },
   })
   return Promise.all(

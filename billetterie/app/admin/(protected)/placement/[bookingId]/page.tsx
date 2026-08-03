@@ -10,6 +10,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { MESSAGE_GELEE } from '@/lib/admin/archive'
 import { getSeatMap, toSeatStates, type SeatView } from '@/lib/admin/seat-map'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
@@ -71,7 +72,7 @@ export default async function PlacementPage({
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
-      representation: { select: { id: true, title: true, startsAt: true } },
+      representation: { select: { id: true, title: true, startsAt: true, archivedAt: true } },
       tickets: { select: { seatId: true } },
     },
   })
@@ -80,6 +81,18 @@ export default async function PlacementPage({
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>Demande introuvable</h1>
+        <Retour />
+      </div>
+    )
+  }
+
+  // Représentation archivée : on n'ouvre même pas le plan — sinon on choisirait
+  // des sièges pour rien, la validation étant refusée côté action (gel).
+  if (booking.representation.archivedAt) {
+    return (
+      <div className={styles.page}>
+        <h1 className={styles.title}>Placement — {booking.name}</h1>
+        <p className={styles.notice}>{MESSAGE_GELEE}</p>
         <Retour />
       </div>
     )

@@ -4,10 +4,14 @@
 // QU'ELLE EST EN ATTENTE (pending, non expirée). L'accès est protégé par le
 // token UUID de la page (obtenu via l'onglet « j'ai déjà une demande »,
 // email + téléphone). Une fois payée/placée : plus modifiable ici.
+//
+// Représentation ARCHIVÉE : la page reste consultable (la famille garde ses
+// billets), mais toute écriture est refusée — même gel que côté admin.
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { MESSAGE_GELEE_PUBLIC } from '@/lib/admin/archive'
 import { prisma } from '@/lib/db'
 import { computeJauge } from '@/lib/jauge'
 import { MAX_PARTY_SIZE } from '@/lib/public/limits'
@@ -53,8 +57,12 @@ export async function modifierDemande(input: {
 
   try {
     await prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.findUnique({ where: { publicToken: d.token } })
+      const booking = await tx.booking.findUnique({
+        where: { publicToken: d.token },
+        include: { representation: { select: { archivedAt: true } } },
+      })
       if (!booking) throw new Error('Demande introuvable.')
+      if (booking.representation.archivedAt) throw new Error(MESSAGE_GELEE_PUBLIC)
       if (booking.status !== 'pending' || (booking.expiresAt && booking.expiresAt <= now)) {
         throw new Error('Cette demande n’est plus modifiable (déjà réglée ou expirée).')
       }
@@ -93,8 +101,12 @@ export async function annulerDemande(token: string): Promise<ModifResult> {
   if (typeof token !== 'string' || !token) return { ok: false, error: 'Demande invalide.' }
   try {
     await prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.findUnique({ where: { publicToken: token } })
+      const booking = await tx.booking.findUnique({
+        where: { publicToken: token },
+        include: { representation: { select: { archivedAt: true } } },
+      })
       if (!booking) throw new Error('Demande introuvable.')
+      if (booking.representation.archivedAt) throw new Error(MESSAGE_GELEE_PUBLIC)
       if (booking.status !== 'pending') {
         throw new Error('Seule une demande en attente peut être annulée ici.')
       }

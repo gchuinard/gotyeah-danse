@@ -276,6 +276,17 @@ describe('creerBookingEnAttente', () => {
     expect(await prisma.booking.count()).toBe(0)
   })
 
+  // Archivée = clôturée. En pratique l'archivage force isOpen=false ; on teste
+  // ici la ceinture de sécurité : même laissée ouverte en base, une rep
+  // archivée n'accepte plus rien.
+  it('refuse une représentation archivée, même restée isOpen = true', async () => {
+    const rep = await creerRep({ isOpen: true, archivedAt: new Date('2026-07-01T10:00:00Z') })
+    const res = await creer(demande({ representationId: rep.id }), ACTOR)
+    if (!('error' in res)) throw new Error('erreur attendue')
+    expect(res.error).toContain('pas ouverte')
+    expect(await prisma.booking.count()).toBe(0)
+  })
+
   it('refuse si la jauge est insuffisante (et ne crée rien)', async () => {
     const rep = await creerRep()
     // Remplissage par un AUTRE email (sinon le blocage doublon précéderait la jauge).

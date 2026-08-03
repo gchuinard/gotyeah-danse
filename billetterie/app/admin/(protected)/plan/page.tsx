@@ -1,8 +1,8 @@
 // /admin/plan — vue plan de salle dédiée, multi-bénévoles.
 //
-// Server component : choisit la représentation (?rep=, défaut = première),
-// charge l'état du plan, et délègue l'interactif (polling 5 s, mode
-// blocages) au client component PlanView.
+// Server component : choisit la représentation (?rep=, défaut = première des
+// ACTIVES — les archivées ne sont plus proposées), charge l'état du plan, et
+// délègue l'interactif (polling 5 s, mode blocages) au client component PlanView.
 
 import type { Metadata } from 'next'
 
@@ -35,12 +35,22 @@ export default async function PlanPage({
   const { rep } = await searchParams
   const repParam = Array.isArray(rep) ? rep[0] : rep
 
-  const representations = await prisma.representation.findMany({
+  // Une seule requête : on filtre les archivées côté JS (2 représentations par
+  // an) pour pouvoir distinguer « base vide » de « tout est archivé ».
+  const toutes = await prisma.representation.findMany({
     orderBy: { startsAt: 'asc' },
-    select: { id: true, title: true, startsAt: true },
+    select: { id: true, title: true, startsAt: true, archivedAt: true },
   })
+  const representations = toutes.filter((r) => r.archivedAt === null)
   if (representations.length === 0) {
-    return <p>Aucune représentation en base — lancez le seed.</p>
+    return toutes.length === 0 ? (
+      <p>Aucune représentation en base — lancez le seed.</p>
+    ) : (
+      <p>
+        Toutes les représentations sont archivées — désarchivez-en une dans
+        « Représentations » pour retrouver son plan.
+      </p>
+    )
   }
 
   const selected = representations.find((r) => r.id === repParam) ?? representations[0]

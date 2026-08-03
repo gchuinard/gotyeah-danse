@@ -1,18 +1,23 @@
 // Gestion des représentations : liste, création, ouverture/fermeture des
-// réservations, suppression (bloquée dès qu'une demande existe).
+// réservations, archivage (clôture réversible) et suppression (bloquée dès
+// qu'une demande existe — l'archivage est la réponse à « je veux la sortir de
+// mes écrans sans rien perdre »).
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { demandesVivantesParRepresentation } from '@/lib/admin/archive'
 import { euros } from '@/lib/admin/money'
 import { getTicketPrices } from '@/lib/admin/pricing'
 import { requireSuperAdmin } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/db'
 import { ConfirmSubmit } from '../demandes/confirm-submit'
 import {
+  archiverRepresentation,
   basculerOuverture,
   creerRepresentation,
   definirPrixAction,
+  desarchiverRepresentation,
   supprimerRepresentation,
 } from './actions'
 import styles from './representations.module.css'
@@ -30,7 +35,29 @@ const dateFr = new Intl.DateTimeFormat('fr-FR', {
   minute: '2-digit',
 })
 
+// Date courte pour l'infobulle « archivée le … par … ».
+const dateCourteFr = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
 const premier = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+
+// Message de confirmation de l'archivage : on CHIFFRE l'impact (ce qui va être
+// gelé) avant de cliquer, puisque rien n'est muté et que tout est réversible.
+function messageArchivage(titre: string, demandes: number, vivantes: number): string {
+  const impact =
+    demandes === 0
+      ? 'Elle n’a aucune demande.'
+      : `Ses ${demandes} demande(s) sortiront de la liste et seront gelées${
+          vivantes > 0 ? `, dont ${vivantes} encore en cours (en attente / à placer / placée)` : ''
+        }.`
+  return `Archiver « ${titre} » ? ${impact} Rien n’est supprimé : stats, historique et export CSV restent disponibles, et tu peux la désarchiver à tout moment.`
+}
 
 export default async function RepresentationsPage({
   searchParams,
@@ -42,13 +69,18 @@ export default async function RepresentationsPage({
   const ok = premier(params.ok)
   const err = premier(params.err)
 
-  const [reps, prices] = await Promise.all([
+  const [repsBrutes, prices, vivantes] = await Promise.all([
     prisma.representation.findMany({
       orderBy: { startsAt: 'asc' },
       include: { _count: { select: { bookings: true, tickets: true } } },
     }),
     getTicketPrices(prisma),
+    demandesVivantesParRepresentation(prisma),
   ])
+  // Les archivées passent en bas de tableau (et en style estompé) : elles
+  // restent visibles — c'est ici qu'on les rouvre et qu'on les exporte.
+  const archivees = repsBrutes.filter((r) => r.archivedAt !== null)
+  const reps = [...repsBrutes.filter((r) => r.archivedAt === null), ...archivees]
   const enEuros = (c: number | null) => (c != null ? (c / 100).toFixed(2).replace('.', ',') : '')
   const prixAdulteEuros = enEuros(prices.adultCents)
   const prixEnfantEuros = enEuros(prices.childCents)
@@ -72,48 +104,91 @@ export default async function RepresentationsPage({
           </tr>
         </thead>
         <tbody>
-          {reps.map((rep) => (
-            <tr key={rep.id}>
-              <td className={styles.repTitle}>{rep.title}</td>
-              <td>{dateFr.format(rep.startsAt)}</td>
-              <td>
-                <span className={rep.isOpen ? styles.badgeOpen : styles.badgeClosed}>
-                  {rep.isOpen ? 'Ouvertes' : 'Fermées'}
-                </span>
-              </td>
-              <td>{rep._count.bookings}</td>
-              <td>{rep._count.tickets}</td>
-              <td className={styles.actions}>
-                <form action={basculerOuverture}>
-                  <input type="hidden" name="id" value={rep.id} />
-                  <button type="submit" className={styles.btn}>
-                    {rep.isOpen ? 'Fermer' : 'Ouvrir'}
-                  </button>
-                </form>
-                <Link className={styles.btn} href={`/admin/representations/${rep.id}`}>
-                  Modifier
-                </Link>
-                {rep._count.bookings === 0 ? (
-                  <form action={supprimerRepresentation}>
-                    <input type="hidden" name="id" value={rep.id} />
-                    <ConfirmSubmit
-                      className={`${styles.btn} ${styles.btnDanger}`}
-                      message={`Supprimer « ${rep.title} » ? Cette action est définitive.`}
+          {reps.map((rep) => {
+            const archiveeLe = rep.archivedAt
+            return (
+              <tr key={rep.id} className={archiveeLe ? styles.rowArchivee : undefined}>
+                <td className={styles.repTitle}>{rep.title}</td>
+                <td>{dateFr.format(rep.startsAt)}</td>
+                <td>
+                  {archiveeLe ? (
+                    <span
+                      className={styles.badgeArchived}
+                      title={`Archivée le ${dateCourteFr.format(archiveeLe)}${
+                        rep.archivedBy ? ` par ${rep.archivedBy}` : ''
+                      }`}
                     >
-                      Supprimer
-                    </ConfirmSubmit>
-                  </form>
-                ) : (
-                  <span
-                    className={styles.deleteHint}
-                    title="Une représentation avec des demandes ne peut pas être supprimée — ferme plutôt les réservations."
-                  >
-                    suppression bloquée
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
+                      Archivée
+                    </span>
+                  ) : (
+                    <span className={rep.isOpen ? styles.badgeOpen : styles.badgeClosed}>
+                      {rep.isOpen ? 'Ouvertes' : 'Fermées'}
+                    </span>
+                  )}
+                </td>
+                <td>{rep._count.bookings}</td>
+                <td>{rep._count.tickets}</td>
+                <td className={styles.actions}>
+                  {archiveeLe ? (
+                    <form action={desarchiverRepresentation}>
+                      <input type="hidden" name="id" value={rep.id} />
+                      <button type="submit" className={styles.btn}>
+                        Désarchiver
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <form action={basculerOuverture}>
+                        <input type="hidden" name="id" value={rep.id} />
+                        <button type="submit" className={styles.btn}>
+                          {rep.isOpen ? 'Fermer' : 'Ouvrir'}
+                        </button>
+                      </form>
+                      <Link className={styles.btn} href={`/admin/representations/${rep.id}`}>
+                        Modifier
+                      </Link>
+                      <form action={archiverRepresentation}>
+                        <input type="hidden" name="id" value={rep.id} />
+                        <ConfirmSubmit
+                          className={styles.btn}
+                          message={messageArchivage(
+                            rep.title,
+                            rep._count.bookings,
+                            vivantes.get(rep.id) ?? 0,
+                          )}
+                        >
+                          Archiver
+                        </ConfirmSubmit>
+                      </form>
+                    </>
+                  )}
+                  {/* Export accessible même archivée : c'est la raison d'être de
+                      l'archive (le tableau de bord, lui, ne la liste plus). */}
+                  <a className={styles.btn} href={`/api/admin/export/${rep.id}`}>
+                    Export CSV
+                  </a>
+                  {rep._count.bookings === 0 ? (
+                    <form action={supprimerRepresentation}>
+                      <input type="hidden" name="id" value={rep.id} />
+                      <ConfirmSubmit
+                        className={`${styles.btn} ${styles.btnDanger}`}
+                        message={`Supprimer « ${rep.title} » ? Cette action est définitive.`}
+                      >
+                        Supprimer
+                      </ConfirmSubmit>
+                    </form>
+                  ) : (
+                    <span
+                      className={styles.deleteHint}
+                      title="Une représentation avec des demandes ne peut pas être supprimée — archive-la plutôt (réversible, rien n'est perdu)."
+                    >
+                      suppression bloquée
+                    </span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
           {reps.length === 0 && (
             <tr>
               <td colSpan={6} className={styles.empty}>
@@ -123,6 +198,21 @@ export default async function RepresentationsPage({
           )}
         </tbody>
       </table>
+
+      <p className={styles.hint}>
+        <strong>Archiver</strong>{' '}= clôturer une représentation passée : ses demandes quittent la
+        liste des demandes, le tableau de bord et les sélecteurs plan / scan, et deviennent{' '}
+        <strong>gelées</strong>{' '}(plus aucune action possible). Rien n&rsquo;est supprimé —
+        statistiques, historique et export CSV restent disponibles, et un clic sur{' '}
+        <strong>Désarchiver</strong>{' '}remet tout comme avant (réservations fermées).
+        {archivees.length > 0 && (
+          <>
+            {' '}
+            Les demandes archivées se consultent en lecture seule depuis{' '}
+            <Link href="/admin/demandes?archives=1">la liste des demandes</Link>.
+          </>
+        )}
+      </p>
 
       <section className={styles.createCard}>
         <h2 className={styles.subtitle}>Tarifs</h2>

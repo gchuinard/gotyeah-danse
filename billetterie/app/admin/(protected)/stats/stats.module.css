@@ -72,6 +72,16 @@ details[open] > .blocSummary::before {
   font-weight: 600;
   color: var(--terre);
 }
+/* Édition clôturée : ses chiffres restent comparables d'une année sur l'autre. */
+.badgeArchivee {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px dashed #b9a48c;
+  background: #e8ddd0;
+  color: var(--terre);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
 .summaryMeta {
   margin-left: auto;
   font-size: 0.85rem;

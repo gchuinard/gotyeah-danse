@@ -57,9 +57,16 @@ async function main() {
 
   const count = parseCount(argv)
 
-  const reps = await prisma.representation.findMany({ orderBy: { startsAt: 'asc' } })
+  // Jamais sur une représentation archivée : ses demandes seraient créées
+  // directement gelées (et invisibles dans /admin/demandes).
+  const reps = await prisma.representation.findMany({
+    where: { archivedAt: null },
+    orderBy: { startsAt: 'asc' },
+  })
   if (reps.length === 0) {
-    throw new Error('Aucune représentation en base — lance d’abord le seed (pnpm db:seed).')
+    throw new Error(
+      'Aucune représentation active en base — lance d’abord le seed (pnpm db:seed), ou désarchive une représentation.',
+    )
   }
 
   const base = new Date('2026-06-08T09:00:00+02:00').getTime()

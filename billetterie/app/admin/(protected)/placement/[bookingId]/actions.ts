@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
+import { assertDemandeModifiable } from '@/lib/admin/archive'
 import { deplacerBillets, emettreBillets } from '@/lib/admin/bookings'
 import { logBookingEvent } from '@/lib/admin/events'
 import { requireAdmin } from '@/lib/auth/require-admin'
@@ -57,6 +58,9 @@ export async function validerPlacement(input: {
 
   let booking
   try {
+    // Représentation archivée → demande gelée : refus AVANT toute écriture
+    // (même message que la popup des demandes, cf. lib/admin/archive.ts).
+    await assertDemandeModifiable(prisma, bookingId)
     booking =
       mode === 'emission'
         ? await emettreBillets(prisma, bookingId, seatIds)

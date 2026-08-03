@@ -46,19 +46,35 @@ beforeEach(async () => {
   await db.representation.create({
     data: { id: 'rep-test', title: 'Samedi 20h30', startsAt: new Date('2026-06-20T18:30:00Z') },
   })
+  // Édition précédente, ARCHIVÉE : ses demandes sont gelées, le cron doit les
+  // ignorer (ne surtout pas relancer une famille sur un spectacle clôturé).
+  await db.representation.create({
+    data: {
+      id: 'rep-archivee',
+      title: 'Samedi 20h30 (2025)',
+      startsAt: new Date('2025-06-21T18:30:00Z'),
+      archivedAt: new Date('2025-07-01T09:00:00Z'),
+      archivedBy: 'chef@ecole.fr',
+    },
+  })
 })
 
 let compteur = 0
 async function creerBooking(
   status: string,
-  options: { ageJours?: number; expiresAt?: Date | null; remindedAt?: Date | null } = {},
+  options: {
+    ageJours?: number
+    expiresAt?: Date | null
+    remindedAt?: Date | null
+    representationId?: string
+  } = {},
 ) {
   compteur += 1
   const ageJours = options.ageJours ?? 1
   const createdAt = new Date(NOW.getTime() - ageJours * DAY_MS)
   return db.booking.create({
     data: {
-      representationId: 'rep-test',
+      representationId: options.representationId ?? 'rep-test',
       name: `Test ${compteur}`,
       email: `test${compteur}@example.com`,
       phone: '0600000000',
@@ -114,6 +130,18 @@ describe('expirerDemandes', () => {
     expect(await expirerDemandes(db, NOW)).toBe(1)
     expect(await expirerDemandes(db, NOW)).toBe(0)
   })
+
+  it('laisse INTACTE une pending échue d’une représentation ARCHIVÉE', async () => {
+    const gelee = await creerBooking('pending', {
+      representationId: 'rep-archivee',
+      expiresAt: new Date(NOW.getTime() - DAY_MS),
+    })
+    const active = await creerBooking('pending', { expiresAt: new Date(NOW.getTime() - DAY_MS) })
+
+    expect(await expirerDemandes(db, NOW)).toBe(1)
+    expect(await statutDe(gelee.id)).toBe('pending') // gelée par l'archivage
+    expect(await statutDe(active.id)).toBe('expired')
+  })
 })
 
 describe('relancerDemandes', () => {
@@ -148,6 +176,14 @@ describe('relancerDemandes', () => {
 
     const apres = await db.booking.findUniqueOrThrow({ where: { id: huitJours.id } })
     expect(apres.remindedAt).toBeInstanceOf(Date)
+  })
+
+  it('ne relance JAMAIS une demande d’une représentation ARCHIVÉE', async () => {
+    await creerBooking('pending', { representationId: 'rep-archivee', ageJours: 8 })
+    const send = senderOk()
+
+    expect(await relancerDemandes(db, send, NOW)).toEqual({ envoyees: 0, echecs: 0 })
+    expect(send).not.toHaveBeenCalled()
   })
 
   it('sender qui retourne false → remindedAt RESTE null, compté en échec', async () => {

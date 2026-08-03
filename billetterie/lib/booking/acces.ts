@@ -32,6 +32,11 @@ export async function trouverDemandeParCode(
 
 // Demande EN ATTENTE d'un email, pour renvoyer l'identifiant par mail.
 // (Une seule demande active par email — cf. détection de doublon.)
+//
+// Les représentations ARCHIVÉES sont exclues : renvoyer un identifiant de
+// demande pour un spectacle clôturé n'aurait aucun sens (la demande est gelée).
+// La CONSULTATION d'une demande archivée reste ouverte (trouverDemandeParCode) :
+// la famille garde l'accès à ses billets.
 export async function demandeEnAttentePourEmail(emailRaw: string, now = new Date()) {
   const email = emailRaw.trim().toLowerCase()
   if (!email) return null
@@ -40,6 +45,7 @@ export async function demandeEnAttentePourEmail(emailRaw: string, now = new Date
       email,
       status: 'pending',
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      representation: { is: { archivedAt: null } },
     },
     include: { representation: { select: { title: true, startsAt: true } } },
   })

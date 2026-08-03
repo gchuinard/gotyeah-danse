@@ -12,6 +12,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
+import { demandeGelee, MESSAGE_GELEE } from '@/lib/admin/archive'
 import {
   ajouterPaiement,
   annulerDemande,
@@ -101,9 +102,17 @@ function messageErreur(error: unknown): string {
 }
 
 // id de la demande, ou un ActionState d'erreur prêt à renvoyer.
-function lireId(formData: FormData): { id: string } | ActionState {
+//
+// C'est AUSSI le point de passage unique de la garde d'archive : toutes les
+// actions de ce fichier sont mutantes et commencent par cette lecture, donc
+// aucune ne peut oublier de refuser une demande gelée (représentation archivée,
+// cf. lib/admin/archive.ts). Si une action en LECTURE seule apparaît un jour,
+// elle devra lire l'id autrement — délibérément.
+async function lireIdModifiable(formData: FormData): Promise<{ id: string } | ActionState> {
   const parsed = idSchema.safeParse(formData.get('id'))
-  return parsed.success ? { id: parsed.data } : { error: 'Identifiant invalide.' }
+  if (!parsed.success) return { error: 'Identifiant invalide.' }
+  if (await demandeGelee(prisma, parsed.data)) return { error: MESSAGE_GELEE }
+  return { id: parsed.data }
 }
 
 // Rafraîchit les vues impactées par une action (sans navigation).
@@ -121,7 +130,7 @@ export async function ajouterPaiementAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
 
@@ -191,7 +200,7 @@ export async function supprimerPaiementAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   const pid = idSchema.safeParse(formData.get('paymentId'))
@@ -212,7 +221,7 @@ export async function definirPlacesOffertesAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   const parsed = freeSeatsSchema.safeParse(formData.get('freeSeats'))
@@ -233,7 +242,7 @@ export async function definirNombreEnfantsAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   const parsed = childCountSchema.safeParse(formData.get('childCount'))
@@ -261,7 +270,7 @@ export async function annulerPaiementAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   let res: Awaited<ReturnType<typeof annulerPaiement>>
@@ -287,7 +296,7 @@ export async function annoterAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   const parsed = annotationSchema.safeParse(formData.get('annotation'))
@@ -313,7 +322,7 @@ export async function rectifierPlacesAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   const parsed = placesSchema.safeParse(formData.get('places'))
@@ -354,7 +363,7 @@ export async function rembourserAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   const montant = montantSchema.safeParse(formData.get('montant'))
@@ -393,7 +402,7 @@ export async function prolongerAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   try {
@@ -411,7 +420,7 @@ export async function annulerAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
 
@@ -440,7 +449,7 @@ export async function renvoyerBilletsAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
 
@@ -480,7 +489,7 @@ export async function basculerRemiseAction(
   formData: FormData,
 ): Promise<ActionState> {
   const { email } = await requireAdmin()
-  const r = lireId(formData)
+  const r = await lireIdModifiable(formData)
   if (!('id' in r)) return r
   const id = r.id
   let nouveauMode: 'email' | 'papier' = 'email'
