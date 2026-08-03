@@ -30,6 +30,9 @@
 //  • Inputs de tarif : ils ont un aria-label (« Tarif adulte en euros ») qui
 //    PRIME sur le texte du <label> englobant (« Tarif adulte (en euros) ») pour
 //    le nom accessible → getByLabel cible l'aria-label.
+//  • getByRole({ name }) matche par SOUS-CHAÎNE insensible à la casse :
+//    « Archiver » matche donc aussi « Désarchiver ». Les deux boutons se
+//    ciblent avec { exact: true } (sinon toHaveCount(0) ne peut jamais passer).
 //  • Base partagée, série : la rep créée porte un titre UNIQUE (e2e-${Date.now()})
 //    et est laissée FERMÉE (donc absente du formulaire public) → inoffensive pour
 //    les specs suivantes. On ne touche jamais rep-samedi/rep-dimanche.
@@ -156,10 +159,16 @@ test.describe('Admin — représentations (super-admin)', () => {
     await page.getByLabel('Date et heure (heure de Paris)', { exact: true }).fill('2099-08-15T20:30')
     await page.getByRole('button', { name: 'Créer (réservations fermées)' }).click()
 
-    // État initial : active (badge « Fermées »), donc proposée partout.
     const l = () => ligne(page, titre)
+    // ⚠️ « Archiver » est une SOUS-CHAÎNE de « Désarchiver », et getByRole(name)
+    // matche par sous-chaîne insensible à la casse → { exact: true } obligatoire
+    // sur ces deux boutons, sinon l'assertion d'absence est toujours fausse.
+    const boutonArchiver = () => l().getByRole('button', { name: 'Archiver', exact: true })
+    const boutonDesarchiver = () => l().getByRole('button', { name: 'Désarchiver', exact: true })
+
+    // État initial : active (badge « Fermées »), donc proposée partout.
     await expect(l().getByText('Fermées')).toBeVisible()
-    await expect(l().getByRole('button', { name: 'Archiver' })).toBeVisible()
+    await expect(boutonArchiver()).toBeVisible()
     await expect(l().getByText('Archivée')).toHaveCount(0)
 
     await page.goto('/admin')
@@ -170,7 +179,7 @@ test.describe('Admin — représentations (super-admin)', () => {
     // ARCHIVER : ConfirmSubmit → ConfirmDialog (role=alertdialog) → Confirmer.
     // Le message chiffre l'impact et rappelle que rien n'est supprimé.
     await page.goto('/admin/representations')
-    await l().getByRole('button', { name: 'Archiver' }).click()
+    await boutonArchiver().click()
     const dialog = page.getByRole('alertdialog')
     await expect(dialog).toBeVisible()
     await expect(dialog.getByText(/Rien n’est supprimé/)).toBeVisible()
@@ -181,9 +190,9 @@ test.describe('Admin — représentations (super-admin)', () => {
     // seul apparaît aussi dans le badge et dans le pavé d'aide → strict mode).
     await expect(page.getByText(/sortent des écrans du quotidien/)).toBeVisible()
     await expect(l().getByText('Archivée')).toBeVisible()
-    await expect(l().getByRole('button', { name: 'Désarchiver' })).toBeVisible()
+    await expect(boutonDesarchiver()).toBeVisible()
     await expect(l().getByRole('button', { name: 'Ouvrir' })).toHaveCount(0)
-    await expect(l().getByRole('button', { name: 'Archiver' })).toHaveCount(0)
+    await expect(boutonArchiver()).toHaveCount(0)
     // L'export reste offert : c'est la raison d'être de l'archive vs la suppression.
     await expect(l().getByRole('link', { name: 'Export CSV' })).toBeVisible()
 
@@ -204,7 +213,7 @@ test.describe('Admin — représentations (super-admin)', () => {
     // DÉSARCHIVER : retour à « Fermées » (jamais de réouverture automatique des
     // ventes) → l'état net du test est exactement l'état de création.
     await page.goto('/admin/representations')
-    await l().getByRole('button', { name: 'Désarchiver' }).click()
+    await boutonDesarchiver().click()
     await expect(page.getByText(/désarchivée — réservations fermées/)).toBeVisible()
     await expect(l().getByText('Fermées')).toBeVisible()
     await expect(l().getByRole('button', { name: 'Ouvrir' })).toBeVisible()
