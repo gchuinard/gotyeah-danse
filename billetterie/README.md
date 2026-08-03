@@ -261,15 +261,33 @@ Ce que ça déploie :
 - la base SQLite vit sur le volume **`billetterie-data`** monté en `/data`
   (`DATABASE_URL=file:/data/prod.db`).
 
-Sauvegarde simple de la base :
+Sauvegarde ponctuelle de la base (avant une migration, p. ex.) :
 
 ```sh
 docker compose cp web:/data/prod.db ./backup-$(date +%F).db
 ```
 
-(Suffisant pour ce volume d'écritures ; pour un snapshot garanti cohérent,
-faire la copie à un moment calme ou via `sqlite3 prod.db ".backup ..."` si
-sqlite3 est installé sur l'hôte.)
+**Sauvegarde quotidienne automatique** : `scripts/backup-prod.sh`, lancé par le
+**cron de l'hôte** (pas par le service `cron` applicatif, qui ne monte que le
+volume de la base — ses sauvegardes vivraient sur le volume même qu'elles
+protègent). Le script prend un snapshot **cohérent** via `VACUUM INTO` (repli
+sur `docker compose cp` en cas d'échec), **vérifie** que le résultat est bien une
+base SQLite, le compresse dans `/home/pi/sauvegardes-billetterie/`, puis fait la
+**rotation** : les 14 dernières quotidiennes (`BACKUP_KEEP_DAYS` pour changer) et
+toutes celles du 1er du mois, gardées sans limite. Il ne supprime que ses propres
+fichiers `prod-*.db.gz` — jamais les sauvegardes manuelles `backup-*`.
+
+```sh
+# crontab -e (utilisateur pi) — 3h30 chaque nuit
+30 3 * * * /home/pi/sites/gotyeah-danse/billetterie/scripts/backup-prod.sh >> /var/log/billetterie-backup.log 2>&1
+```
+
+Restaurer une sauvegarde :
+
+```sh
+gunzip -c /home/pi/sauvegardes-billetterie/prod-AAAA-MM-JJ.db.gz > /tmp/restore.db
+docker compose cp /tmp/restore.db web:/data/prod.db && docker compose restart web
+```
 
 **Admins & rôles** : `ADMIN_EMAILS` de `.env.production` = les **super-admins
 garantis** (anti-lockout, modifiables uniquement par `docker compose up -d`).
