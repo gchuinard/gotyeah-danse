@@ -92,6 +92,89 @@ export default async function RepresentationsPage({
       {ok && <p className={styles.bannerOk}>{ok}</p>}
       {err && <p className={styles.bannerErr}>{err}</p>}
 
+      <section className={styles.createCard}>
+        <h2 className={styles.subtitle}>Nouvelle représentation</h2>
+        <form action={creerRepresentation} className={styles.createForm}>
+          <label className={styles.field}>
+            Titre
+            <input
+              className={styles.input}
+              type="text"
+              name="title"
+              placeholder="Samedi 20h30"
+              minLength={2}
+              maxLength={100}
+              required
+            />
+          </label>
+          <label className={styles.field}>
+            Date et heure (heure de Paris)
+            <input className={styles.input} type="datetime-local" name="startsAt" required />
+          </label>
+          <button type="submit" className={styles.btnPrimary}>
+            Créer (réservations fermées)
+          </button>
+        </form>
+        <p className={styles.hint}>
+          La représentation est créée <strong>fermée</strong>{' '}: elle n&rsquo;apparaît sur le
+          formulaire public qu&rsquo;une fois les réservations ouvertes.
+        </p>
+      </section>
+
+      <section className={styles.createCard}>
+        <h2 className={styles.subtitle}>Tarifs</h2>
+        <p className={styles.hint}>
+          {prices.adultCents != null || prices.childCents != null ? (
+            <>
+              Tarifs actuels :{' '}
+              <strong>{prices.adultCents != null ? `adulte ${euros(prices.adultCents)}` : 'adulte —'}</strong>
+              {' · '}
+              <strong>{prices.childCents != null ? `enfant ${euros(prices.childCents)}` : 'enfant —'}</strong>
+              . Montant dû d&apos;une demande = adultes × tarif adulte + enfants × tarif enfant
+              (places offertes déduites des enfants d&apos;abord).
+            </>
+          ) : (
+            <>
+              Aucun tarif défini : les montants dus ne sont pas calculés (saisie libre des
+              versements). Fixe les tarifs avant les ventes.
+            </>
+          )}
+        </p>
+        <form action={definirPrixAction} className={styles.createForm}>
+          <label className={styles.field}>
+            Tarif adulte (en euros)
+            <input
+              className={styles.input}
+              type="text"
+              name="prixAdulte"
+              inputMode="decimal"
+              placeholder="ex. 12"
+              defaultValue={prixAdulteEuros}
+              aria-label="Tarif adulte en euros"
+            />
+          </label>
+          <label className={styles.field}>
+            Tarif enfant (en euros)
+            <input
+              className={styles.input}
+              type="text"
+              name="prixEnfant"
+              inputMode="decimal"
+              placeholder="ex. 6"
+              defaultValue={prixEnfantEuros}
+              aria-label="Tarif enfant en euros"
+            />
+          </label>
+          <button type="submit" className={styles.btnPrimary}>
+            Enregistrer les tarifs
+          </button>
+        </form>
+        <p className={styles.hint}>
+          Laisse un champ vide puis enregistre pour effacer ce tarif. Les tarifs s’appliquent à
+          toutes les représentations.
+        </p>
+      </section>
+
       <table className={styles.table}>
         <thead>
           <tr>
@@ -192,7 +275,7 @@ export default async function RepresentationsPage({
           {reps.length === 0 && (
             <tr>
               <td colSpan={6} className={styles.empty}>
-                Aucune représentation — crée la première ci-dessous.
+                Aucune représentation — crée la première ci-dessus.
               </td>
             </tr>
           )}
@@ -213,89 +296,6 @@ export default async function RepresentationsPage({
           </>
         )}
       </p>
-
-      <section className={styles.createCard}>
-        <h2 className={styles.subtitle}>Tarifs</h2>
-        <p className={styles.hint}>
-          {prices.adultCents != null || prices.childCents != null ? (
-            <>
-              Tarifs actuels :{' '}
-              <strong>{prices.adultCents != null ? `adulte ${euros(prices.adultCents)}` : 'adulte —'}</strong>
-              {' · '}
-              <strong>{prices.childCents != null ? `enfant ${euros(prices.childCents)}` : 'enfant —'}</strong>
-              . Montant dû d&apos;une demande = adultes × tarif adulte + enfants × tarif enfant
-              (places offertes déduites des enfants d&apos;abord).
-            </>
-          ) : (
-            <>
-              Aucun tarif défini : les montants dus ne sont pas calculés (saisie libre des
-              versements). Fixe les tarifs avant les ventes.
-            </>
-          )}
-        </p>
-        <form action={definirPrixAction} className={styles.createForm}>
-          <label className={styles.field}>
-            Tarif adulte (en euros)
-            <input
-              className={styles.input}
-              type="text"
-              name="prixAdulte"
-              inputMode="decimal"
-              placeholder="ex. 12"
-              defaultValue={prixAdulteEuros}
-              aria-label="Tarif adulte en euros"
-            />
-          </label>
-          <label className={styles.field}>
-            Tarif enfant (en euros)
-            <input
-              className={styles.input}
-              type="text"
-              name="prixEnfant"
-              inputMode="decimal"
-              placeholder="ex. 6"
-              defaultValue={prixEnfantEuros}
-              aria-label="Tarif enfant en euros"
-            />
-          </label>
-          <button type="submit" className={styles.btnPrimary}>
-            Enregistrer les tarifs
-          </button>
-        </form>
-        <p className={styles.hint}>
-          Laisse un champ vide puis enregistre pour effacer ce tarif. Les tarifs s’appliquent à
-          toutes les représentations.
-        </p>
-      </section>
-
-      <section className={styles.createCard}>
-        <h2 className={styles.subtitle}>Nouvelle représentation</h2>
-        <form action={creerRepresentation} className={styles.createForm}>
-          <label className={styles.field}>
-            Titre
-            <input
-              className={styles.input}
-              type="text"
-              name="title"
-              placeholder="Samedi 20h30"
-              minLength={2}
-              maxLength={100}
-              required
-            />
-          </label>
-          <label className={styles.field}>
-            Date et heure (heure de Paris)
-            <input className={styles.input} type="datetime-local" name="startsAt" required />
-          </label>
-          <button type="submit" className={styles.btnPrimary}>
-            Créer (réservations fermées)
-          </button>
-        </form>
-        <p className={styles.hint}>
-          La représentation est créée <strong>fermée</strong>{' '}: elle n&rsquo;apparaît sur le
-          formulaire public qu&rsquo;une fois les réservations ouvertes.
-        </p>
-      </section>
     </main>
   )
 }

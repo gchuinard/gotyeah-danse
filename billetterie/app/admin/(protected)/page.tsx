@@ -86,7 +86,7 @@ export default async function DashboardPage() {
 
       {cartes.length === 0 && (
         <p className={styles.vide}>
-          Aucune représentation active. Crée-en une — ou désarchive-en une — dans{' '}
+          Aucune représentation active, crée-en une ou désarchive-en une dans{' '}
           <Link href="/admin/representations">Représentations</Link>.
         </p>
       )}
