@@ -26,6 +26,13 @@
   color: var(--gris-chd, #7a7068);
 }
 
+/* Le reset global (a { color: inherit }) rend "Représentations" invisible
+   comme lien dans ce texte gris : on le distingue explicitement. */
+.vide a {
+  color: var(--terre);
+  text-decoration: underline;
+}
+
 .carte {
   display: flex;
   flex-direction: column;
